@@ -51,7 +51,6 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
         <section className="py-20 md:py-32 bg-gradient-to-br from-primary/10 via-background to-background">
           <div className="container mx-auto text-center px-4">
             <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
@@ -71,7 +70,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Features Section */}
         <section id="features" className="py-16 md:py-24">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-bold text-center text-foreground mb-16">
@@ -93,7 +91,6 @@ export default function LandingPage() {
           </div>
         </section>
         
-        {/* How it works / visual section */}
         <section className="py-16 md:py-24 bg-secondary/50">
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -145,5 +142,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    

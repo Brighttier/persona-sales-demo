@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Briefcase, Users, CheckSquare, TrendingUp, ArrowRight, MessageSquare, UserPlus, Search, CalendarCheck } from "lucide-react"; // Added CalendarCheck
+import { Briefcase, Users, CheckSquare, TrendingUp, ArrowRight, MessageSquare, UserPlus, Search, CalendarCheck } from "lucide-react"; 
 import Link from "next/link";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Badge } from "@/components/ui/badge";
@@ -71,8 +71,7 @@ export default function RecruiterDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">12</div>
             <p className="text-xs text-muted-foreground">3 completed, 9 upcoming</p>
-            {/* Link to a dedicated interview schedule page if it exists for recruiters */}
-             <p className="text-xs text-muted-foreground mt-1">Manage via Job Listings</p>
+            <p className="text-xs text-muted-foreground mt-1">Manage via Job Listings</p>
           </CardContent>
         </Card>
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
@@ -83,7 +82,6 @@ export default function RecruiterDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">28 days</div>
             <p className="text-xs text-muted-foreground">Last 90 days</p>
-            {/* <Link href={`/dashboard/${role}/reports`} className="text-xs text-primary hover:underline mt-1 block">View Reports</Link> */}
             <p className="text-xs text-muted-foreground mt-1">Reports (Placeholder)</p>
           </CardContent>
         </Card>
@@ -110,7 +108,6 @@ export default function RecruiterDashboardPage() {
                     <p className="text-xs text-muted-foreground">{activity.time}</p>
                   </div>
                    {activity.jobId && <Button variant="link" size="xs" asChild className="ml-auto p-0 h-auto text-xs"><Link href={`/dashboard/${role}/job-listings`}>View Job</Link></Button>}
-                   {/* {activity.candidateId && <Button variant="link" size="xs" asChild className="ml-auto p-0 h-auto text-xs"><Link href={`/dashboard/${role}/candidates/${activity.candidateId}`}>View Candidate</Link></Button>} */}
                 </li>
               ))}
             </ul>
@@ -157,5 +154,3 @@ export default function RecruiterDashboardPage() {
     </div>
   );
 }
-
-    

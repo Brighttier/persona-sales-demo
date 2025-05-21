@@ -27,7 +27,7 @@ export default function AIInterviewSimulationPage() {
         <AlertCircle className="h-4 w-4 !text-primary" />
         <AlertTitle className="text-primary">Important Notice</AlertTitle>
         <AlertDescription className="text-primary/80">
-          This is an AI-driven interview simulation. For the best experience, ensure you have a working microphone and camera, and a quiet environment. Your video will be recorded for up to 30 seconds after the countdown.
+          This is an AI-driven interview simulation. For the best experience, ensure you have a working microphone and camera, and a quiet environment. The video recording will cover the entire interview session (max {MAX_SESSION_DURATION_MS / 60000} mins).
         </AlertDescription>
       </Alert>
 
@@ -36,4 +36,4 @@ export default function AIInterviewSimulationPage() {
   );
 }
 
-    
+const MAX_SESSION_DURATION_MS = 3 * 60 * 1000; // Keep in sync with client

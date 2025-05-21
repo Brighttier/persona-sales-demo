@@ -4,19 +4,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Label as ShadCNLabel } from "@/components/ui/label"; // Renamed to avoid conflict
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Bell, Palette, Shield, Zap, Users2, Link2, KeyRound, ListChecks } from "lucide-react";
+import { Save, Bell, Palette, Shield, Zap, Users2, Link2, KeyRound, ListChecks, PlusCircle, Edit } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel as RHFFormLabel, FormMessage, FormDescription as RHFFormDescription } from "@/components/ui/form"; // Renamed to avoid conflict
+import { Form, FormControl, FormField, FormItem, FormLabel as RHFFormLabel, FormMessage, FormDescription as RHFFormDescription } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const generalSettingsSchema = z.object({
   appName: z.string().min(1, "App name is required."),
@@ -42,17 +44,41 @@ const securitySettingsSchema = z.object({
   auditLogRetentionDays: z.enum(["30", "90", "180", "365"]),
 });
 
-// Mock data for User Roles tab
 const mockUserRoles = [
-  { id: "admin", name: "Administrator", description: "Full access to all system features and settings." },
-  { id: "recruiter", name: "Recruiter", description: "Manages job listings, candidates, and screening." },
-  { id: "hiring-manager", name: "Hiring Manager", description: "Reviews candidates, approves jobs, and manages interviews for their team." },
-  { id: "candidate", name: "Candidate", description: "Applies for jobs, manages profile, and tracks applications." },
+  { id: "admin", name: "Administrator", description: "Full access to all system features and settings.", permissions: ["manage_users", "manage_billing", "system_settings", "view_reports"] },
+  { id: "recruiter", name: "Recruiter", description: "Manages job listings, candidates, and screening.", permissions: ["manage_jobs", "manage_candidates", "ai_screening"] },
+  { id: "hiring-manager", name: "Hiring Manager", description: "Reviews candidates, approves jobs, and manages interviews for their team.", permissions: ["approve_jobs", "view_candidates", "manage_interviews"] },
+  { id: "candidate", name: "Candidate", description: "Applies for jobs, manages profile, and tracks applications.", permissions: ["apply_jobs", "manage_profile"] },
 ];
+
+const allPossiblePermissions = [
+    { id: "manage_users", label: "Manage Users" },
+    { id: "manage_billing", label: "Manage Billing & Subscriptions" },
+    { id: "system_settings", label: "Access System Settings" },
+    { id: "view_reports", label: "View System Reports" },
+    { id: "manage_jobs", label: "Manage Job Listings" },
+    { id: "manage_candidates", label: "Manage Candidate Pool" },
+    { id: "ai_screening", label: "Use AI Screening Tools" },
+    { id: "approve_jobs", label: "Approve Job Postings" },
+    { id: "view_candidates", label: "View Candidates for Own Jobs" },
+    { id: "manage_interviews", label: "Manage Interviews for Own Team" },
+    { id: "apply_jobs", label: "Apply for Jobs" },
+    { id: "manage_profile", label: "Manage Own Profile" },
+];
+
+const addRoleFormSchema = z.object({
+  roleName: z.string().min(3, "Role name must be at least 3 characters."),
+  roleDescription: z.string().min(10, "Description must be at least 10 characters.").optional(),
+});
+type AddRoleFormValues = z.infer<typeof addRoleFormSchema>;
 
 
 export default function SystemSettingsPage() {
   const { toast } = useToast();
+  const [isAddRoleDialogOpen, setIsAddRoleDialogOpen] = useState(false);
+  const [isViewPermissionsDialogOpen, setIsViewPermissionsDialogOpen] = useState(false);
+  const [selectedRoleForPermissions, setSelectedRoleForPermissions] = useState<(typeof mockUserRoles[0]) | null>(null);
+
 
   const generalForm = useForm<z.infer<typeof generalSettingsSchema>>({
     resolver: zodResolver(generalSettingsSchema),
@@ -86,6 +112,11 @@ export default function SystemSettingsPage() {
       auditLogRetentionDays: "90",
     },
   });
+
+  const addRoleForm = useForm<AddRoleFormValues>({
+    resolver: zodResolver(addRoleFormSchema),
+    defaultValues: { roleName: "", roleDescription: "" },
+  });
   
   function onGeneralSubmit(values: z.infer<typeof generalSettingsSchema>) {
     console.log("General Settings Saved (Placeholder):", values);
@@ -101,6 +132,18 @@ export default function SystemSettingsPage() {
     console.log("Security Settings Saved (Placeholder):", values);
     toast({ title: "Security Settings Saved", description: "Security configurations updated. (Placeholder)" });
   }
+
+  function onAddRoleSubmit(values: AddRoleFormValues) {
+    console.log("Add Role (Placeholder):", values);
+    toast({ title: "Role Added (Placeholder)", description: `Role "${values.roleName}" has been added.` });
+    setIsAddRoleDialogOpen(false);
+    addRoleForm.reset();
+  }
+
+  const openViewPermissionsDialog = (role: typeof mockUserRoles[0]) => {
+    setSelectedRoleForPermissions(role);
+    setIsViewPermissionsDialogOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -322,7 +365,7 @@ export default function SystemSettingsPage() {
                         </div>
                     </Card>
                     <Card className="p-4 shadow-sm">
-                        <Label htmlFor="hrisApiKey">HRIS System API Key (Placeholder)</Label>
+                        <ShadCNLabel htmlFor="hrisApiKey">HRIS System API Key (Placeholder)</ShadCNLabel>
                         <div className="flex items-center gap-2 mt-1">
                             <Input id="hrisApiKey" type="password" placeholder="Enter API Key for HRIS Integration" />
                             <Button onClick={() => toast({ title: "Placeholder Action", description: "Save HRIS API Key" })}><KeyRound className="mr-2 h-4 w-4"/>Save & Connect</Button>
@@ -343,7 +386,41 @@ export default function SystemSettingsPage() {
                         <CardTitle>User Roles & Permissions</CardTitle>
                         <CardDescription>Define and customize user roles and their permissions.</CardDescription>
                     </div>
-                    <Button variant="outline" onClick={() => toast({ title: "Placeholder Action", description: "Add New Role form would appear." })}><Users2 className="mr-2 h-4 w-4"/> Add New Role</Button>
+                     <Dialog open={isAddRoleDialogOpen} onOpenChange={setIsAddRoleDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" onClick={() => { addRoleForm.reset(); setIsAddRoleDialogOpen(true);}}>
+                                <PlusCircle className="mr-2 h-4 w-4"/> Add New Role
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Add New User Role</DialogTitle>
+                                <DialogDescription>Define a new role and its description.</DialogDescription>
+                            </DialogHeader>
+                            <Form {...addRoleForm}>
+                                <form onSubmit={addRoleForm.handleSubmit(onAddRoleSubmit)} className="space-y-4 py-4">
+                                    <FormField control={addRoleForm.control} name="roleName" render={({ field }) => (
+                                        <FormItem>
+                                            <RHFFormLabel>Role Name</RHFFormLabel>
+                                            <FormControl><Input placeholder="e.g., Content Moderator" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}/>
+                                    <FormField control={addRoleForm.control} name="roleDescription" render={({ field }) => (
+                                        <FormItem>
+                                            <RHFFormLabel>Role Description</RHFFormLabel>
+                                            <FormControl><Textarea placeholder="Briefly describe the responsibilities of this role." {...field} rows={3}/></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}/>
+                                    <DialogFooter className="pt-4">
+                                        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                                        <Button type="submit"><Save className="mr-2 h-4 w-4"/> Add Role</Button>
+                                    </DialogFooter>
+                                </form>
+                            </Form>
+                        </DialogContent>
+                    </Dialog>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -360,9 +437,11 @@ export default function SystemSettingsPage() {
                                     <TableCell className="font-medium">{role.name}</TableCell>
                                     <TableCell className="text-sm text-muted-foreground">{role.description}</TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="sm" onClick={() => toast({ title: "Placeholder Action", description: `View/Edit permissions for ${role.name}` })}>
-                                            <ListChecks className="mr-2 h-4 w-4"/> Permissions
-                                        </Button>
+                                        <DialogTrigger asChild>
+                                            <Button variant="ghost" size="sm" onClick={() => openViewPermissionsDialog(role)}>
+                                                <ListChecks className="mr-2 h-4 w-4"/> Permissions
+                                            </Button>
+                                        </DialogTrigger>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -372,8 +451,35 @@ export default function SystemSettingsPage() {
             </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog for Viewing Permissions */}
+      <Dialog open={isViewPermissionsDialogOpen} onOpenChange={setIsViewPermissionsDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+                <DialogTitle>Permissions for {selectedRoleForPermissions?.name}</DialogTitle>
+                <DialogDescription>Review and manage permissions for this role. (Editing is placeholder)</DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                {allPossiblePermissions.map(permission => (
+                    <div key={permission.id} className="flex items-center space-x-3 rounded-md border p-3 shadow-sm bg-secondary/40">
+                        <Checkbox 
+                            id={`perm-${permission.id}`} 
+                            checked={selectedRoleForPermissions?.permissions.includes(permission.id)}
+                            disabled // Placeholder: not editable
+                        />
+                        <ShadCNLabel htmlFor={`perm-${permission.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            {permission.label}
+                        </ShadCNLabel>
+                    </div>
+                ))}
+                {allPossiblePermissions.length === 0 && <p>No system permissions defined.</p>}
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="outline">Close</Button></DialogClose>
+                <Button type="button" onClick={() => toast({title: "Placeholder Action", description: "Permissions would be saved."})}><Save className="mr-2 h-4 w-4"/> Save Changes (Placeholder)</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-    

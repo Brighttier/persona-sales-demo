@@ -93,7 +93,7 @@ export default function CandidateApplicationsPage() {
           <TabsTrigger value="all">All ({allApplications.length})</TabsTrigger>
           <TabsTrigger value="archived">Archived ({archivedApplications.length})</TabsTrigger>
         </TabsList>
-        <Card className="shadow-lg"> {/* Wrap TabsContent in Card for consistent styling */}
+        <Card className="shadow-lg">
           <TabsContent value="active" className="m-0">
             <CardContent className="p-0">
              {renderTable(activeApplications)}
@@ -130,5 +130,3 @@ export default function CandidateApplicationsPage() {
     </div>
   );
 }
-
-    

@@ -145,7 +145,7 @@ export default function JobApplicationPage({ params }: { params: { id: string } 
     setIsSubmitting(true);
     console.log("Application Data:", data);
     if (data.resume && data.resume.length > 0) {
-      await handleResumeUpload(data.resume[0]);
+      // await handleResumeUpload(data.resume[0]); // Called directly in onChange of input for now
     }
     if (videoBlobUrl) {
       console.log("Video Recorded URL:", videoBlobUrl);
@@ -231,7 +231,7 @@ export default function JobApplicationPage({ params }: { params: { id: string } 
                         onChange={(e) => {
                           onChange(e.target.files);
                           if (e.target.files && e.target.files.length > 0) {
-                            // handleResumeUpload(e.target.files[0]); // Moved to onSubmit
+                            handleResumeUpload(e.target.files[0]); 
                           }
                         }}
                         {...rest} 
@@ -282,14 +282,13 @@ export default function JobApplicationPage({ params }: { params: { id: string } 
                 )}
               />
 
-              {/* Video Introduction Section */}
               <Card className="mt-6 bg-secondary/30 shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-lg">10-Second Video Introduction (Optional)</CardTitle>
                   <CardDescription>Record a short video to introduce yourself.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <video ref={videoRef} controls={isVideoRecorded && !!videoBlobUrl} src={videoBlobUrl || undefined} className={cn("w-full rounded-md bg-muted", !isVideoRecorded && !isRecording && !countdown && "hidden", isRecording && "aspect-video")} playsInline muted={!isVideoRecorded || !videoBlobUrl}></video>
+                  <video ref={videoRef} controls={isVideoRecorded && !!videoBlobUrl} src={videoBlobUrl || undefined} className={cn("w-full rounded-md bg-muted shadow-inner", !isVideoRecorded && !isRecording && !countdown && "hidden", isRecording && "aspect-video")} playsInline muted={!isVideoRecorded || !videoBlobUrl}></video>
                   
                   {countdown !== null && (
                     <div className="text-center text-4xl font-bold text-primary">{countdown}</div>
@@ -334,5 +333,3 @@ export default function JobApplicationPage({ params }: { params: { id: string } 
     </div>
   );
 }
-
-    

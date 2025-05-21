@@ -143,8 +143,7 @@ export default function CandidateProfilePage() {
         // This is a mock update. In a real app, you'd update the backend
         // and then potentially re-fetch user or update context from response.
         const updatedUser = { ...user, name: data.fullName };
-        login(user.role); // This re-sets user from DEMO_USERS, so we need a proper update mechanism
-                           // For now, it's a simplification.
+        login(user.role); 
     }
 
     setIsSubmitting(false);
@@ -184,8 +183,8 @@ export default function CandidateProfilePage() {
               className="absolute top-4 right-4 bg-background/80 hover:bg-background"
               onClick={() => {
                   setIsEditing(!isEditing);
-                  if(isEditing) form.handleSubmit(onSubmit)(); // Save if going from editing to not
-                  else if(user) resetFormValues(user); // Reset to original if canceling edit
+                  if(isEditing) form.handleSubmit(onSubmit)(); 
+                  else if(user) resetFormValues(user); 
                 }}
               disabled={isSubmitting || isAiProcessing}
             >
@@ -214,7 +213,6 @@ export default function CandidateProfilePage() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Basic Info */}
           <Card className="shadow-lg">
             <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -235,7 +233,6 @@ export default function CandidateProfilePage() {
             </CardContent>
           </Card>
           
-          {/* Resume */}
           <Card className="shadow-lg">
             <CardHeader><CardTitle>Resume</CardTitle><CardDescription>Upload your latest resume. Our AI can help enrich your profile based on it.</CardDescription></CardHeader>
             <CardContent>
@@ -251,7 +248,6 @@ export default function CandidateProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Summary */}
           <Card className="shadow-lg">
             <CardHeader><CardTitle>Professional Summary</CardTitle></CardHeader>
             <CardContent>
@@ -260,7 +256,6 @@ export default function CandidateProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Skills */}
           <Card className="shadow-lg">
             <CardHeader><CardTitle>Skills</CardTitle></CardHeader>
             <CardContent>
@@ -277,7 +272,6 @@ export default function CandidateProfilePage() {
             </CardContent>
           </Card>
           
-          {/* Experience */}
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Work Experience</CardTitle>
@@ -300,7 +294,6 @@ export default function CandidateProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Education */}
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Education</CardTitle>
@@ -334,5 +327,3 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
-
-    

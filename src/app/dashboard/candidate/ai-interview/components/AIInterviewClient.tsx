@@ -534,7 +534,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
            {isSessionRecordingActive && <p className="text-sm text-primary pt-1">Question {currentInterviewTurn + 1} of {MAX_INTERVIEW_TURNS + 1}</p>}
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
+          <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden relative shadow-inner">
             <video ref={videoPreviewRef} className="w-full h-full object-cover transform scale-x-[-1]" playsInline autoPlay muted />
             {!isSessionRecordingActive && conversationSubStage !== "countdown" && !isLoadingInitial && conversationSubStage !== "preparingStream" && videoPreviewRef.current?.srcObject === null && <Camera className="absolute h-24 w-24 text-muted-foreground" />}
             {conversationSubStage === "countdown" && countdown !== null && (
@@ -602,7 +602,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   return (
     <>
       {renderConsentDialog()}
-      {speechApiError && <Alert variant="destructive" className="mb-4"><AlertDescription>{speechApiError}</AlertDescription></Alert>}
+      {speechApiError && <Alert variant="destructive" className="mb-4 shadow-lg"><AlertDescription>{speechApiError}</AlertDescription></Alert>}
       
       {(mainStage === "loadingInitialMessage" || mainStage === "conversation" || mainStage === "loadingFeedback") && renderInterviewContent()}
       {mainStage === "loadingFeedback" && !feedbackResult && (
@@ -615,5 +615,3 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     </>
   );
 }
-
-    

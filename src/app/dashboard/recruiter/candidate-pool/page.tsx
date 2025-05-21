@@ -89,7 +89,6 @@ export default function CandidatePoolPage() {
             </CardContent>
             <CardFooter className="grid grid-cols-2 gap-2 p-4 border-t">
               <Button variant="outline" size="sm" asChild>
-                 {/* Link to a detailed candidate profile page, not built in this step */}
                 <Link href={`/dashboard/${role}/candidate-pool`}>
                   <Eye className="mr-1.5 h-4 w-4" /> View Profile
                 </Link>
@@ -116,5 +115,3 @@ export default function CandidatePoolPage() {
     </div>
   );
 }
-
-    

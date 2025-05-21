@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowRight, Briefcase, CalendarCheck, Lightbulb, UserCircle2, BotMessageSquare } from "lucide-react"; // Added BotMessageSquare
+import { ArrowRight, Briefcase, CalendarCheck, Lightbulb, UserCircle2, BotMessageSquare } from "lucide-react"; 
 import Link from "next/link";
 import Image from "next/image";
 // Placeholder for AI flow import
@@ -204,5 +204,3 @@ export default function CandidateDashboardPage() {
     </div>
   );
 }
-
-    
