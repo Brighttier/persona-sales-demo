@@ -4,6 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, Users, TrendingUp, Clock, Target, CheckCircle, PieChart as PieIcon } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { Badge } from "@/components/ui/badge"; // Added import
 
 const hiringFunnelData = [
   { stage: 'Applications', count: 500, fill: 'hsl(var(--chart-1))' },
