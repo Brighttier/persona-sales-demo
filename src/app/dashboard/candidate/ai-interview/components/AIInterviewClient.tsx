@@ -74,6 +74,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
   useEffect(() => {
     const loadVoices = () => {
+      if (!('speechSynthesis' in window)) return;
       const voices = speechSynthesis.getVoices();
       if (voices.length > 0) {
         setAvailableVoices(voices);
@@ -84,11 +85,25 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         if (!preferredVoice) preferredVoice = voices.find(v => v.lang === 'en-US');
         if (!preferredVoice) preferredVoice = voices.find(v => v.lang.startsWith('en-'));
         setSelectedVoice(preferredVoice || voices[0] || null);
+      } else {
+        // This case might indicate an issue or that voices haven't loaded yet.
+        // `onvoiceschanged` should eventually populate this.
+        setSelectedVoice(null); 
       }
     };
-    speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-    return () => { speechSynthesis.onvoiceschanged = null; };
+    
+    if ('speechSynthesis' in window) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices(); // Initial attempt to load voices
+    } else {
+        setSpeechApiError("Your browser does not support Text-to-Speech. Mira will not be able to speak.");
+    }
+
+    return () => { 
+        if ('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = null; 
+        }
+    };
   }, []);
 
   const speak = useCallback((text: string, onEndCallback?: () => void) => {
@@ -98,6 +113,15 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       onEndCallback?.(); 
       return;
     }
+
+    if (availableVoices.length === 0 && !selectedVoice) {
+      const noVoiceMessage = "No TTS voices available in your browser. Mira cannot speak.";
+      setSpeechApiError(noVoiceMessage);
+      toast({ variant: "destructive", title: "TTS Voices Unavailable", description: noVoiceMessage });
+      onEndCallback?.(); 
+      return;
+    }
+
     if (speechSynthesis.speaking) speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
@@ -111,16 +135,23 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       utteranceRef.current = null;
       onEndCallback?.();
     };
-    utterance.onerror = (event) => {
-      console.error("SpeechSynthesis Error:", event);
-      setSpeechApiError(`TTS Error: ${event.error}`);
-      toast({ variant: "destructive", title: "TTS Error", description: "Could not play Mira's voice."});
+    utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+      console.error("SpeechSynthesis Error Event (see details in browser console):", event);
+      const errorCode = event.error; // This should be a string like 'synthesis-failed'
+      let detailedMessage = "Mira could not speak. Please check your browser console for 'SpeechSynthesis Error Event' details.";
+      if (errorCode) {
+        detailedMessage = `Mira could not speak (Error code: ${errorCode}). Check console for details.`;
+      }
+      
+      setSpeechApiError(detailedMessage);
+      toast({ variant: "destructive", title: "Text-to-Speech Error", description: detailedMessage});
+      
       setIsMiraCurrentlySpeaking(false);
       utteranceRef.current = null;
-      onEndCallback?.(); 
+      onEndCallback?.();
     };
     speechSynthesis.speak(utterance);
-  }, [toast, selectedVoice]);
+  }, [toast, selectedVoice, availableVoices]);
 
   const cleanupStreamAndRecorders = useCallback(() => {
     if (streamRef.current) {
@@ -130,7 +161,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
     
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.stop(); // This will trigger onstop if setup
+      mediaRecorderRef.current.stop(); 
     }
     mediaRecorderRef.current = null;
     setIsSessionRecordingActive(false);
@@ -162,10 +193,17 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     
     recognition.onerror = (event) => {
       console.error('SpeechRecognition Error:', event.error);
-      setSpeechApiError(`STT Error: ${event.error}`);
-      if (event.error === 'no-speech') toast({ variant: "destructive", title: "No Speech Detected" });
-      else if (event.error === 'audio-capture') toast({ variant: "destructive", title: "Microphone Error" });
-      else if (event.error !== 'aborted') toast({ variant: "destructive", title: "Speech Recognition Error" });
+      let errorMsg = `STT Error: ${event.error}`;
+      if (event.error === 'no-speech') {
+        toast({ variant: "destructive", title: "No Speech Detected", description: "Please ensure your microphone is working and you are speaking clearly." });
+        errorMsg = "No speech was detected by the STT service.";
+      } else if (event.error === 'audio-capture') {
+        toast({ variant: "destructive", title: "Microphone Error", description: "Could not capture audio. Check microphone permissions." });
+         errorMsg = "STT could not capture audio. Check microphone permissions.";
+      } else if (event.error !== 'aborted') {
+        toast({ variant: "destructive", title: "Speech Recognition Error", description: `An error occurred: ${event.error}` });
+      }
+      setSpeechApiError(errorMsg);
       setIsCandidateListeningActive(false);
     };
     recognition.onresult = (event) => {
@@ -189,14 +227,14 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         if (videoPreviewRef.current) {
             videoPreviewRef.current.srcObject = streamRef.current;
-            videoPreviewRef.current.muted = true;
+            videoPreviewRef.current.muted = true; // Mute preview to avoid feedback loop
             videoPreviewRef.current.play().catch(e => console.error("Preview play error", e));
         }
         
         mediaRecorderRef.current = new MediaRecorder(streamRef.current);
         recordedChunksRef.current = [];
         mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
-        mediaRecorderRef.current.onstop = () => { // Important for final blob
+        mediaRecorderRef.current.onstop = () => { 
           const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
           setSessionVideoBlob(blob);
         };
@@ -210,13 +248,16 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
               clearInterval(countdownInterval);
               setConversationSubStage("miraSpeaking");
               const textToSpeak = currentInterviewTurn === 0 ? `${aiGreeting} ${currentAiQuestion}` : currentAiQuestion;
+              
+              // Start MediaRecorder just before Mira speaks (or at the beginning of the countdown if preferred)
+              if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "recording") {
+                 mediaRecorderRef.current.start(1000); // Start video recording
+                 setIsSessionRecordingActive(true);
+              }
+              
               speak(textToSpeak || "Error: No question to speak.", () => { // After Mira finishes speaking
-                if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "recording") {
-                   mediaRecorderRef.current.start(1000); // Start video recording
-                   setIsSessionRecordingActive(true);
-                }
                 if (speechRecognitionRef.current && !isCandidateListeningActive) {
-                   speechRecognitionRef.current.start(); // Start STT
+                   speechRecognitionRef.current.start(); // Start STT for candidate's answer
                 }
                 setConversationSubStage("sessionRecording");
                 if (currentInterviewTurn === 0) { // Start overall timer only once
@@ -233,12 +274,14 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         }, 1000);
       } catch (err) {
         console.error("Error accessing media devices.", err);
-        toast({ variant: "destructive", title: "Camera/Mic Error", description: "Please check permissions." });
+        toast({ variant: "destructive", title: "Camera/Mic Error", description: "Please check permissions and ensure no other app is using them." });
         setConversationSubStage("preparingStream"); // Revert to allow retry or reset
+        setSpeechApiError("Failed to access camera/microphone. Please check permissions.");
       }
     } else {
       toast({ variant: "destructive", title: "Unsupported Browser", description: "Media recording not supported." });
       setConversationSubStage("preparingStream");
+      setSpeechApiError("Media recording (camera/microphone) is not supported in this browser.");
     }
   }, [toast, initializeSpeechRecognition, mainStage, conversationSubStage, currentInterviewTurn, aiGreeting, currentAiQuestion, speak, isCandidateListeningActive]);
 
@@ -259,7 +302,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           setCurrentAiQuestion(result.firstQuestion);
           setAccumulatedInterviewTranscript(prev => `${prev}Mira: ${result.aiGreeting} ${result.firstQuestion}\n\n`);
           setMainStage("conversation");
-          setConversationSubStage("preparingStream"); // Ready to start media/countdown
+          setConversationSubStage("preparingStream"); 
           toast({ title: "Mira is ready!", description: "Your AI interviewer has joined." });
         } catch (error) {
           console.error("Error fetching initial AI message:", error);
@@ -269,13 +312,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           setAiGreeting(fallbackGreeting); setCurrentAiQuestion(fallbackQuestion);
           setAccumulatedInterviewTranscript(prev => `${prev}Mira: ${fallbackGreeting} ${fallbackQuestion}\n\n`);
           setMainStage("conversation"); setConversationSubStage("preparingStream");
+          setSpeechApiError("Failed to load initial AI message.");
         }
       };
       fetchInitialMessage();
     }
   }, [mainStage, aiGreeting, currentAiQuestion, jobContext, toast]);
 
-  // Effect to trigger media/countdown once initial message is loaded
   useEffect(() => {
     if (mainStage === "conversation" && conversationSubStage === "preparingStream" && aiGreeting && currentAiQuestion) {
         startMediaAndCountdown();
@@ -310,15 +353,16 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         setCurrentAnswerTranscript(""); 
         
         setConversationSubStage("miraSpeaking");
-        speak(result.nextQuestion, () => { // After Mira finishes speaking follow-up
+        speak(result.nextQuestion, () => { 
             if (speechRecognitionRef.current && !isCandidateListeningActive) {
-                speechRecognitionRef.current.start(); // Restart STT for next answer
+                speechRecognitionRef.current.start(); 
             }
             setConversationSubStage("sessionRecording");
         });
       } catch (error) {
         console.error("Error fetching follow-up question:", error);
         toast({ variant: "destructive", title: "AI Error", description: "Could not get next question. Finishing interview." });
+        setSpeechApiError("Failed to get the next question from AI.");
         handleFinishInterview();
       }
     } else {
@@ -335,30 +379,26 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     if (speechRecognitionRef.current && isCandidateListeningActive) {
         speechRecognitionRef.current.stop();
     }
-    // Ensure STT is stopped before stopping media recorder
-    // Add a small delay if necessary, or rely on mediaRecorderRef.current.onstop
-    
-    setMainStage("loadingFeedback"); // Move this before mediaRecorder.stop if onstop handles submission
+        
+    setMainStage("loadingFeedback"); 
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         mediaRecorderRef.current.onstop = async () => { 
             const finalBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-            setSessionVideoBlob(finalBlob); // Ensure state is updated before submit
-            // Ensure accumulated transcript has the final answer if not yet added
-            // This state update might not be immediate, so pass transcript directly
+            setSessionVideoBlob(finalBlob); 
             let finalTranscript = accumulatedInterviewTranscript;
             if (currentAnswerTranscript.trim() && !finalTranscript.endsWith("Candidate: "+currentAnswerTranscript.trim()+"\n\n")) {
                  finalTranscript += `Candidate: ${currentAnswerTranscript || "(No audible answer provided for last question)"}\n\n`;
-                 setAccumulatedInterviewTranscript(finalTranscript); // update state for UI if needed
+                 setAccumulatedInterviewTranscript(finalTranscript); 
             }
             await submitForFinalFeedback(finalBlob, finalTranscript);
         };
         mediaRecorderRef.current.stop();
     } else if (sessionVideoBlob) { 
-        // If already stopped by timer and blob exists
         await submitForFinalFeedback(sessionVideoBlob, accumulatedInterviewTranscript);
     } else {
-        toast({variant: "destructive", title: "Recording Error", description: "No video to submit."});
+        toast({variant: "destructive", title: "Recording Error", description: "No video to submit. Please try again."});
+        setSpeechApiError("No video recording was available to submit for feedback.");
         resetFullInterview(); 
         return;
     }
@@ -372,6 +412,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       toast({ variant: "destructive", title: "No Video Recorded", description: "Cannot submit feedback without a video." });
       setMainStage("conversation"); 
       setConversationSubStage("preparingStream"); 
+      setSpeechApiError("Submission failed: No video was recorded.");
       return;
     }
     
@@ -395,18 +436,20 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       reader.onerror = () => {
         toast({ variant: "destructive", title: "File Read Error", description: "Could not process video for submission." });
         setMainStage("conversation"); setConversationSubStage("preparingStream");
+        setSpeechApiError("Failed to read video data for submission.");
       }
     } catch (error) {
       console.error("Error getting feedback:", error);
       toast({ variant: "destructive", title: "Feedback Error", description: "Could not get AI feedback." });
       setMainStage("conversation"); 
       setConversationSubStage("preparingStream"); 
+      setSpeechApiError("Failed to get feedback from AI.");
     }
   };
   
   const resetFullInterview = () => {
     cleanupStreamAndRecorders();
-    if (speechSynthesis.speaking) speechSynthesis.cancel();
+    if ('speechSynthesis' in window && speechSynthesis.speaking) speechSynthesis.cancel();
     
     setAiGreeting(null); setCurrentAiQuestion(null);
     setCurrentAnswerTranscript(""); setAccumulatedInterviewTranscript("");
@@ -414,6 +457,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     setSessionVideoBlob(null);
     setCurrentInterviewTurn(0);
     setCountdown(null);
+    setSpeechApiError(null);
     setMainStage("loadingInitialMessage"); 
     setConversationSubStage("preparingStream");
   };
@@ -421,7 +465,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   useEffect(() => {
     return () => { 
       cleanupStreamAndRecorders();
-      if (speechSynthesis.speaking) speechSynthesis.cancel();
+      if ('speechSynthesis' in window && speechSynthesis.speaking) speechSynthesis.cancel();
     };
   }, [cleanupStreamAndRecorders]);
 
@@ -472,7 +516,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         <CardContent className="space-y-4">
           <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
             <video ref={videoPreviewRef} className="w-full h-full object-cover transform scale-x-[-1]" playsInline autoPlay muted />
-            {!isSessionRecordingActive && conversationSubStage !== "countdown" && !isLoadingInitial && conversationSubStage !== "preparingStream" && <Camera className="absolute h-24 w-24 text-muted-foreground" />}
+            {!isSessionRecordingActive && conversationSubStage !== "countdown" && !isLoadingInitial && conversationSubStage !== "preparingStream" && videoPreviewRef.current?.srcObject === null && <Camera className="absolute h-24 w-24 text-muted-foreground" />}
             {conversationSubStage === "countdown" && countdown !== null && (
               <div className="absolute text-6xl font-bold text-white bg-black/50 p-4 rounded-lg">{countdown}</div>
             )}
@@ -488,7 +532,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             )}
           </div>
           
-          {currentAnswerTranscript && (conversationSubStage === "sessionRecording" || isLoadingNextQuestion || conversationSubStage === "miraSpeaking" /* show transcript even if Mira is about to speak next */) && (
+          {currentAnswerTranscript && (conversationSubStage === "sessionRecording" || isLoadingNextQuestion || conversationSubStage === "miraSpeaking") && (
             <Card className="bg-secondary/50 p-3">
               <CardHeader className="p-1 pb-2"><CardTitle className="text-sm flex items-center"><UserCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Your Current Response (Live Transcript):</CardTitle></CardHeader>
               <CardContent className="p-1"><Textarea value={currentAnswerTranscript} readOnly rows={3} className="text-sm bg-background" placeholder="Your transcribed speech will appear here..."/></CardContent>
