@@ -269,21 +269,17 @@ export default function BillingPage() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full" onClick={() => openEditPlanDialog(plan)}>
-                    <Edit className="mr-2 h-4 w-4"/> Edit Plan
-                  </Button>
-                </DialogTrigger>
+                <Button variant="outline" className="w-full" onClick={() => openEditPlanDialog(plan)}>
+                  <Edit className="mr-2 h-4 w-4"/> Edit Plan
+                </Button>
               </CardFooter>
             </Card>
           ))}
         </CardContent>
          <CardFooter className="border-t pt-6">
-            <DialogTrigger asChild>
-              <Button onClick={() => { setEditingPlan(null); planForm.reset(); setIsAddPlanDialogOpen(true);}}>
-                <PlusCircle className="mr-2 h-4 w-4"/> Add New Plan
-              </Button>
-            </DialogTrigger>
+            <Button onClick={() => { setEditingPlan(null); planForm.reset(); setIsAddPlanDialogOpen(true);}}>
+              <PlusCircle className="mr-2 h-4 w-4"/> Add New Plan
+            </Button>
         </CardFooter>
       </Card>
 
