@@ -535,17 +535,17 @@ const sidebarMenuButtonVariants = cva(
 )
 
 interface SidebarMenuButtonProps
-  extends React.ComponentProps<"button">,
+  extends React.ComponentProps<"button">, // Changed to button for default case
     VariantProps<typeof sidebarMenuButtonVariants> {
   asChild?: boolean
   isActive?: boolean
   tooltip?: string | React.ComponentProps<typeof TooltipContent>
-  icon?: React.ReactNode // Added icon prop
+  icon?: React.ReactNode
 }
 
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement,
+  HTMLButtonElement, // Default ref type is button
   SidebarMenuButtonProps
 >(
   (
@@ -555,60 +555,65 @@ const SidebarMenuButton = React.forwardRef<
       variant = "default",
       size = "default",
       tooltip,
-      icon, // Destructure icon prop
-      children, // Children will be the label part
+      icon,
+      children: propChildren, // Renamed to avoid confusion
       className,
       ...props
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button"
-    const { isMobile, state } = useSidebar()
+    const { isMobile, state } = useSidebar();
+    const Comp = asChild ? Slot : "button";
 
-    const buttonContent = (
-      <>
-        {icon && <span className="flex-shrink-0">{icon}</span>}
-        <span className="flex-grow truncate">{children}</span>
-      </>
-    );
-    
+    let elementToRender;
 
-    const button = (
-      <Comp
-        ref={ref}
-        data-sidebar="menu-button"
-        data-size={size}
-        data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...props}
-      >
-        {buttonContent}
-      </Comp>
-    )
+    const commonProps = {
+      "data-sidebar": "menu-button",
+      "data-size": size,
+      "data-active": isActive,
+      className: cn(sidebarMenuButtonVariants({ variant, size, className })),
+      ...props,
+    };
+
+    if (asChild) {
+      // When asChild, propChildren is the <Link> component or other custom child.
+      // Slot merges commonProps onto this child.
+      // The child component (propChildren) is responsible for rendering its own content (icon, label).
+      // The `icon` prop of SidebarMenuButton is NOT used by Slot.
+      elementToRender = (
+        <Comp ref={ref as React.Ref<any>} {...commonProps}>
+          {propChildren}
+        </Comp>
+      );
+    } else {
+      // When not asChild, it's a <button>. propChildren is typically the label text.
+      // The `icon` prop IS used here.
+      elementToRender = (
+        <button ref={ref} {...commonProps}>
+          {icon && <span className="flex-shrink-0">{icon}</span>}
+          <span className="flex-grow truncate">{propChildren}</span>
+        </button>
+      );
+    }
 
     if (!tooltip) {
-      return button
+      return elementToRender;
     }
 
-    if (typeof tooltip === "string") {
-      tooltip = {
-        children: tooltip,
-      }
-    }
-
+    const tooltipContentProps = typeof tooltip === "string" ? { children: tooltip } : tooltip;
     return (
       <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipTrigger asChild>{elementToRender}</TooltipTrigger>
         <TooltipContent
           side="right"
           align="center"
           hidden={state !== "collapsed" || isMobile}
-          {...tooltip}
+          {...tooltipContentProps}
         />
       </Tooltip>
-    )
+    );
   }
-)
+);
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
 const SidebarMenuAction = React.forwardRef<
@@ -725,33 +730,39 @@ const SidebarMenuSubItem = React.forwardRef<
 SidebarMenuSubItem.displayName = "SidebarMenuSubItem"
 
 const SidebarMenuSubButton = React.forwardRef<
-  HTMLAnchorElement,
+  HTMLAnchorElement, // Default element is <a>
   React.ComponentProps<"a"> & {
     asChild?: boolean
     size?: "sm" | "md"
     isActive?: boolean
   }
->(({ asChild = false, size = "md", isActive, className, ...props }, ref) => {
-  const Comp = asChild ? Slot : "a"
+>(({ asChild = false, size = "md", isActive, className, children: propChildren, ...props }, ref) => {
+  const Comp = asChild ? Slot : "a";
 
-  return (
-    <Comp
-      ref={ref}
-      data-sidebar="menu-sub-button"
-      data-size={size}
-      data-active={isActive}
-      className={cn(
-        "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
-        "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
-        size === "sm" && "text-xs",
-        size === "md" && "text-sm",
-        "group-data-[collapsible=icon]:hidden",
-        className
-      )}
-      {...props}
-    />
-  )
-})
+  const commonProps = {
+    "data-sidebar": "menu-sub-button",
+    "data-size": size,
+    "data-active": isActive,
+    className: cn(
+      "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
+      "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
+      size === "sm" && "text-xs",
+      size === "md" && "text-sm",
+      "group-data-[collapsible=icon]:hidden",
+      className
+    ),
+    ...props,
+  };
+
+  if (asChild) {
+    // propChildren is the <Link> component. Slot merges commonProps onto it.
+    return <Comp ref={ref as React.Ref<any>} {...commonProps}>{propChildren}</Comp>;
+  }
+
+  // Default is 'a'. propChildren is the label text.
+  // Assuming sub-buttons don't have icons explicitly handled here.
+  return <Comp ref={ref} {...commonProps}>{propChildren}</Comp>;
+});
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
 export {
@@ -780,5 +791,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    

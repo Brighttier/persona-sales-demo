@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useGuidedTour } from "@/hooks/useGuidedTour";
@@ -18,6 +19,7 @@ export function TourStep() {
       highlightedElementRef.current.style.boxShadow = "";
       highlightedElementRef.current.style.position = "";
       highlightedElementRef.current.style.zIndex = "";
+      highlightedElementRef.current = null; // Reset ref after cleanup
     }
 
     if (isTourActive && currentStep) {
@@ -32,13 +34,14 @@ export function TourStep() {
       }
     }
 
-    // Cleanup on component unmount or when tour ends
+    // Cleanup on component unmount or when tour ends/step changes
     return () => {
       if (highlightedElementRef.current) {
         highlightedElementRef.current.style.outline = "";
         highlightedElementRef.current.style.boxShadow = "";
         highlightedElementRef.current.style.position = "";
         highlightedElementRef.current.style.zIndex = "";
+        highlightedElementRef.current = null; // Also reset here
       }
     };
   }, [isTourActive, currentStep]);

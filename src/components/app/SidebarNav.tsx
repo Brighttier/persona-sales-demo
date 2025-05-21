@@ -17,18 +17,18 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarSeparator,
-  useSidebar, // Import useSidebar
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from './Logo';
 import { Button } from '../ui/button';
 import { useGuidedTour } from '@/hooks/useGuidedTour';
-import { WandSparkles, ChevronsLeft } from 'lucide-react'; // Import ChevronsLeft
+import { WandSparkles, ChevronsLeft } from 'lucide-react';
 
 
 export function SidebarNav() {
   const { role } = useAuth();
   const pathname = usePathname();
-  const { open, isMobile, toggleSidebar } = useSidebar(); // Get open, isMobile, and toggleSidebar
+  const { open, isMobile, toggleSidebar } = useSidebar();
   const { startTour, isTourActive } = useGuidedTour();
   const navLinks = getNavLinksForRole(role);
 
@@ -47,10 +47,10 @@ export function SidebarNav() {
           <SidebarMenuSubButton
             asChild
             isActive={isActive(link.href)}
-            className="justify-start"
+            // className prop for variants is handled by SidebarMenuSubButton itself
           >
-            <Link href={link.href}>
-              {link.label}
+            <Link href={link.href} className="flex items-center gap-2 w-full"> {/* Ensure internal layout */}
+              <span className="truncate">{link.label}</span>
             </Link>
           </SidebarMenuSubButton>
         </SidebarMenuSubItem>
@@ -62,12 +62,13 @@ export function SidebarNav() {
         <SidebarMenuButton
           asChild
           isActive={isActive(link.href)}
-          className="justify-start"
-          icon={<link.icon />} 
+          // className for variants handled by SidebarMenuButton
           tooltip={link.label}
+          // icon prop is NOT used by SidebarMenuButton when asChild is true
         >
-          <Link href={link.href}>
-            {open && link.label} 
+          <Link href={link.href} className="flex items-center gap-2 w-full"> {/* Ensure internal layout */}
+            {link.icon && <link.icon />} {/* Icon rendered inside Link */}
+            {open && <span className="truncate">{link.label}</span>} {/* Label rendered inside Link */}
           </Link>
         </SidebarMenuButton>
         {link.subLinks && link.subLinks.length > 0 && open && (
@@ -91,7 +92,7 @@ export function SidebarNav() {
       </SidebarContent>
       <SidebarFooter className="mt-auto">
         <SidebarSeparator />
-         {!isMobile && open && ( // Only show on desktop when sidebar is expanded
+         {!isMobile && open && (
           <Button
             variant="ghost"
             size="icon"
@@ -115,5 +116,3 @@ export function SidebarNav() {
     </>
   );
 }
-
-    
