@@ -1,3 +1,4 @@
+
 "use client";
 
 import { NAV_LINKS, getNavLinksForRole, type NavLink } from '@/config/nav-links';
@@ -35,14 +36,15 @@ export function SidebarNav() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   const renderLink = (link: NavLink, isSubLink = false) => {
-    const commonProps = {
-      key: link.href,
-      "data-tour-id": link.tourStepId,
-    };
+    const itemKey = link.href;
+    const tourProps: { "data-tour-id"?: string } = {};
+    if (link.tourStepId) {
+      tourProps["data-tour-id"] = link.tourStepId;
+    }
 
     if (isSubLink) {
       return (
-        <SidebarMenuSubItem {...commonProps}>
+        <SidebarMenuSubItem key={itemKey} {...tourProps}>
           <SidebarMenuSubButton
             asChild
             isActive={isActive(link.href)}
@@ -57,7 +59,7 @@ export function SidebarNav() {
     }
 
     return (
-      <SidebarMenuItem {...commonProps}>
+      <SidebarMenuItem key={itemKey} {...tourProps}>
         <SidebarMenuButton
           asChild
           isActive={isActive(link.href)}
