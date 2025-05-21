@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ export default function CandidateScreeningPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-md">
+      <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center"><ShieldCheck className="mr-2 h-6 w-6 text-primary" /> AI Candidate Screening</CardTitle>
           <CardDescription>Paste job details and candidate resume/profile to get an AI-powered screening analysis.</CardDescription>
@@ -61,7 +62,7 @@ export default function CandidateScreeningPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="shadow-lg">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <CardHeader>
@@ -118,7 +119,7 @@ export default function CandidateScreeningPage() {
           </Form>
         </Card>
 
-        <Card>
+        <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" /> Screening Results</CardTitle>
             <CardDescription>AI analysis will appear here.</CardDescription>
@@ -132,7 +133,7 @@ export default function CandidateScreeningPage() {
             )}
             {screeningResult && !isLoading && (
               <>
-                <Alert variant="default" className="bg-primary/10 border-primary/20">
+                <Alert variant="default" className="bg-primary/10 border-primary/20 shadow-sm">
                   <Check className="h-4 w-4 !text-primary" />
                   <AlertTitle className="text-primary font-semibold">Suitability Score: {screeningResult.suitabilityScore}/100</AlertTitle>
                 </Alert>
@@ -166,3 +167,5 @@ export default function CandidateScreeningPage() {
     </div>
   );
 }
+
+    

@@ -21,7 +21,7 @@ export default function CandidateInterviewsPage() {
   const pastInterviews = mockInterviews.filter(interview => interview.status === "Completed");
 
   const renderInterviewCard = (interview: typeof mockInterviews[0]) => (
-    <Card key={interview.id} className="shadow-sm hover:shadow-md transition-shadow">
+    <Card key={interview.id} className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
       <CardHeader>
         <CardTitle className="text-lg">{interview.jobTitle} at {interview.company}</CardTitle>
         <CardDescription>{interview.type}</CardDescription>
@@ -55,7 +55,7 @@ export default function CandidateInterviewsPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-md">
+      <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl">My Interviews</CardTitle>
           <CardDescription>Keep track of your upcoming and past interviews. Prepare well and good luck!</CardDescription>
@@ -76,7 +76,7 @@ export default function CandidateInterviewsPage() {
             {upcomingInterviews.map(renderInterviewCard)}
           </div>
         ) : (
-          <Card className="text-center py-10 shadow-sm">
+          <Card className="text-center py-10 shadow-lg">
             <CardContent>
               <CalendarDays className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">No upcoming interviews scheduled. Keep applying!</p>
@@ -92,7 +92,7 @@ export default function CandidateInterviewsPage() {
             {pastInterviews.map(renderInterviewCard)}
           </div>
         ) : (
-          <Card className="text-center py-10 shadow-sm">
+          <Card className="text-center py-10 shadow-lg">
             <CardContent>
               <CheckCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">No past interviews recorded yet.</p>
@@ -103,3 +103,5 @@ export default function CandidateInterviewsPage() {
     </div>
   );
 }
+
+    

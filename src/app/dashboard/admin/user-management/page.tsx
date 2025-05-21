@@ -84,7 +84,7 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-md">
+      <Card className="shadow-xl">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-2xl">User Management</CardTitle>
@@ -168,7 +168,7 @@ export default function UserManagementPage() {
         </CardHeader>
       </Card>
 
-      <Card>
+      <Card className="shadow-lg">
         <CardHeader>
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
             <div className="flex-grow relative">
@@ -252,6 +252,5 @@ export default function UserManagementPage() {
     </div>
   );
 }
-
 
     

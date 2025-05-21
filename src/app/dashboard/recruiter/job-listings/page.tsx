@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Edit, MoreHorizontal, PlusCircle, Trash2, Users, Eye, Play, Pause, ShieldCheck, Search as SearchIcon } from "lucide-react";
+import { Edit, MoreHorizontal, PlusCircle, Trash2, Users, Eye, Play, Pause, ShieldCheck, Search as SearchIcon, Check } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -42,7 +42,7 @@ export default function RecruiterJobListingsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-md">
+      <Card className="shadow-xl">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-2xl">Manage Job Listings</CardTitle>
@@ -57,7 +57,7 @@ export default function RecruiterJobListingsPage() {
         </CardHeader>
       </Card>
       
-      <Card>
+      <Card className="shadow-lg">
         <CardHeader className="border-b">
             <div className="flex flex-col md:flex-row gap-2 justify-between items-center">
                  <div className="relative flex-grow w-full md:w-auto">

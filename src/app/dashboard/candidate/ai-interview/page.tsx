@@ -14,7 +14,7 @@ export default function AIInterviewSimulationPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-lg">
+      <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl">AI Interview Simulation</CardTitle>
           <CardDescription>
@@ -23,7 +23,7 @@ export default function AIInterviewSimulationPage() {
         </CardHeader>
       </Card>
       
-      <Alert variant="default" className="bg-primary/10 border-primary/30">
+      <Alert variant="default" className="bg-primary/10 border-primary/30 shadow-lg">
         <AlertCircle className="h-4 w-4 !text-primary" />
         <AlertTitle className="text-primary">Important Notice</AlertTitle>
         <AlertDescription className="text-primary/80">
@@ -35,3 +35,5 @@ export default function AIInterviewSimulationPage() {
     </div>
   );
 }
+
+    

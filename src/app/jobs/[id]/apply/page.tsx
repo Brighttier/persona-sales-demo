@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { cn } from "@/lib/utils";
 // Placeholder for AI flow import, assuming it's available
 // import { enrichProfile } from "@/ai/flows/profile-enrichment";
 
@@ -281,7 +283,7 @@ export default function JobApplicationPage({ params }: { params: { id: string } 
               />
 
               {/* Video Introduction Section */}
-              <Card className="mt-6 bg-secondary/30">
+              <Card className="mt-6 bg-secondary/30 shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-lg">10-Second Video Introduction (Optional)</CardTitle>
                   <CardDescription>Record a short video to introduce yourself.</CardDescription>
@@ -332,3 +334,5 @@ export default function JobApplicationPage({ params }: { params: { id: string } 
     </div>
   );
 }
+
+    

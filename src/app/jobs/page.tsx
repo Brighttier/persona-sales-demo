@@ -1,3 +1,4 @@
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +19,7 @@ const jobListings = [
 export default function JobBoardPage() {
   return (
     <div className="space-y-8">
-      <Card className="shadow-md">
+      <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-3xl font-bold">Find Your Next Opportunity</CardTitle>
           <CardDescription>Browse through thousands of open positions or use our advanced filters to narrow down your search.</CardDescription>
@@ -55,7 +56,7 @@ export default function JobBoardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {jobListings.map((job) => (
-          <Card key={job.id} className="flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300">
+          <Card key={job.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
               <CardTitle className="text-xl">{job.title}</CardTitle>
               <CardDescription>{job.company}</CardDescription>
@@ -87,3 +88,5 @@ export default function JobBoardPage() {
     </div>
   );
 }
+
+    

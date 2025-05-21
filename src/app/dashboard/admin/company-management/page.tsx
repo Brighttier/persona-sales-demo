@@ -58,11 +58,11 @@ export default function CompanyManagementPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-md">
+      <Card className="shadow-xl">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-2xl">Company Management</CardTitle>
-            <CardDescription>Manage companies using the TalentVerse AI platform.</CardDescription>
+            <CardDescription>Manage companies using the Persona AI platform.</CardDescription>
           </div>
           <Dialog open={isAddCompanyDialogOpen} onOpenChange={setIsAddCompanyDialogOpen}>
             <DialogTrigger asChild>
@@ -106,7 +106,7 @@ export default function CompanyManagementPage() {
         </CardHeader>
       </Card>
 
-      <Card>
+      <Card className="shadow-lg">
         <CardHeader>
             <div className="flex justify-between items-center">
                  <div className="relative flex-grow max-w-xs">
@@ -171,3 +171,5 @@ export default function CompanyManagementPage() {
     </div>
   );
 }
+
+    

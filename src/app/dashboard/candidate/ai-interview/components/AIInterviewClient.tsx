@@ -15,7 +15,7 @@ import { aiInterviewSimulation } from "@/ai/flows/ai-interview-simulation";
 import { getInitialInterviewUtterance, type InitialInterviewUtteranceInput } from "@/ai/flows/initial-interview-message";
 import { getFollowUpQuestion, type FollowUpQuestionInput } from "@/ai/flows/follow-up-question";
 import { cn } from "@/lib/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 interface AIInterviewClientProps {
@@ -325,7 +325,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
     setIsSessionRecordingActive(false);
 
-  }, [isCandidateListeningActive, sessionVideoBlob, accumulatedInterviewTranscript, currentAnswerTranscript, toast, jobContext, submitForFinalFeedback, resetFullInterview]);
+  }, [isCandidateListeningActive, sessionVideoBlob, accumulatedInterviewTranscript, currentAnswerTranscript, toast, submitForFinalFeedback, resetFullInterview]);
 
   const startMediaAndCountdown = useCallback(async () => {
     if (mainStage !== "conversation" || conversationSubStage !== "preparingStream") return;
@@ -517,7 +517,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     const isLoadingNextQuestion = conversationSubStage === "loadingNextQuestion";
 
     return (
-      <Card className="shadow-md">
+      <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <Bot /> Mira - AI Interviewer 
@@ -553,7 +553,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           </div>
           
           {currentAnswerTranscript && (conversationSubStage === "sessionRecording" || isLoadingNextQuestion || conversationSubStage === "miraSpeaking") && (
-            <Card className="bg-secondary/50 p-3">
+            <Card className="bg-secondary/50 p-3 shadow-sm">
               <CardHeader className="p-1 pb-2"><CardTitle className="text-sm flex items-center"><UserCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Your Current Response (Live Transcript):</CardTitle></CardHeader>
               <CardContent className="p-1"><Textarea value={currentAnswerTranscript} readOnly rows={3} className="text-sm bg-background" placeholder="Your transcribed speech will appear here..."/></CardContent>
             </Card>
@@ -574,7 +574,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   };
 
   const renderFeedbackContent = () => (
-    <Card className="shadow-md mt-6">
+    <Card className="shadow-lg mt-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><CheckCircle className="text-green-500" /> Mira's Feedback</CardTitle>
       </CardHeader>
@@ -587,7 +587,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             </AlertDescription>
         </Alert>
         {accumulatedInterviewTranscript && (
-             <Card className="bg-secondary/50 p-3 mt-4">
+             <Card className="bg-secondary/50 p-3 mt-4 shadow-sm">
                 <CardHeader className="p-1 pb-2"><CardTitle className="text-sm flex items-center"><UserCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Full Interview Transcript:</CardTitle></CardHeader>
                 <CardContent className="p-1"><Textarea value={accumulatedInterviewTranscript} readOnly rows={8} className="text-sm bg-background whitespace-pre-line"/></CardContent>
             </Card>
@@ -615,3 +615,5 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     </>
   );
 }
+
+    

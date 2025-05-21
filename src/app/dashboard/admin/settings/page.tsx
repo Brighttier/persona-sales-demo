@@ -3,7 +3,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,11 +10,12 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Bell, Palette, Shield, Zap, Users2, Mail } from "lucide-react";
+import { Save, Bell, Palette, Shield, Zap, Users2, Link2, KeyRound, ListChecks } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 
 const generalSettingsSchema = z.object({
@@ -33,7 +33,23 @@ const notificationSettingsSchema = z.object({
   systemUpdateNotifications: z.boolean(),
 });
 
-// Add more schemas for other tabs as needed...
+const securitySettingsSchema = z.object({
+  passwordMinLength: z.number().min(8).max(32),
+  passwordRequireUppercase: z.boolean(),
+  passwordRequireNumber: z.boolean(),
+  passwordRequireSpecialChar: z.boolean(),
+  enable2FA: z.boolean(),
+  auditLogRetentionDays: z.enum(["30", "90", "180", "365"]),
+});
+
+// Mock data for User Roles tab
+const mockUserRoles = [
+  { id: "admin", name: "Administrator", description: "Full access to all system features and settings." },
+  { id: "recruiter", name: "Recruiter", description: "Manages job listings, candidates, and screening." },
+  { id: "hiring-manager", name: "Hiring Manager", description: "Reviews candidates, approves jobs, and manages interviews for their team." },
+  { id: "candidate", name: "Candidate", description: "Applies for jobs, manages profile, and tracks applications." },
+];
+
 
 export default function SystemSettingsPage() {
   const { toast } = useToast();
@@ -58,20 +74,37 @@ export default function SystemSettingsPage() {
       systemUpdateNotifications: false,
     },
   });
+
+  const securityForm = useForm<z.infer<typeof securitySettingsSchema>>({
+    resolver: zodResolver(securitySettingsSchema),
+    defaultValues: {
+      passwordMinLength: 10,
+      passwordRequireUppercase: true,
+      passwordRequireNumber: true,
+      passwordRequireSpecialChar: false,
+      enable2FA: false,
+      auditLogRetentionDays: "90",
+    },
+  });
   
   function onGeneralSubmit(values: z.infer<typeof generalSettingsSchema>) {
-    console.log("General Settings Saved:", values);
-    toast({ title: "General Settings Saved", description: "Your changes have been applied." });
+    console.log("General Settings Saved (Placeholder):", values);
+    toast({ title: "General Settings Saved", description: "Your changes have been applied. (Placeholder)" });
   }
 
   function onNotificationSubmit(values: z.infer<typeof notificationSettingsSchema>) {
-    console.log("Notification Settings Saved:", values);
-    toast({ title: "Notification Settings Saved", description: "Your preferences have been updated." });
+    console.log("Notification Settings Saved (Placeholder):", values);
+    toast({ title: "Notification Settings Saved", description: "Your preferences have been updated. (Placeholder)" });
+  }
+
+  function onSecuritySubmit(values: z.infer<typeof securitySettingsSchema>) {
+    console.log("Security Settings Saved (Placeholder):", values);
+    toast({ title: "Security Settings Saved", description: "Security configurations updated. (Placeholder)" });
   }
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-md">
+      <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl">System Settings & Configuration</CardTitle>
           <CardDescription>Manage global settings for the Persona AI platform.</CardDescription>
@@ -82,13 +115,13 @@ export default function SystemSettingsPage() {
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mb-6">
           <TabsTrigger value="general"><Palette className="mr-2 h-4 w-4"/>General</TabsTrigger>
           <TabsTrigger value="notifications"><Bell className="mr-2 h-4 w-4"/>Notifications</TabsTrigger>
-          <TabsTrigger value="security" disabled><Shield className="mr-2 h-4 w-4"/>Security (Placeholder)</TabsTrigger>
-          <TabsTrigger value="integrations" disabled><Zap className="mr-2 h-4 w-4"/>Integrations (Placeholder)</TabsTrigger>
-          <TabsTrigger value="user_roles" disabled><Users2 className="mr-2 h-4 w-4"/>User Roles (Placeholder)</TabsTrigger>
+          <TabsTrigger value="security"><Shield className="mr-2 h-4 w-4"/>Security</TabsTrigger>
+          <TabsTrigger value="integrations"><Zap className="mr-2 h-4 w-4"/>Integrations</TabsTrigger>
+          <TabsTrigger value="user_roles"><Users2 className="mr-2 h-4 w-4"/>User Roles</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
-          <Card>
+          <Card className="shadow-lg">
              <Form {...generalForm}>
                 <form onSubmit={generalForm.handleSubmit(onGeneralSubmit)}>
                     <CardHeader>
@@ -126,7 +159,7 @@ export default function SystemSettingsPage() {
                             </FormItem>
                         )}/>
                         <FormField control={generalForm.control} name="maintenanceMode" render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
                                     <FormLabel className="text-base">Maintenance Mode</FormLabel>
                                     <FormDescription>Temporarily disable access for users (except admins).</FormDescription>
@@ -135,7 +168,7 @@ export default function SystemSettingsPage() {
                             </FormItem>
                         )}/>
                         <FormField control={generalForm.control} name="allowPublicJobBoard" render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
                                     <FormLabel className="text-base">Enable Public Job Board</FormLabel>
                                     <FormDescription>Allow non-logged-in users to view job listings.</FormDescription>
@@ -153,7 +186,7 @@ export default function SystemSettingsPage() {
         </TabsContent>
 
         <TabsContent value="notifications">
-           <Card>
+           <Card className="shadow-lg">
              <Form {...notificationForm}>
                 <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)}>
                     <CardHeader>
@@ -162,7 +195,7 @@ export default function SystemSettingsPage() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <FormField control={notificationForm.control} name="emailNotifications" render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
                                     <FormLabel className="text-base">Global Email Notifications</FormLabel>
                                     <FormDescription>Enable or disable all email notifications system-wide.</FormDescription>
@@ -171,7 +204,7 @@ export default function SystemSettingsPage() {
                             </FormItem>
                         )}/>
                         <FormField control={notificationForm.control} name="newApplicantAlerts" render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
                                     <FormLabel className="text-base">New Applicant Alerts for Recruiters</FormLabel>
                                     <FormDescription>Notify recruiters when a new candidate applies.</FormDescription>
@@ -180,7 +213,7 @@ export default function SystemSettingsPage() {
                             </FormItem>
                         )}/>
                         <FormField control={notificationForm.control} name="interviewReminders" render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
                                     <FormLabel className="text-base">Interview Reminders for Candidates & Interviewers</FormLabel>
                                     <FormDescription>Send reminders for scheduled interviews.</FormDescription>
@@ -189,7 +222,7 @@ export default function SystemSettingsPage() {
                             </FormItem>
                         )}/>
                          <FormField control={notificationForm.control} name="systemUpdateNotifications" render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
                                     <FormLabel className="text-base">System Update Notifications</FormLabel>
                                     <FormDescription>Inform users about new features or important system updates.</FormDescription>
@@ -206,18 +239,141 @@ export default function SystemSettingsPage() {
           </Card>
         </TabsContent>
         
-        {/* Placeholder for other tabs */}
         <TabsContent value="security">
-            <Card><CardHeader><CardTitle>Security Settings</CardTitle><CardDescription>Coming soon.</CardDescription></CardHeader><CardContent><p>Configure password policies, 2FA, audit logs, etc.</p></CardContent></Card>
-        </TabsContent>
-        <TabsContent value="integrations">
-            <Card><CardHeader><CardTitle>Integrations</CardTitle><CardDescription>Coming soon.</CardDescription></CardHeader><CardContent><p>Manage integrations with third-party services like calendars, HRIS, etc.</p></CardContent></Card>
-        </TabsContent>
-        <TabsContent value="user_roles">
-            <Card><CardHeader><CardTitle>User Roles & Permissions</CardTitle><CardDescription>Coming soon.</CardDescription></CardHeader><CardContent><p>Define and customize user roles and their permissions.</p></CardContent></Card>
+            <Card className="shadow-lg">
+                <Form {...securityForm}>
+                    <form onSubmit={securityForm.handleSubmit(onSecuritySubmit)}>
+                        <CardHeader>
+                            <CardTitle>Security Settings</CardTitle>
+                            <CardDescription>Configure password policies, 2FA, and audit logs.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <FormField control={securityForm.control} name="passwordMinLength" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Password Minimum Length</FormLabel>
+                                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
+                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <FormField control={securityForm.control} name="passwordRequireUppercase" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><FormLabel>Require Uppercase</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
+                                )}/>
+                                <FormField control={securityForm.control} name="passwordRequireNumber" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><FormLabel>Require Number</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
+                                )}/>
+                                <FormField control={securityForm.control} name="passwordRequireSpecialChar" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><FormLabel>Require Special Char</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
+                                )}/>
+                             </div>
+                             <FormField control={securityForm.control} name="enable2FA" render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                                    <div className="space-y-0.5"><FormLabel className="text-base">Enable Two-Factor Auth (2FA)</FormLabel><FormDescription>Require users to set up 2FA for enhanced security.</FormDescription></div>
+                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                </FormItem>
+                            )}/>
+                             <FormField control={securityForm.control} name="auditLogRetentionDays" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Audit Log Retention Period</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Select retention period" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="30">30 Days</SelectItem>
+                                            <SelectItem value="90">90 Days</SelectItem>
+                                            <SelectItem value="180">180 Days</SelectItem>
+                                            <SelectItem value="365">365 Days</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
+                        </CardContent>
+                        <CardFooter className="border-t pt-6">
+                            <Button type="submit"><Save className="mr-2 h-4 w-4"/> Save Security Settings</Button>
+                        </CardFooter>
+                    </form>
+                </Form>
+            </Card>
         </TabsContent>
 
+        <TabsContent value="integrations">
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle>Integrations</CardTitle>
+                    <CardDescription>Manage connections with third-party services.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <Card className="p-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-semibold">Google Calendar</h3>
+                                <p className="text-sm text-muted-foreground">Sync interview schedules.</p>
+                            </div>
+                            <Button variant="outline" onClick={() => toast({ title: "Placeholder Action", description: "Connect to Google Calendar" })}><Link2 className="mr-2 h-4 w-4"/>Connect</Button>
+                        </div>
+                    </Card>
+                     <Card className="p-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-semibold">Slack</h3>
+                                <p className="text-sm text-muted-foreground">Receive notifications for important events.</p>
+                            </div>
+                             <Button variant="outline" onClick={() => toast({ title: "Placeholder Action", description: "Connect to Slack" })}><Link2 className="mr-2 h-4 w-4"/>Connect</Button>
+                        </div>
+                    </Card>
+                    <Card className="p-4 shadow-sm">
+                        <FormLabel htmlFor="hrisApiKey">HRIS System API Key (Placeholder)</FormLabel>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Input id="hrisApiKey" type="password" placeholder="Enter API Key for HRIS Integration" />
+                            <Button onClick={() => toast({ title: "Placeholder Action", description: "Save HRIS API Key" })}><KeyRound className="mr-2 h-4 w-4"/>Save & Connect</Button>
+                        </div>
+                        <FormDescription className="text-xs mt-1">Connect to your Human Resources Information System.</FormDescription>
+                    </Card>
+                </CardContent>
+                 <CardFooter className="border-t pt-6">
+                    <p className="text-sm text-muted-foreground">More integrations coming soon.</p>
+                </CardFooter>
+            </Card>
+        </TabsContent>
+
+        <TabsContent value="user_roles">
+            <Card className="shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>User Roles & Permissions</CardTitle>
+                        <CardDescription>Define and customize user roles and their permissions.</CardDescription>
+                    </div>
+                    <Button variant="outline" onClick={() => toast({ title: "Placeholder Action", description: "Add New Role form would appear." })}><Users2 className="mr-2 h-4 w-4"/> Add New Role</Button>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Role Name</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {mockUserRoles.map((role) => (
+                                <TableRow key={role.id}>
+                                    <TableCell className="font-medium">{role.name}</TableCell>
+                                    <TableCell className="text-sm text-muted-foreground">{role.description}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="sm" onClick={() => toast({ title: "Placeholder Action", description: `View/Edit permissions for ${role.name}` })}>
+                                            <ListChecks className="mr-2 h-4 w-4"/> Permissions
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
 }
+
+    

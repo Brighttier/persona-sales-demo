@@ -215,7 +215,7 @@ export default function CandidateProfilePage() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* Basic Info */}
-          <Card>
+          <Card className="shadow-lg">
             <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField control={form.control} name="fullName" render={({ field }) => (
@@ -236,7 +236,7 @@ export default function CandidateProfilePage() {
           </Card>
           
           {/* Resume */}
-          <Card>
+          <Card className="shadow-lg">
             <CardHeader><CardTitle>Resume</CardTitle><CardDescription>Upload your latest resume. Our AI can help enrich your profile based on it.</CardDescription></CardHeader>
             <CardContent>
                <FormField control={form.control} name="resume" render={({ field: { onChange, value, ...rest } }) => (
@@ -252,7 +252,7 @@ export default function CandidateProfilePage() {
           </Card>
 
           {/* Summary */}
-          <Card>
+          <Card className="shadow-lg">
             <CardHeader><CardTitle>Professional Summary</CardTitle></CardHeader>
             <CardContent>
               <FormField control={form.control} name="summary" render={({ field }) => (
@@ -261,7 +261,7 @@ export default function CandidateProfilePage() {
           </Card>
 
           {/* Skills */}
-          <Card>
+          <Card className="shadow-lg">
             <CardHeader><CardTitle>Skills</CardTitle></CardHeader>
             <CardContent>
               {isEditing && (
@@ -278,14 +278,14 @@ export default function CandidateProfilePage() {
           </Card>
           
           {/* Experience */}
-          <Card>
+          <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Work Experience</CardTitle>
                 {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendExperience({ title: "", company: "", startDate: "", description: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add Experience</Button>}
             </CardHeader>
             <CardContent className="space-y-6">
               {experienceFields.map((field, index) => (
-                <div key={field.id} className="p-4 border rounded-md space-y-3 relative bg-secondary/30">
+                <div key={field.id} className="p-4 border rounded-md space-y-3 relative bg-secondary/30 shadow-sm">
                    {isEditing && <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive hover:bg-destructive/10" onClick={() => removeExperience(index)}><Trash2 className="h-4 w-4"/></Button>}
                   <FormField control={form.control} name={`experience.${index}.title`} render={({ field }) => (<FormItem><FormLabel>Job Title</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                   <FormField control={form.control} name={`experience.${index}.company`} render={({ field }) => (<FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
@@ -301,14 +301,14 @@ export default function CandidateProfilePage() {
           </Card>
 
           {/* Education */}
-          <Card>
+          <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Education</CardTitle>
                 {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendEducation({ institution: "", degree: "", fieldOfStudy: "", graduationDate: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add Education</Button>}
             </CardHeader>
             <CardContent className="space-y-6">
                {educationFields.map((field, index) => (
-                <div key={field.id} className="p-4 border rounded-md space-y-3 relative bg-secondary/30">
+                <div key={field.id} className="p-4 border rounded-md space-y-3 relative bg-secondary/30 shadow-sm">
                    {isEditing && <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive hover:bg-destructive/10" onClick={() => removeEducation(index)}><Trash2 className="h-4 w-4"/></Button>}
                   <FormField control={form.control} name={`education.${index}.institution`} render={({ field }) => (<FormItem><FormLabel>Institution</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                   <FormField control={form.control} name={`education.${index}.degree`} render={({ field }) => (<FormItem><FormLabel>Degree</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>

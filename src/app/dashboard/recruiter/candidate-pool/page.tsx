@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
-import { Eye, Filter, Mail, Search, UserPlus, ExternalLink, Star, Briefcase, MapPin } from "lucide-react";
+import { Eye, Filter, Mail, Search, UserPlus, ExternalLink, Star, Briefcase, MapPin, Users as UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,7 +29,7 @@ export default function CandidatePoolPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-md">
+      <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl">Talent Discovery</CardTitle>
           <CardDescription>Browse, filter, and discover talented individuals for your open roles.</CardDescription>
@@ -52,7 +52,7 @@ export default function CandidatePoolPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {mockCandidates.map((candidate) => (
-          <Card key={candidate.id} className="flex flex-col shadow-sm hover:shadow-lg transition-shadow duration-300 rounded-lg overflow-hidden">
+          <Card key={candidate.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg overflow-hidden">
             <CardHeader className="items-center text-center p-6 bg-secondary/30">
               <Avatar className="h-24 w-24 mb-3 ring-2 ring-primary/30 ring-offset-2 ring-offset-background">
                 <AvatarImage src={candidate.avatar} alt={candidate.name} data-ai-hint="person professional" />
@@ -102,9 +102,9 @@ export default function CandidatePoolPage() {
         ))}
       </div>
        {mockCandidates.length === 0 && (
-          <Card className="col-span-full text-center py-10">
+          <Card className="col-span-full text-center py-10 shadow-lg">
             <CardContent>
-                <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <UsersIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No candidates match your current filters.</p>
                 <Button variant="link" className="mt-2">Clear Filters</Button>
             </CardContent>

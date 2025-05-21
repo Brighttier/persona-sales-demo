@@ -33,7 +33,7 @@ export default function RecruiterDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-md bg-gradient-to-r from-primary/10 via-background to-background">
+      <Card className="shadow-xl bg-gradient-to-r from-primary/10 via-background to-background">
         <CardHeader>
           <CardTitle className="text-3xl">Recruiter Dashboard</CardTitle>
           <CardDescription>Manage your recruitment pipeline efficiently, {user.name.split(" ")[0]}.</CardDescription>
@@ -41,7 +41,7 @@ export default function RecruiterDashboardPage() {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Job Listings</CardTitle>
             <Briefcase className="h-5 w-5 text-muted-foreground" />
@@ -52,7 +52,7 @@ export default function RecruiterDashboardPage() {
             <Link href={`/dashboard/${role}/job-listings`} className="text-xs text-primary hover:underline mt-1 block">Manage Jobs</Link>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">New Applicants (Today)</CardTitle>
             <UserPlus className="h-5 w-5 text-muted-foreground" />
@@ -63,7 +63,7 @@ export default function RecruiterDashboardPage() {
              <Link href={`/dashboard/${role}/candidate-pool`} className="text-xs text-primary hover:underline mt-1 block">View Candidates</Link>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Interviews This Week</CardTitle>
             <CalendarCheck className="h-5 w-5 text-muted-foreground" />
@@ -75,7 +75,7 @@ export default function RecruiterDashboardPage() {
              <p className="text-xs text-muted-foreground mt-1">Manage via Job Listings</p>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg. Time-to-Fill</CardTitle>
             <TrendingUp className="h-5 w-5 text-muted-foreground" />
@@ -90,7 +90,7 @@ export default function RecruiterDashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="shadow-sm">
+        <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Recent Activities</CardTitle>
             <CardDescription>Stay updated with the latest actions.</CardDescription>
@@ -119,7 +119,7 @@ export default function RecruiterDashboardPage() {
             <Button variant="outline" size="sm" className="w-full">View All Activities (Placeholder)</Button>
           </CardFooter>
         </Card>
-        <Card className="shadow-sm">
+        <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Hiring Pipeline Overview</CardTitle>
             <CardDescription>Number of candidates at each stage (all jobs).</CardDescription>
@@ -138,7 +138,7 @@ export default function RecruiterDashboardPage() {
         </Card>
       </div>
 
-      <Card className="shadow-md">
+      <Card className="shadow-lg">
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>

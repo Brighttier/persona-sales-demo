@@ -20,7 +20,7 @@ interface RecommendedJob {
 }
 
 export default function CandidateDashboardPage() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { toast } = useToast();
   const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
@@ -81,7 +81,7 @@ export default function CandidateDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-md bg-gradient-to-r from-primary/10 via-background to-background">
+      <Card className="shadow-xl bg-gradient-to-r from-primary/10 via-background to-background">
         <CardHeader>
           <CardTitle className="text-3xl">Welcome back, {user.name.split(" ")[0]}!</CardTitle>
           <CardDescription>Here's an overview of your job search journey.</CardDescription>
@@ -89,7 +89,7 @@ export default function CandidateDashboardPage() {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Upcoming Interviews</CardTitle>
             <CalendarCheck className="h-5 w-5 text-muted-foreground" />
@@ -108,12 +108,12 @@ export default function CandidateDashboardPage() {
           </CardContent>
           <CardFooter>
             <Button variant="outline" size="sm" asChild className="w-full">
-              <Link href={`/dashboard/${user.role}/interviews`}>View All Interviews <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link href={`/dashboard/${role}/interviews`}>View All Interviews <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </CardFooter>
         </Card>
 
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Recent Applications</CardTitle>
             <Briefcase className="h-5 w-5 text-muted-foreground" />
@@ -132,12 +132,12 @@ export default function CandidateDashboardPage() {
           </CardContent>
            <CardFooter>
             <Button variant="outline" size="sm" asChild className="w-full">
-              <Link href={`/dashboard/${user.role}/applications`}>View All Applications <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link href={`/dashboard/${role}/applications`}>View All Applications <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </CardFooter>
         </Card>
         
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Profile Status</CardTitle>
             <UserCircle2 className="h-5 w-5 text-muted-foreground" />
@@ -151,13 +151,13 @@ export default function CandidateDashboardPage() {
           </CardContent>
           <CardFooter>
              <Button variant="default" size="sm" asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-              <Link href={`/dashboard/${user.role}/profile`}>Update Profile <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link href={`/dashboard/${role}/profile`}>Update Profile <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </CardFooter>
         </Card>
       </div>
 
-      <Card className="shadow-md">
+      <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-xl flex items-center"><Lightbulb className="mr-2 h-6 w-6 text-accent" /> AI Recommended Jobs</CardTitle>
           <CardDescription>Based on your profile, here are some jobs you might be interested in.</CardDescription>
@@ -167,7 +167,7 @@ export default function CandidateDashboardPage() {
             recommendedJobs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {recommendedJobs.map(job => (
-                <Card key={job.id} className="shadow-sm hover:shadow-md transition-shadow">
+                <Card key={job.id} className="shadow-md hover:shadow-lg transition-shadow duration-200 ease-in-out">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg">{job.title}</CardTitle>
                     <CardDescription>{job.company}</CardDescription>
@@ -184,7 +184,7 @@ export default function CandidateDashboardPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-md">
+      <Card className="shadow-lg">
         <CardHeader>
             <CardTitle>Ready for your next interview?</CardTitle>
         </CardHeader>
@@ -196,7 +196,7 @@ export default function CandidateDashboardPage() {
                 Our AI will ask you relevant questions and help you polish your answers.
                 </p>
                 <Button asChild size="lg">
-                <Link href={`/dashboard/${user.role}/ai-interview`}><BotMessageSquare className="mr-2 h-5 w-5" /> Start AI Interview Simulation</Link>
+                <Link href={`/dashboard/${role}/ai-interview`}><BotMessageSquare className="mr-2 h-5 w-5" /> Start AI Interview Simulation</Link>
                 </Button>
             </div>
         </CardContent>

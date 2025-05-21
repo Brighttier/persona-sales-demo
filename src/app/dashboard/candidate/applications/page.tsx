@@ -80,7 +80,7 @@ export default function CandidateApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-md">
+      <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl">My Job Applications</CardTitle>
           <CardDescription>Track the status of all your job applications in one place.</CardDescription>
@@ -93,7 +93,7 @@ export default function CandidateApplicationsPage() {
           <TabsTrigger value="all">All ({allApplications.length})</TabsTrigger>
           <TabsTrigger value="archived">Archived ({archivedApplications.length})</TabsTrigger>
         </TabsList>
-        <Card> {/* Wrap TabsContent in Card for consistent styling */}
+        <Card className="shadow-lg"> {/* Wrap TabsContent in Card for consistent styling */}
           <TabsContent value="active" className="m-0">
             <CardContent className="p-0">
              {renderTable(activeApplications)}
@@ -112,7 +112,7 @@ export default function CandidateApplicationsPage() {
         </Card>
       </Tabs>
 
-      <Card className="shadow-md">
+      <Card className="shadow-lg">
         <CardHeader>
             <CardTitle>Looking for more opportunities?</CardTitle>
         </CardHeader>
