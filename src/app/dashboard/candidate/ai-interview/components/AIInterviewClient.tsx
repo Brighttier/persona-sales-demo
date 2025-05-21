@@ -56,6 +56,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const [isListening, setIsListening] = useState(false);
   const [speechApiError, setSpeechApiError] = useState<string | null>(null);
 
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
@@ -63,6 +66,47 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        setAvailableVoices(voices);
+        // Attempt to select a preferred voice
+        let preferredVoice = voices.find(
+          (voice) => voice.lang === 'en-US' && (voice.name.includes('Female') || voice.name.includes('Zira') || voice.name.includes('Susan'))
+        );
+        if (!preferredVoice) {
+          preferredVoice = voices.find(
+            (voice) => voice.lang === 'en-GB' && voice.name.includes('Female')
+          );
+        }
+        if (!preferredVoice) {
+          preferredVoice = voices.find((voice) => voice.lang === 'en-US' && voice.name.toLowerCase().includes('female'));
+        }
+        if (!preferredVoice) {
+          preferredVoice = voices.find((voice) => voice.lang.startsWith('en-') && voice.name.toLowerCase().includes('female'));
+        }
+        // Fallbacks
+        if (!preferredVoice) {
+          preferredVoice = voices.find((voice) => voice.lang === 'en-US');
+        }
+        if (!preferredVoice) {
+          preferredVoice = voices.find((voice) => voice.lang.startsWith('en-'));
+        }
+        setSelectedVoice(preferredVoice || voices[0] || null);
+      }
+    };
+
+    // Voices are loaded asynchronously.
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices(); // Initial attempt
+
+    return () => {
+      speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
 
   useEffect(() => {
@@ -75,16 +119,23 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     if (!('speechSynthesis' in window)) {
       setSpeechApiError("Your browser does not support Text-to-Speech.");
       toast({ variant: "destructive", title: "TTS Not Supported", description: "Mira cannot speak in this browser."});
-      onEndCallback?.(); // Proceed even if TTS fails
+      onEndCallback?.(); 
       return;
     }
-    // Cancel any ongoing speech
+    
     if (speechSynthesis.speaking) {
         speechSynthesis.cancel();
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
     utteranceRef.current = utterance;
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
+    utterance.pitch = 1.0; // Standard pitch
+    utterance.rate = 0.95;  // Slightly slower for clarity
+
     utterance.onstart = () => setIsMiraSpeaking(true);
     utterance.onend = () => {
       setIsMiraSpeaking(false);
@@ -97,10 +148,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       toast({ variant: "destructive", title: "TTS Error", description: "Could not play Mira's voice."});
       setIsMiraSpeaking(false);
       utteranceRef.current = null;
-      onEndCallback?.(); // Proceed even if TTS fails
+      onEndCallback?.(); 
     };
     speechSynthesis.speak(utterance);
-  }, [toast]);
+  }, [toast, selectedVoice]);
 
 
   useEffect(() => {
@@ -115,9 +166,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           const result = await getInitialInterviewUtterance(input);
           setAiGreeting(result.aiGreeting);
           setCurrentAiQuestion(result.firstQuestion);
-          setStage("miraSpeaking"); // New stage for Mira to speak
+          setStage("miraSpeaking"); 
           speak(`${result.aiGreeting} ${result.firstQuestion}`, () => {
-            setStage("ready"); // Move to ready after Mira finishes speaking
+            setStage("ready"); 
           });
           toast({ title: "Mira is ready!", description: "Your AI interviewer has joined." });
         } catch (error) {
@@ -159,8 +210,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
     
     const recognition = new SpeechRecognitionAPI();
-    recognition.continuous = true; // Keep listening
-    recognition.interimResults = true; // Get results as they come
+    recognition.continuous = true; 
+    recognition.interimResults = true; 
     recognition.lang = 'en-US';
 
     recognition.onstart = () => setIsListening(true);
@@ -172,7 +223,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         toast({ variant: "destructive", title: "No Speech Detected", description: "Please ensure your microphone is working and you are speaking." });
       } else if (event.error === 'audio-capture') {
          toast({ variant: "destructive", title: "Microphone Error", description: "Could not capture audio. Check microphone permissions." });
-      } else if (event.error !== 'aborted') { // Don't toast on manual abort
+      } else if (event.error !== 'aborted') { 
          toast({ variant: "destructive", title: "Speech Recognition Error", description: `Could not transcribe speech: ${event.error}` });
       }
       setIsListening(false);
@@ -187,7 +238,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           interimTranscript += event.results[i][0].transcript;
         }
       }
-      // Update with final and then append interim for live feel
       setUserTranscript(prev => prev + finalTranscript + interimTranscript); 
     };
     return recognition;
@@ -199,7 +249,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         toast({title: "Please wait", description: "Mira is still speaking."});
         return;
     }
-    setUserTranscript(""); // Clear previous transcript
+    setUserTranscript(""); 
     setSpeechApiError(null);
 
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -207,7 +257,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         if (videoPreviewRef.current) {
           videoPreviewRef.current.srcObject = streamRef.current;
-          videoPreviewRef.current.style.transform = "scaleX(-1)"; // Mirror mode
         }
         setStage("countdown");
         setCountdown(5);
@@ -237,7 +286,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                 };
                 mediaRecorderRef.current.start();
 
-                // Start STT
                 speechRecognitionRef.current = initializeSpeechRecognition();
                 if (speechRecognitionRef.current) {
                   speechRecognitionRef.current.start();
@@ -245,10 +293,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
                 setTimeout(() => { 
                   if (mediaRecorderRef.current?.state === 'recording') {
-                    mediaRecorderRef.current.stop(); // This will also trigger STT stop in onstop
+                    mediaRecorderRef.current.stop(); 
                     toast({ title: "Recording Complete", description: "Maximum recording time reached." });
                   }
-                }, 30000); // Max 30 seconds recording
+                }, 30000); 
               }
               return null;
             }
@@ -268,9 +316,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.stop(); // This triggers onstop for MediaRecorder, which then stops STT
+      mediaRecorderRef.current.stop(); 
     }
-    // If STT is still running for some reason, stop it explicitly.
     if (speechRecognitionRef.current && isListening) {
         speechRecognitionRef.current.stop();
     }
@@ -292,9 +339,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           jobDescription: jobContext.jobDescription,
           candidateResume: jobContext.candidateResume,
           videoDataUri,
-          // Note: userTranscript is available here if we want to send it in the future
         };
-        console.log("User transcript before sending for feedback:", userTranscript); // For debugging
+        console.log("User transcript before sending for feedback:", userTranscript); 
         const result = await aiInterviewSimulation(input);
         setFeedback(result);
         setStage("feedback");
@@ -332,7 +378,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   };
   
   useEffect(() => {
-    // Cleanup on unmount
     return () => {
       cleanupStream();
       if (speechSynthesis.speaking) {
@@ -398,7 +443,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
-            <video ref={videoPreviewRef} playsInline autoPlay muted className={cn("w-full h-full object-cover transform scale-x-[-1]", ((stage === "review" || stage ==="feedback") && videoBlobUrl) && "hidden")} />
+            <video ref={videoPreviewRef} playsInline autoPlay muted className={cn("w-full h-full object-cover", ((stage === "review" || stage ==="feedback") && videoBlobUrl) && "hidden", isRecording && "transform scale-x-[-1]")} />
             {(stage === "review" || stage === "feedback") && videoBlobUrl && (
               <video src={videoBlobUrl} controls className="w-full h-full object-cover" />
             )}
