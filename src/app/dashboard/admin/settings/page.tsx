@@ -437,11 +437,9 @@ export default function SystemSettingsPage() {
                                     <TableCell className="font-medium">{role.name}</TableCell>
                                     <TableCell className="text-sm text-muted-foreground">{role.description}</TableCell>
                                     <TableCell className="text-right">
-                                        <DialogTrigger asChild>
-                                            <Button variant="ghost" size="sm" onClick={() => openViewPermissionsDialog(role)}>
-                                                <ListChecks className="mr-2 h-4 w-4"/> Permissions
-                                            </Button>
-                                        </DialogTrigger>
+                                        <Button variant="ghost" size="sm" onClick={() => openViewPermissionsDialog(role)}>
+                                            <ListChecks className="mr-2 h-4 w-4"/> Permissions
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -483,3 +481,5 @@ export default function SystemSettingsPage() {
     </div>
   );
 }
+
+    
