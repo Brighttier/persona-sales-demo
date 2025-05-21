@@ -32,8 +32,8 @@ body {
     --destructive: 0 84% 60%; /* Standard Red */
     --destructive-foreground: 0 0% 98%; /* White */
 
-    --border: 0 0% 90%; /* Light Gray for borders */
-    --input: 0 0% 90%; /* Light Gray for input borders */
+    --border: 145 63% 44%; /* Green for borders based on previous request */
+    --input: 145 63% 44%; /* Green for input borders based on previous request */
     --ring: 145 63% 44%; /* Primary Green for focus rings */
 
     --radius: 0.5rem;
@@ -43,16 +43,17 @@ body {
     --sidebar-foreground: 210 10% 23%; /* Dark Gray Text */
     --sidebar-primary: 145 63% 44%; /* Primary Green for active items */
     --sidebar-primary-foreground: 0 0% 100%; /* White */
-    --sidebar-accent: 0 0% 96%; /* Light Gray for hover, less green */
+    --sidebar-accent: 0 0% 96%; /* Light Gray for hover */
     --sidebar-accent-foreground: 145 63% 44%; /* Primary Green text on hover */
     --sidebar-border: 0 0% 90%; /* Light Gray for sidebar internal borders */
     --sidebar-ring: 145 63% 44%;
 
+    /* Updated Chart Colors */
     --chart-1: 145 63% 44%; /* Primary Green */
-    --chart-2: 145 55% 55%; /* Medium Green */
-    --chart-3: 145 50% 65%; /* Lighter Green */
-    --chart-4: 145 45% 75%; /* Even Lighter Green */
-    --chart-5: 145 40% 85%; /* Very Light Green / Almost Grey-Green */
+    --chart-2: 205 65% 50%; /* Steel Blue */
+    --chart-3: 35 85% 60%;  /* Gold/Orange */
+    --chart-4: 175 50% 50%; /* Teal */
+    --chart-5: 210 15% 65%; /* Slate Gray/Blueish Gray */
   }
 
   .dark {
@@ -80,8 +81,8 @@ body {
     --destructive: 0 70% 55%; /* Red, slightly adjusted for dark */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 10% 25%; /* Dark Gray for borders */
-    --input: 210 10% 25%; /* Dark Gray for input borders */
+    --border: 145 63% 48%; /* Green border in dark mode */
+    --input: 145 63% 48%; /* Green input border in dark mode */
     --ring: 145 63% 48%; /* Green ring */
 
     /* Sidebar specific theme variables for dark mode */
@@ -94,11 +95,12 @@ body {
     --sidebar-border: 210 10% 25%; /* Dark Gray for sidebar internal borders */
     --sidebar-ring: 145 63% 48%;
 
-    --chart-1: 145 63% 50%;
-    --chart-2: 145 55% 60%;
-    --chart-3: 145 50% 70%;
-    --chart-4: 145 45% 80%;
-    --chart-5: 0 0% 70%; /* Light Grey for contrast */
+    /* Updated Chart Colors for Dark Mode */
+    --chart-1: 145 63% 50%; /* Primary Green (lighter) */
+    --chart-2: 205 65% 60%; /* Steel Blue (lighter) */
+    --chart-3: 35 85% 65%;  /* Gold/Orange (lighter) */
+    --chart-4: 175 50% 55%; /* Teal (lighter) */
+    --chart-5: 210 15% 75%; /* Slate Gray (lighter) */
   }
 }
 

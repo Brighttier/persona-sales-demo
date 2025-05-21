@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, Users, TrendingUp, Clock, Target, CheckCircle, PieChart as PieIcon } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { Badge } from "@/components/ui/badge"; // Added import
+import { Badge } from "@/components/ui/badge"; 
 
 const hiringFunnelData = [
   { stage: 'Applications', count: 500, fill: 'hsl(var(--chart-1))' },
@@ -25,7 +25,7 @@ const offerAcceptanceData = [
 ];
 
 
-const topPerformingRecruiters = [ // Assuming HMs might also see recruiter performance
+const topPerformingRecruiters = [ 
     { name: "Brenda S.", hires: 12, efficiency: "85%", timeToFill: "25 days" },
     { name: "John R.", hires: 9, efficiency: "78%", timeToFill: "30 days" },
     { name: "Sarah T.", hires: 7, efficiency: "92%", timeToFill: "22 days" },
@@ -91,7 +91,11 @@ export default function HMAnalyticsPage() {
                 <XAxis type="number" fontSize={12}/>
                 <YAxis dataKey="stage" type="category" width={100} fontSize={12} tick={{ fill: 'hsl(var(--muted-foreground))' }}/>
                 <Tooltip wrapperStyle={{fontSize: "12px"}}/>
-                <Bar dataKey="count" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                  {hiringFunnelData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -166,7 +170,11 @@ export default function HMAnalyticsPage() {
                         <XAxis dataKey="department" fontSize={12} tick={{ fill: 'hsl(var(--muted-foreground))' }}/>
                         <YAxis fontSize={12} tick={{ fill: 'hsl(var(--muted-foreground))' }}/>
                         <Tooltip wrapperStyle={{fontSize: "12px"}}/>
-                        <Bar dataKey="hires" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="hires" radius={[4, 4, 0, 0]}>
+                            {hiresByDepartmentData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                             ))}
+                        </Bar>
                     </BarChart>
                 </ResponsiveContainer>
             </CardContent>
