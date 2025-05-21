@@ -6,10 +6,10 @@ interface LogoProps {
   className?: string;
   iconSize?: number;
   textSize?: string;
-  text?: string; // Added text prop
+  text?: string; 
 }
 
-export function Logo({ className, iconSize = 28, textSize = "text-2xl", text = "TalentVerse AI" }: LogoProps) {
+export function Logo({ className, iconSize = 28, textSize = "text-2xl", text = "Persona AI" }: LogoProps) {
   return (
     <Link href="/" className={`flex items-center gap-2 ${className}`}>
       <BrainCircuit size={iconSize} className="text-primary" />

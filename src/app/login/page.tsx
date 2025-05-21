@@ -55,7 +55,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <Logo className="justify-center mb-4" text="Persona AI" />
-          <CardTitle className="text-2xl">Welcome to TalentVerse AI</CardTitle>
+          <CardTitle className="text-2xl">Welcome to Persona AI</CardTitle>
           <CardDescription>Select your role to continue (Demo Login)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

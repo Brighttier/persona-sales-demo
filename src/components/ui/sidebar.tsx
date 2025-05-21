@@ -359,7 +359,7 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn("flex flex-col gap-2 p-3", className)}
       {...props}
     />
   )
@@ -405,7 +405,7 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden p-3",
         className
       )}
       {...props}
@@ -535,7 +535,7 @@ const sidebarMenuButtonVariants = cva(
 )
 
 interface SidebarMenuButtonProps
-  extends React.ComponentProps<"button">, // Changed to button for default case
+  extends React.ComponentProps<"button">, 
     VariantProps<typeof sidebarMenuButtonVariants> {
   asChild?: boolean
   isActive?: boolean
@@ -545,7 +545,7 @@ interface SidebarMenuButtonProps
 
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement, // Default ref type is button
+  HTMLButtonElement, 
   SidebarMenuButtonProps
 >(
   (
@@ -556,7 +556,7 @@ const SidebarMenuButton = React.forwardRef<
       size = "default",
       tooltip,
       icon,
-      children: propChildren, // Renamed to avoid confusion
+      children: propChildren, 
       className,
       ...props
     },
@@ -576,18 +576,12 @@ const SidebarMenuButton = React.forwardRef<
     };
 
     if (asChild) {
-      // When asChild, propChildren is the <Link> component or other custom child.
-      // Slot merges commonProps onto this child.
-      // The child component (propChildren) is responsible for rendering its own content (icon, label).
-      // The `icon` prop of SidebarMenuButton is NOT used by Slot.
       elementToRender = (
         <Comp ref={ref as React.Ref<any>} {...commonProps}>
           {propChildren}
         </Comp>
       );
     } else {
-      // When not asChild, it's a <button>. propChildren is typically the label text.
-      // The `icon` prop IS used here.
       elementToRender = (
         <button ref={ref} {...commonProps}>
           {icon && <span className="flex-shrink-0">{icon}</span>}

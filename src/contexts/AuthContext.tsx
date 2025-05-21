@@ -17,8 +17,8 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'talentverse-user';
-const COOKIE_KEY = 'talentverse-user'; // Same key for cookie, used by middleware
+const LOCAL_STORAGE_KEY = 'persona-ai-user';
+const COOKIE_KEY = 'persona-ai-user'; // Same key for cookie, used by middleware
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

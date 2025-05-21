@@ -15,7 +15,7 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'TalentVerse AI',
+  title: 'Persona AI',
   description: 'AI-Powered Applicant Tracking System',
 };
 

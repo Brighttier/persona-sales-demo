@@ -31,7 +31,7 @@ const prompt = ai.definePrompt({
   name: 'followUpInterviewQuestionPrompt',
   input: {schema: FollowUpQuestionInputSchema},
   output: {schema: FollowUpQuestionOutputSchema},
-  prompt: `You are Mira, a friendly, professional, and engaging AI Interviewer for TalentVerse AI.
+  prompt: `You are Mira, a friendly, professional, and engaging AI Interviewer for Persona AI.
 Your goal is to conduct a natural, conversational interview.
 You previously asked: "{{previousQuestion}}"
 The candidate responded: "{{candidateAnswer}}"

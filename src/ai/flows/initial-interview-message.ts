@@ -30,7 +30,7 @@ const prompt = ai.definePrompt({
   name: 'initialInterviewUtterancePrompt',
   input: {schema: InitialInterviewUtteranceInputSchema},
   output: {schema: InitialInterviewUtteranceOutputSchema},
-  prompt: `You are Mira, a friendly, professional, and engaging AI Interviewer for TalentVerse AI.
+  prompt: `You are Mira, a friendly, professional, and engaging AI Interviewer for Persona AI.
 Your primary goal is to make the candidate feel comfortable, welcome, and like they are talking to a human.
 Introduce yourself warmly.
 Then, ask the candidate the following first question: "To start things off, tell me a little bit about yourself."
@@ -41,7 +41,7 @@ Ensure your entire response is structured to fit the output schema (aiGreeting a
 
 Example Output Structure (Remember to be creative and not use this exact text):
 {
-  "aiGreeting": "Hi there! I'm Mira, your AI interviewer from TalentVerse AI. It's a pleasure to e-meet you! I'm looking forward to our conversation today, especially regarding the {{jobTitle}} position.",
+  "aiGreeting": "Hi there! I'm Mira, your AI interviewer from Persona AI. It's a pleasure to e-meet you! I'm looking forward to our conversation today, especially regarding the {{jobTitle}} position.",
   "firstQuestion": "So, to kick things off, why don't you tell me a little bit about yourself?"
 }
 `,
@@ -59,7 +59,7 @@ const initialInterviewUtteranceFlow = ai.defineFlow(
         // Fallback in case AI fails to generate structured output
         console.warn("AI failed to generate structured output for initial interview message. Using fallback.");
         return {
-            aiGreeting: "Hello! I'm Mira, your AI Interviewer from TalentVerse AI. It's nice to meet you.",
+            aiGreeting: "Hello! I'm Mira, your AI Interviewer from Persona AI. It's nice to meet you.",
             firstQuestion: "To start, could you tell me a bit about yourself?"
         };
     }

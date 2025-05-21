@@ -54,7 +54,7 @@ export default function LandingPage() {
         <section className="py-20 md:py-32 bg-gradient-to-br from-primary/10 via-background to-background">
           <div className="container mx-auto text-center px-4">
             <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
-              Find Your Dream Job with <span className="text-primary">TalentVerse AI</span>
+              Find Your Dream Job with <span className="text-primary">Persona AI</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
               Leveraging cutting-edge AI to connect talent with opportunity. Streamline your hiring or job search process like never before.
@@ -74,7 +74,7 @@ export default function LandingPage() {
         <section id="features" className="py-16 md:py-24">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-bold text-center text-foreground mb-16">
-              Why Choose TalentVerse AI?
+              Why Choose Persona AI?
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature, index) => (
@@ -101,7 +101,7 @@ export default function LandingPage() {
                   Revolutionizing Recruitment
                 </h2>
                 <p className="text-muted-foreground mb-4">
-                  TalentVerse AI offers a seamless, intelligent platform for every step of the hiring journey.
+                  Persona AI offers a seamless, intelligent platform for every step of the hiring journey.
                 </p>
                 <ul className="space-y-3">
                   {[
@@ -123,7 +123,7 @@ export default function LandingPage() {
               <div>
                 <Image
                   src="https://placehold.co/600x400.png"
-                  alt="TalentVerse AI Platform Showcase"
+                  alt="Persona AI Platform Showcase"
                   width={600}
                   height={400}
                   className="rounded-lg shadow-2xl"
@@ -137,7 +137,7 @@ export default function LandingPage() {
 
       <footer className="py-8 border-t bg-background">
         <div className="container mx-auto text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} TalentVerse AI. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Persona AI. All rights reserved.</p>
           <p className="text-sm mt-1">Revolutionizing talent acquisition through AI.</p>
         </div>
       </footer>

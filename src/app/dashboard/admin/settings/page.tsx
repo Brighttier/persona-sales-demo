@@ -41,7 +41,7 @@ export default function SystemSettingsPage() {
   const generalForm = useForm<z.infer<typeof generalSettingsSchema>>({
     resolver: zodResolver(generalSettingsSchema),
     defaultValues: {
-      appName: "TalentVerse AI",
+      appName: "Persona AI",
       defaultLanguage: "en",
       maintenanceMode: false,
       allowPublicJobBoard: true,
@@ -74,7 +74,7 @@ export default function SystemSettingsPage() {
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="text-2xl">System Settings & Configuration</CardTitle>
-          <CardDescription>Manage global settings for the TalentVerse AI platform.</CardDescription>
+          <CardDescription>Manage global settings for the Persona AI platform.</CardDescription>
         </CardHeader>
       </Card>
 

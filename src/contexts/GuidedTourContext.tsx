@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { NavLink } from '@/config/nav-links';
@@ -24,7 +25,7 @@ interface GuidedTourContextType {
 
 export const GuidedTourContext = createContext<GuidedTourContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_TOUR_PREFIX = 'talentverse-tour-';
+const LOCAL_STORAGE_TOUR_PREFIX = 'persona-ai-tour-';
 
 export function GuidedTourProvider({ children }: { children: ReactNode }) {
   const { role, user } = useAuth();

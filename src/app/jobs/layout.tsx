@@ -27,7 +27,7 @@ export default function JobsLayout({
       </main>
       <footer className="py-8 border-t bg-background">
         <div className="container mx-auto text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} TalentVerse AI. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Persona AI. All rights reserved.</p>
         </div>
       </footer>
     </div>
