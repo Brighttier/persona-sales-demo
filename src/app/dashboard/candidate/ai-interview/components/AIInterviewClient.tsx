@@ -86,15 +86,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         if (!preferredVoice) preferredVoice = voices.find(v => v.lang.startsWith('en-'));
         setSelectedVoice(preferredVoice || voices[0] || null);
       } else {
-        // This case might indicate an issue or that voices haven't loaded yet.
-        // `onvoiceschanged` should eventually populate this.
         setSelectedVoice(null); 
       }
     };
     
     if ('speechSynthesis' in window) {
         speechSynthesis.onvoiceschanged = loadVoices;
-        loadVoices(); // Initial attempt to load voices
+        loadVoices(); 
     } else {
         setSpeechApiError("Your browser does not support Text-to-Speech. Mira will not be able to speak.");
     }
@@ -107,6 +105,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   }, []);
 
   const speak = useCallback((text: string, onEndCallback?: () => void) => {
+    if (!text || text.trim() === "") {
+        console.warn("Speak function called with empty text. Aborting speech.");
+        // toast({ variant: "destructive", title: "TTS Error", description: "Attempted to speak empty text."}); // Can be noisy
+        onEndCallback?.();
+        return;
+    }
+
     if (!('speechSynthesis' in window)) {
       setSpeechApiError("Your browser does not support Text-to-Speech.");
       toast({ variant: "destructive", title: "TTS Not Supported", description: "Mira cannot speak in this browser."});
@@ -137,7 +142,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     };
     utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
       console.error("SpeechSynthesis Error Event (see details in browser console):", event);
-      const errorCode = event.error; // This should be a string like 'synthesis-failed'
+      const errorCode = event.error; 
       let detailedMessage = "Mira could not speak. Please check your browser console for 'SpeechSynthesis Error Event' details.";
       if (errorCode) {
         detailedMessage = `Mira could not speak (Error code: ${errorCode}). Check console for details.`;
@@ -227,7 +232,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         if (videoPreviewRef.current) {
             videoPreviewRef.current.srcObject = streamRef.current;
-            videoPreviewRef.current.muted = true; // Mute preview to avoid feedback loop
+            videoPreviewRef.current.muted = true; 
             videoPreviewRef.current.play().catch(e => console.error("Preview play error", e));
         }
         
@@ -249,18 +254,17 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
               setConversationSubStage("miraSpeaking");
               const textToSpeak = currentInterviewTurn === 0 ? `${aiGreeting} ${currentAiQuestion}` : currentAiQuestion;
               
-              // Start MediaRecorder just before Mira speaks (or at the beginning of the countdown if preferred)
               if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "recording") {
-                 mediaRecorderRef.current.start(1000); // Start video recording
+                 mediaRecorderRef.current.start(1000); 
                  setIsSessionRecordingActive(true);
               }
               
-              speak(textToSpeak || "Error: No question to speak.", () => { // After Mira finishes speaking
+              speak(textToSpeak || "Error: No question to speak.", () => { 
                 if (speechRecognitionRef.current && !isCandidateListeningActive) {
-                   speechRecognitionRef.current.start(); // Start STT for candidate's answer
+                   speechRecognitionRef.current.start(); 
                 }
                 setConversationSubStage("sessionRecording");
-                if (currentInterviewTurn === 0) { // Start overall timer only once
+                if (currentInterviewTurn === 0) { 
                     overallSessionTimerIdRef.current = setTimeout(() => { 
                         toast({ title: "Session Time Limit Reached", description: "Interview session ended automatically." });
                         handleFinishInterview(); 
@@ -275,7 +279,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       } catch (err) {
         console.error("Error accessing media devices.", err);
         toast({ variant: "destructive", title: "Camera/Mic Error", description: "Please check permissions and ensure no other app is using them." });
-        setConversationSubStage("preparingStream"); // Revert to allow retry or reset
+        setConversationSubStage("preparingStream"); 
         setSpeechApiError("Failed to access camera/microphone. Please check permissions.");
       }
     } else {
@@ -333,7 +337,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
     
     if (speechRecognitionRef.current && isCandidateListeningActive) {
-      speechRecognitionRef.current.stop(); // Stop STT before fetching next Q or finishing
+      speechRecognitionRef.current.stop(); 
     }
     setAccumulatedInterviewTranscript(prev => `${prev}Candidate: ${currentAnswerTranscript || "(No audible answer provided)"}\n\n`);
 
@@ -404,7 +408,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
     setIsSessionRecordingActive(false);
 
-  }, [isCandidateListeningActive, sessionVideoBlob, accumulatedInterviewTranscript, currentAnswerTranscript]);
+  }, [isCandidateListeningActive, sessionVideoBlob, accumulatedInterviewTranscript, currentAnswerTranscript, toast, cleanupStreamAndRecorders]);
 
 
   const submitForFinalFeedback = async (videoForSubmission: Blob, finalTranscript: string) => {
@@ -595,5 +599,3 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     </>
   );
 }
-
-    
