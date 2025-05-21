@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { CalendarIcon, Download, FileText, Filter, PlayCircle, Settings, BarChartHorizontalBig } from "lucide-react";
+import { CalendarIcon, Download, FileText, Filter, PlayCircle, Settings, BarChartHorizontalBig, Eye } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -75,7 +75,7 @@ export default function AdminReportsPage() {
             <BarChartHorizontalBig className="mr-2 h-6 w-6 text-primary" /> System Reports & Analytics
           </CardTitle>
           <CardDescription>
-            Generate, view, and manage various reports across the TalentVerse AI platform.
+            Generate, view, and manage various reports and analytics across the TalentVerse AI platform.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -85,7 +85,7 @@ export default function AdminReportsPage() {
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Report Configuration</CardTitle>
-              <CardDescription>Select criteria to generate your desired report.</CardDescription>
+              <CardDescription>Select criteria to generate your desired report or analysis.</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <FormField
@@ -93,7 +93,7 @@ export default function AdminReportsPage() {
                 name="reportType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Report Type *</FormLabel>
+                    <FormLabel>Report/Analytics Type *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -106,6 +106,7 @@ export default function AdminReportsPage() {
                         <SelectItem value="financial_summary">Financial Summary</SelectItem>
                         <SelectItem value="system_health">System Health & Performance</SelectItem>
                         <SelectItem value="company_engagement">Company Engagement Metrics</SelectItem>
+                        <SelectItem value="ai_usage_stats">AI Feature Usage Statistics</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -235,7 +236,7 @@ export default function AdminReportsPage() {
             </CardContent>
             <CardFooter className="border-t pt-6">
               <Button type="submit" size="lg">
-                <PlayCircle className="mr-2 h-5 w-5" /> Generate Report
+                <PlayCircle className="mr-2 h-5 w-5" /> Generate Report / Analysis
               </Button>
             </CardFooter>
           </Card>
@@ -244,8 +245,8 @@ export default function AdminReportsPage() {
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-lg">Report Preview</CardTitle>
-          <CardDescription>The generated report will be displayed below.</CardDescription>
+          <CardTitle className="text-lg">Report / Analytics Preview</CardTitle>
+          <CardDescription>The generated content will be displayed below. This may include data tables, charts, or summaries.</CardDescription>
         </CardHeader>
         <CardContent className="min-h-[200px] border rounded-md p-4 bg-muted/50">
           {generatedReportContent ? (
@@ -253,21 +254,22 @@ export default function AdminReportsPage() {
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <FileText className="h-12 w-12 mb-2" />
-              <p>Configure and generate a report to see a preview here.</p>
+              <p>Configure and generate a report or analysis to see a preview here.</p>
+              <p className="text-xs mt-1">For enterprise needs, complex data will be visualized appropriately.</p>
             </div>
           )}
         </CardContent>
         <CardFooter className="border-t pt-6">
           <Button variant="outline" onClick={handleDownloadReport} disabled={!generatedReportContent}>
-            <Download className="mr-2 h-4 w-4" /> Download Report (PDF/CSV)
+            <Download className="mr-2 h-4 w-4" /> Download (PDF/CSV)
           </Button>
         </CardFooter>
       </Card>
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-lg">Saved Reports</CardTitle>
-          <CardDescription>Access previously generated reports.</CardDescription>
+          <CardTitle className="text-lg">Saved Reports & Analyses</CardTitle>
+          <CardDescription>Access previously generated reports and analytical views.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -296,7 +298,7 @@ export default function AdminReportsPage() {
                 </TableRow>
               ))}
               {mockSavedReports.length === 0 && (
-                 <TableRow><TableCell colSpan={4} className="h-24 text-center text-muted-foreground">No saved reports found.</TableCell></TableRow>
+                 <TableRow><TableCell colSpan={4} className="h-24 text-center text-muted-foreground">No saved reports or analyses found.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

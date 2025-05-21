@@ -178,12 +178,12 @@ export const NAV_LINKS: NavLink[] = [
   },
   {
     href: `/dashboard/${USER_ROLES.ADMIN}/reports`,
-    label: 'Reports',
-    icon: BarChartHorizontalBig, // Changed from FileText
+    label: 'Reports & Analytics',
+    icon: BarChartHorizontalBig, 
     roles: [USER_ROLES.ADMIN],
     isTourStep: true,
     tourStepId: 'admin-reports-link',
-    tourText: 'Generate and view various system-wide reports, from user activity to financial summaries.'
+    tourText: 'Generate and view various system-wide reports and analytics, from user activity to financial summaries.'
   },
   {
     href: `/dashboard/${USER_ROLES.ADMIN}/settings`,
