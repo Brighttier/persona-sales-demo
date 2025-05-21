@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -533,13 +534,19 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
+interface SidebarMenuButtonProps
+  extends React.ComponentProps<"button">,
+    VariantProps<typeof sidebarMenuButtonVariants> {
+  asChild?: boolean
+  isActive?: boolean
+  tooltip?: string | React.ComponentProps<typeof TooltipContent>
+  icon?: React.ReactNode // Added icon prop
+}
+
+
 const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement,
-  React.ComponentProps<"button"> & {
-    asChild?: boolean
-    isActive?: boolean
-    tooltip?: string | React.ComponentProps<typeof TooltipContent>
-  } & VariantProps<typeof sidebarMenuButtonVariants>
+  SidebarMenuButtonProps
 >(
   (
     {
@@ -548,6 +555,8 @@ const SidebarMenuButton = React.forwardRef<
       variant = "default",
       size = "default",
       tooltip,
+      icon, // Destructure icon prop
+      children, // Children will be the label part
       className,
       ...props
     },
@@ -555,6 +564,14 @@ const SidebarMenuButton = React.forwardRef<
   ) => {
     const Comp = asChild ? Slot : "button"
     const { isMobile, state } = useSidebar()
+
+    const buttonContent = (
+      <>
+        {icon && <span className="flex-shrink-0">{icon}</span>}
+        <span className="flex-grow truncate">{children}</span>
+      </>
+    );
+    
 
     const button = (
       <Comp
@@ -564,7 +581,9 @@ const SidebarMenuButton = React.forwardRef<
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
-      />
+      >
+        {buttonContent}
+      </Comp>
     )
 
     if (!tooltip) {
@@ -761,3 +780,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    

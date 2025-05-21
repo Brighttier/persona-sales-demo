@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
@@ -18,18 +17,18 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarSeparator,
-  useSidebar,
+  useSidebar, // Import useSidebar
 } from "@/components/ui/sidebar";
 import { Logo } from './Logo';
 import { Button } from '../ui/button';
 import { useGuidedTour } from '@/hooks/useGuidedTour';
-import { WandSparkles } from 'lucide-react';
+import { WandSparkles, ChevronsLeft } from 'lucide-react'; // Import ChevronsLeft
 
 
 export function SidebarNav() {
   const { role } = useAuth();
   const pathname = usePathname();
-  const { open } = useSidebar(); // Get the 'open' state
+  const { open, isMobile, toggleSidebar } = useSidebar(); // Get open, isMobile, and toggleSidebar
   const { startTour, isTourActive } = useGuidedTour();
   const navLinks = getNavLinksForRole(role);
 
@@ -51,7 +50,7 @@ export function SidebarNav() {
             className="justify-start"
           >
             <Link href={link.href}>
-              {link.label} {/* Sub-link labels are always visible as they are in a sub-menu */}
+              {link.label}
             </Link>
           </SidebarMenuSubButton>
         </SidebarMenuSubItem>
@@ -64,14 +63,14 @@ export function SidebarNav() {
           asChild
           isActive={isActive(link.href)}
           className="justify-start"
-          icon={<link.icon />}
-          tooltip={link.label} // Tooltip shows label when sidebar is icon-only
+          icon={<link.icon />} 
+          tooltip={link.label}
         >
           <Link href={link.href}>
-            {open && link.label} {/* Only render the label if the sidebar is 'open' */}
+            {open && link.label} 
           </Link>
         </SidebarMenuButton>
-        {link.subLinks && link.subLinks.length > 0 && open && ( // Only show sub-menu if sidebar is open
+        {link.subLinks && link.subLinks.length > 0 && open && (
           <SidebarMenuSub>
             {link.subLinks.map(subLink => renderLink(subLink, true))}
           </SidebarMenuSub>
@@ -92,6 +91,17 @@ export function SidebarNav() {
       </SidebarContent>
       <SidebarFooter className="mt-auto">
         <SidebarSeparator />
+         {!isMobile && open && ( // Only show on desktop when sidebar is expanded
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mx-auto my-1 h-7 w-7 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            onClick={toggleSidebar}
+            aria-label="Collapse sidebar"
+          >
+            <ChevronsLeft className="h-5 w-5" />
+          </Button>
+        )}
         <div className={cn("p-2 space-y-2", open ? "text-sm" : "text-center")}>
           <Button variant="outline" size="sm" className="w-full" onClick={() => startTour()} disabled={isTourActive}>
             <WandSparkles className={cn("h-4 w-4", open && "mr-2")} />
@@ -106,3 +116,4 @@ export function SidebarNav() {
   );
 }
 
+    
