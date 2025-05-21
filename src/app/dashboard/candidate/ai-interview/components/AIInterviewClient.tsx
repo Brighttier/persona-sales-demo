@@ -235,6 +235,98 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     return recognition;
   }, [toast]);
 
+  const submitForFinalFeedback = useCallback(async (videoForSubmission: Blob, finalTranscript: string) => {
+    if (!videoForSubmission) {
+      toast({ variant: "destructive", title: "No Video Recorded", description: "Cannot submit feedback without a video." });
+      setMainStage("conversation"); 
+      setConversationSubStage("preparingStream"); 
+      setSpeechApiError("Submission failed: No video was recorded.");
+      return;
+    }
+    
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(videoForSubmission);
+      reader.onloadend = async () => {
+        const videoDataUri = reader.result as string;
+        const input: AiInterviewSimulationInput = {
+          jobDescription: jobContext.jobDescription,
+          candidateResume: jobContext.candidateResume,
+          videoDataUri,
+          interviewTranscript: finalTranscript,
+        };
+        const result = await aiInterviewSimulation(input);
+        setFeedbackResult(result);
+        setMainStage("feedback");
+        toast({ title: "Feedback Received!", description: "Mira has analyzed your responses." });
+        cleanupStreamAndRecorders(); 
+      };
+      reader.onerror = () => {
+        toast({ variant: "destructive", title: "File Read Error", description: "Could not process video for submission." });
+        setMainStage("conversation"); setConversationSubStage("preparingStream");
+        setSpeechApiError("Failed to read video data for submission.");
+      }
+    } catch (error) {
+      console.error("Error getting feedback:", error);
+      toast({ variant: "destructive", title: "Feedback Error", description: "Could not get AI feedback." });
+      setMainStage("conversation"); 
+      setConversationSubStage("preparingStream"); 
+      setSpeechApiError("Failed to get feedback from AI.");
+    }
+  }, [jobContext, toast, cleanupStreamAndRecorders]);
+  
+  const resetFullInterview = useCallback(() => {
+    cleanupStreamAndRecorders();
+    if ('speechSynthesis' in window && speechSynthesis.speaking) speechSynthesis.cancel();
+    
+    setAiGreeting(null); setCurrentAiQuestion(null);
+    setCurrentAnswerTranscript(""); setAccumulatedInterviewTranscript("");
+    setFeedbackResult(null);
+    setSessionVideoBlob(null);
+    setCurrentInterviewTurn(0);
+    setCountdown(null);
+    setSpeechApiError(null);
+    setConsentGiven(false); 
+    setMainStage("consent"); 
+    setConversationSubStage("preparingStream");
+  }, [cleanupStreamAndRecorders]);
+
+  const handleFinishInterview = useCallback(async () => {
+    if (overallSessionTimerIdRef.current) {
+        clearTimeout(overallSessionTimerIdRef.current);
+        overallSessionTimerIdRef.current = null;
+    }
+
+    if (speechRecognitionRef.current && isCandidateListeningActive) {
+        speechRecognitionRef.current.stop();
+    }
+        
+    setMainStage("loadingFeedback"); 
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.onstop = async () => { 
+            const finalBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+            setSessionVideoBlob(finalBlob); 
+            let finalTranscript = accumulatedInterviewTranscript;
+            if (currentAnswerTranscript.trim() && !finalTranscript.endsWith(`${currentAnswerTranscript.trim()}\n\n`)) {
+                 finalTranscript += `Candidate: ${currentAnswerTranscript.trim() || "(No audible answer provided for last question)"}\n\n`;
+                 setAccumulatedInterviewTranscript(finalTranscript); 
+            }
+            await submitForFinalFeedback(finalBlob, finalTranscript);
+        };
+        mediaRecorderRef.current.stop();
+    } else if (sessionVideoBlob) { 
+        await submitForFinalFeedback(sessionVideoBlob, accumulatedInterviewTranscript);
+    } else {
+        toast({variant: "destructive", title: "Recording Error", description: "No video to submit. Please try again."});
+        setSpeechApiError("No video recording was available to submit for feedback.");
+        resetFullInterview(); 
+        return;
+    }
+    setIsSessionRecordingActive(false);
+
+  }, [isCandidateListeningActive, sessionVideoBlob, accumulatedInterviewTranscript, currentAnswerTranscript, toast, jobContext, submitForFinalFeedback, resetFullInterview]);
+
   const startMediaAndCountdown = useCallback(async () => {
     if (mainStage !== "conversation" || conversationSubStage !== "preparingStream") return;
     setSpeechApiError(null); setSessionVideoBlob(null);
@@ -345,8 +437,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const handleProceedToNextStep = async () => {
     if (!currentAnswerTranscript.trim() && currentInterviewTurn < MAX_INTERVIEW_TURNS +1 && conversationSubStage === "sessionRecording") {
         toast({variant: "destructive", title: "Empty Answer", description: "Please provide an answer before proceeding."});
-        // Do not return here if STT had an error, allow proceeding with empty transcript
-        if (!speechApiError?.includes("No speech was detected")) { // Allow proceed if 'no-speech' error occurred
+        if (!speechApiError?.includes("No speech was detected")) { 
           return;
         }
     }
@@ -355,8 +446,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       speechRecognitionRef.current.stop(); 
     }
     setAccumulatedInterviewTranscript(prev => `${prev}Candidate: ${currentAnswerTranscript || "(No audible answer provided)"}\n\n`);
-    setCurrentAnswerTranscript(""); // Clear current answer for next turn
-    setSpeechApiError(null); // Clear previous speech API errors for the next turn
+    setCurrentAnswerTranscript(""); 
+    setSpeechApiError(null); 
 
 
     if (currentInterviewTurn < MAX_INTERVIEW_TURNS) {
@@ -366,7 +457,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           jobDescription: jobContext.jobDescription,
           candidateResume: jobContext.candidateResume,
           previousQuestion: currentAiQuestion || "",
-          candidateAnswer: accumulatedInterviewTranscript.split("Candidate:").pop()?.trim() || "", // Get last candidate answer
+          candidateAnswer: accumulatedInterviewTranscript.split("Candidate:").pop()?.trim() || "", 
         };
         const result = await getFollowUpQuestion(input);
         setCurrentAiQuestion(result.nextQuestion);
@@ -390,102 +481,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       handleFinishInterview();
     }
   };
-  
-  const handleFinishInterview = useCallback(async () => {
-    if (overallSessionTimerIdRef.current) {
-        clearTimeout(overallSessionTimerIdRef.current);
-        overallSessionTimerIdRef.current = null;
-    }
-
-    if (speechRecognitionRef.current && isCandidateListeningActive) {
-        speechRecognitionRef.current.stop();
-    }
-        
-    setMainStage("loadingFeedback"); 
-
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-        mediaRecorderRef.current.onstop = async () => { 
-            const finalBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-            setSessionVideoBlob(finalBlob); 
-            let finalTranscript = accumulatedInterviewTranscript;
-            // Ensure the very last spoken part is included if not already added by a 'proceed' action
-            if (currentAnswerTranscript.trim() && !finalTranscript.endsWith(`${currentAnswerTranscript.trim()}\n\n`)) {
-                 finalTranscript += `Candidate: ${currentAnswerTranscript.trim() || "(No audible answer provided for last question)"}\n\n`;
-                 setAccumulatedInterviewTranscript(finalTranscript); 
-            }
-            await submitForFinalFeedback(finalBlob, finalTranscript);
-        };
-        mediaRecorderRef.current.stop();
-    } else if (sessionVideoBlob) { 
-        await submitForFinalFeedback(sessionVideoBlob, accumulatedInterviewTranscript);
-    } else {
-        toast({variant: "destructive", title: "Recording Error", description: "No video to submit. Please try again."});
-        setSpeechApiError("No video recording was available to submit for feedback.");
-        resetFullInterview(); 
-        return;
-    }
-    setIsSessionRecordingActive(false);
-
-  }, [isCandidateListeningActive, sessionVideoBlob, accumulatedInterviewTranscript, currentAnswerTranscript, toast, cleanupStreamAndRecorders, jobContext, submitForFinalFeedback, resetFullInterview]);
-
-
-  const submitForFinalFeedback = useCallback(async (videoForSubmission: Blob, finalTranscript: string) => {
-    if (!videoForSubmission) {
-      toast({ variant: "destructive", title: "No Video Recorded", description: "Cannot submit feedback without a video." });
-      setMainStage("conversation"); 
-      setConversationSubStage("preparingStream"); 
-      setSpeechApiError("Submission failed: No video was recorded.");
-      return;
-    }
-    
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(videoForSubmission);
-      reader.onloadend = async () => {
-        const videoDataUri = reader.result as string;
-        const input: AiInterviewSimulationInput = {
-          jobDescription: jobContext.jobDescription,
-          candidateResume: jobContext.candidateResume,
-          videoDataUri,
-          interviewTranscript: finalTranscript,
-        };
-        const result = await aiInterviewSimulation(input);
-        setFeedbackResult(result);
-        setMainStage("feedback");
-        toast({ title: "Feedback Received!", description: "Mira has analyzed your responses." });
-        cleanupStreamAndRecorders(); 
-      };
-      reader.onerror = () => {
-        toast({ variant: "destructive", title: "File Read Error", description: "Could not process video for submission." });
-        setMainStage("conversation"); setConversationSubStage("preparingStream");
-        setSpeechApiError("Failed to read video data for submission.");
-      }
-    } catch (error) {
-      console.error("Error getting feedback:", error);
-      toast({ variant: "destructive", title: "Feedback Error", description: "Could not get AI feedback." });
-      setMainStage("conversation"); 
-      setConversationSubStage("preparingStream"); 
-      setSpeechApiError("Failed to get feedback from AI.");
-    }
-  }, [jobContext, toast, cleanupStreamAndRecorders]);
-  
-  const resetFullInterview = useCallback(() => {
-    cleanupStreamAndRecorders();
-    if ('speechSynthesis' in window && speechSynthesis.speaking) speechSynthesis.cancel();
-    
-    setAiGreeting(null); setCurrentAiQuestion(null);
-    setCurrentAnswerTranscript(""); setAccumulatedInterviewTranscript("");
-    setFeedbackResult(null);
-    setSessionVideoBlob(null);
-    setCurrentInterviewTurn(0);
-    setCountdown(null);
-    setSpeechApiError(null);
-    // Reset to consent to allow re-triggering full flow, or loadingInitialMessage if you want to skip consent
-    setConsentGiven(false); // Require re-consent
-    setMainStage("consent"); 
-    // setMainStage("loadingInitialMessage"); // If skipping consent on retry
-    setConversationSubStage("preparingStream");
-  }, [cleanupStreamAndRecorders]);
   
   useEffect(() => {
     return () => { 
