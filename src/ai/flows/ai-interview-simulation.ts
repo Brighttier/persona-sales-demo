@@ -1,0 +1,57 @@
+'use server';
+
+/**
+ * @fileOverview AI interview simulation flow with video recording and feedback from a conversational AI agent.
+ *
+ * - aiInterviewSimulation - A function that initiates the AI interview simulation process.
+ * - AiInterviewSimulationInput - The input type for the aiInterviewSimulation function.
+ * - AiInterviewSimulationOutput - The return type for the aiInterviewSimulation function.
+ */
+
+import {ai} from '@/ai/genkit';
+import {z} from 'genkit';
+
+const AiInterviewSimulationInputSchema = z.object({
+  jobDescription: z.string().describe('The description of the job being interviewed for.'),
+  candidateResume: z.string().describe('The candidate\'s resume.'),
+  videoDataUri: z
+    .string()
+    .describe(
+      "A video recording of the candidate's interview response, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+    ),
+});
+export type AiInterviewSimulationInput = z.infer<typeof AiInterviewSimulationInputSchema>;
+
+const AiInterviewSimulationOutputSchema = z.object({
+  feedback: z.string().describe('AI-generated feedback on the candidate\'s interview performance.'),
+});
+export type AiInterviewSimulationOutput = z.infer<typeof AiInterviewSimulationOutputSchema>;
+
+export async function aiInterviewSimulation(input: AiInterviewSimulationInput): Promise<AiInterviewSimulationOutput> {
+  return aiInterviewSimulationFlow(input);
+}
+
+const prompt = ai.definePrompt({
+  name: 'aiInterviewSimulationPrompt',
+  input: {schema: AiInterviewSimulationInputSchema},
+  output: {schema: AiInterviewSimulationOutputSchema},
+  prompt: `You are an AI interview coach providing feedback to candidates based on their video response and resume in relation to a specific job description.
+
+  Job Description: {{{jobDescription}}}
+  Candidate Resume: {{{candidateResume}}}
+  Video Response: {{media url=videoDataUri}}
+
+  Provide detailed and constructive feedback to help the candidate improve their interviewing skills.`,
+});
+
+const aiInterviewSimulationFlow = ai.defineFlow(
+  {
+    name: 'aiInterviewSimulationFlow',
+    inputSchema: AiInterviewSimulationInputSchema,
+    outputSchema: AiInterviewSimulationOutputSchema,
+  },
+  async input => {
+    const {output} = await prompt(input);
+    return output!;
+  }
+);
