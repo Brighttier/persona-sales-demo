@@ -1,13 +1,14 @@
+
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  const talentVerseUserCookie = request.cookies.get('talentverse-user');
+  const personaAiUserCookie = request.cookies.get('persona-ai-user'); // Updated cookie name
   const { pathname } = request.nextUrl;
 
   // If trying to access any /dashboard/* route
   if (pathname.startsWith('/dashboard')) {
-    if (!talentVerseUserCookie) {
+    if (!personaAiUserCookie) {
       // Not authenticated, redirect to login
       return NextResponse.redirect(new URL('/login', request.url));
     }
@@ -17,14 +18,19 @@ export function middleware(request: NextRequest) {
   }
 
   // If authenticated and trying to access /login
-  if (talentVerseUserCookie && pathname === '/login') {
+  if (personaAiUserCookie && pathname === '/login') {
     try {
-        const user = JSON.parse(talentVerseUserCookie.value);
+        const user = JSON.parse(decodeURIComponent(personaAiUserCookie.value)); // Ensure cookie value is decoded
         if (user && user.role) {
             return NextResponse.redirect(new URL(`/dashboard/${user.role}/dashboard`, request.url));
         }
     } catch (e) {
         // Invalid cookie, let them go to login
+        console.error("Error parsing user cookie in middleware:", e);
+        // Optionally clear the bad cookie
+        const response = NextResponse.redirect(new URL('/login', request.url));
+        response.cookies.set('persona-ai-user', '', { path: '/', maxAge: 0 });
+        return response;
     }
   }
 
