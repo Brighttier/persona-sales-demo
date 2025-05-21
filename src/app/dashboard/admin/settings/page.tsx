@@ -14,7 +14,7 @@ import { Save, Bell, Palette, Shield, Zap, Users2, Link2, KeyRound, ListChecks }
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel as RHFFormLabel, FormMessage, FormDescription as RHFFormDescription } from "@/components/ui/form"; // Renamed to avoid conflict
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 
@@ -131,14 +131,14 @@ export default function SystemSettingsPage() {
                     <CardContent className="space-y-6">
                         <FormField control={generalForm.control} name="appName" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Application Name</FormLabel>
+                                <RHFFormLabel>Application Name</RHFFormLabel>
                                 <FormControl><Input {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}/>
                         <FormField control={generalForm.control} name="defaultLanguage" render={({ field }) => (
                              <FormItem>
-                                <FormLabel>Default Language</FormLabel>
+                                <RHFFormLabel>Default Language</RHFFormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger></FormControl>
                                     <SelectContent>
@@ -152,17 +152,17 @@ export default function SystemSettingsPage() {
                         )}/>
                          <FormField control={generalForm.control} name="maxResumeFileSizeMB" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Max Resume File Size (MB)</FormLabel>
+                                <RHFFormLabel>Max Resume File Size (MB)</RHFFormLabel>
                                 <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl>
-                                <FormDescription>Maximum allowed file size for resume uploads.</FormDescription>
+                                <RHFFormDescription>Maximum allowed file size for resume uploads.</RHFFormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}/>
                         <FormField control={generalForm.control} name="maintenanceMode" render={({ field }) => (
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
-                                    <FormLabel className="text-base">Maintenance Mode</FormLabel>
-                                    <FormDescription>Temporarily disable access for users (except admins).</FormDescription>
+                                    <RHFFormLabel className="text-base">Maintenance Mode</RHFFormLabel>
+                                    <RHFFormDescription>Temporarily disable access for users (except admins).</RHFFormDescription>
                                 </div>
                                 <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                             </FormItem>
@@ -170,8 +170,8 @@ export default function SystemSettingsPage() {
                         <FormField control={generalForm.control} name="allowPublicJobBoard" render={({ field }) => (
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
-                                    <FormLabel className="text-base">Enable Public Job Board</FormLabel>
-                                    <FormDescription>Allow non-logged-in users to view job listings.</FormDescription>
+                                    <RHFFormLabel className="text-base">Enable Public Job Board</RHFFormLabel>
+                                    <RHFFormDescription>Allow non-logged-in users to view job listings.</RHFFormDescription>
                                 </div>
                                 <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                             </FormItem>
@@ -197,8 +197,8 @@ export default function SystemSettingsPage() {
                         <FormField control={notificationForm.control} name="emailNotifications" render={({ field }) => (
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
-                                    <FormLabel className="text-base">Global Email Notifications</FormLabel>
-                                    <FormDescription>Enable or disable all email notifications system-wide.</FormDescription>
+                                    <RHFFormLabel className="text-base">Global Email Notifications</RHFFormLabel>
+                                    <RHFFormDescription>Enable or disable all email notifications system-wide.</RHFFormDescription>
                                 </div>
                                 <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                             </FormItem>
@@ -206,8 +206,8 @@ export default function SystemSettingsPage() {
                         <FormField control={notificationForm.control} name="newApplicantAlerts" render={({ field }) => (
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
-                                    <FormLabel className="text-base">New Applicant Alerts for Recruiters</FormLabel>
-                                    <FormDescription>Notify recruiters when a new candidate applies.</FormDescription>
+                                    <RHFFormLabel className="text-base">New Applicant Alerts for Recruiters</RHFFormLabel>
+                                    <RHFFormDescription>Notify recruiters when a new candidate applies.</RHFFormDescription>
                                 </div>
                                 <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={!notificationForm.getValues("emailNotifications")} /></FormControl>
                             </FormItem>
@@ -215,8 +215,8 @@ export default function SystemSettingsPage() {
                         <FormField control={notificationForm.control} name="interviewReminders" render={({ field }) => (
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
-                                    <FormLabel className="text-base">Interview Reminders for Candidates & Interviewers</FormLabel>
-                                    <FormDescription>Send reminders for scheduled interviews.</FormDescription>
+                                    <RHFFormLabel className="text-base">Interview Reminders for Candidates & Interviewers</RHFFormLabel>
+                                    <RHFFormDescription>Send reminders for scheduled interviews.</RHFFormDescription>
                                 </div>
                                 <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={!notificationForm.getValues("emailNotifications")} /></FormControl>
                             </FormItem>
@@ -224,8 +224,8 @@ export default function SystemSettingsPage() {
                          <FormField control={notificationForm.control} name="systemUpdateNotifications" render={({ field }) => (
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                                 <div className="space-y-0.5">
-                                    <FormLabel className="text-base">System Update Notifications</FormLabel>
-                                    <FormDescription>Inform users about new features or important system updates.</FormDescription>
+                                    <RHFFormLabel className="text-base">System Update Notifications</RHFFormLabel>
+                                    <RHFFormDescription>Inform users about new features or important system updates.</RHFFormDescription>
                                 </div>
                                 <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                             </FormItem>
@@ -250,31 +250,31 @@ export default function SystemSettingsPage() {
                         <CardContent className="space-y-6">
                             <FormField control={securityForm.control} name="passwordMinLength" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Password Minimum Length</FormLabel>
+                                    <RHFFormLabel>Password Minimum Length</RHFFormLabel>
                                     <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}/>
                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <FormField control={securityForm.control} name="passwordRequireUppercase" render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><FormLabel>Require Uppercase</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><RHFFormLabel>Require Uppercase</RHFFormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
                                 )}/>
                                 <FormField control={securityForm.control} name="passwordRequireNumber" render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><FormLabel>Require Number</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><RHFFormLabel>Require Number</RHFFormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
                                 )}/>
                                 <FormField control={securityForm.control} name="passwordRequireSpecialChar" render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><FormLabel>Require Special Char</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><RHFFormLabel>Require Special Char</RHFFormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
                                 )}/>
                              </div>
                              <FormField control={securityForm.control} name="enable2FA" render={({ field }) => (
                                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
-                                    <div className="space-y-0.5"><FormLabel className="text-base">Enable Two-Factor Auth (2FA)</FormLabel><FormDescription>Require users to set up 2FA for enhanced security.</FormDescription></div>
+                                    <div className="space-y-0.5"><RHFFormLabel className="text-base">Enable Two-Factor Auth (2FA)</RHFFormLabel><RHFFormDescription>Require users to set up 2FA for enhanced security.</RHFFormDescription></div>
                                     <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                                 </FormItem>
                             )}/>
                              <FormField control={securityForm.control} name="auditLogRetentionDays" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Audit Log Retention Period</FormLabel>
+                                    <RHFFormLabel>Audit Log Retention Period</RHFFormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Select retention period" /></SelectTrigger></FormControl>
                                         <SelectContent>
@@ -322,12 +322,12 @@ export default function SystemSettingsPage() {
                         </div>
                     </Card>
                     <Card className="p-4 shadow-sm">
-                        <FormLabel htmlFor="hrisApiKey">HRIS System API Key (Placeholder)</FormLabel>
+                        <Label htmlFor="hrisApiKey">HRIS System API Key (Placeholder)</Label>
                         <div className="flex items-center gap-2 mt-1">
                             <Input id="hrisApiKey" type="password" placeholder="Enter API Key for HRIS Integration" />
                             <Button onClick={() => toast({ title: "Placeholder Action", description: "Save HRIS API Key" })}><KeyRound className="mr-2 h-4 w-4"/>Save & Connect</Button>
                         </div>
-                        <FormDescription className="text-xs mt-1">Connect to your Human Resources Information System.</FormDescription>
+                        <p className="text-xs mt-1 text-muted-foreground">Connect to your Human Resources Information System.</p>
                     </Card>
                 </CardContent>
                  <CardFooter className="border-t pt-6">
