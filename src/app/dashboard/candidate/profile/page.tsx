@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,96 +11,98 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit3, FileUp, Loader2, Save, Share2, VenetianMask } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Edit3, FileUp, Loader2, Save, VenetianMask, PlusCircle, Trash2, ExternalLink } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 // Placeholder for AI flow import
-// import { enrichProfile, type EnrichProfileOutput } from "@/ai/flows/profile-enrichment";
+import { enrichProfile, type EnrichProfileOutput } from "@/ai/flows/profile-enrichment";
+
+const experienceSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  company: z.string().min(1, "Company is required"),
+  startDate: z.string().min(1, "Start date is required"), // Could use date type if parsing
+  endDate: z.string().optional(),
+  description: z.string().optional(),
+});
+
+const educationSchema = z.object({
+  institution: z.string().min(1, "Institution is required"),
+  degree: z.string().min(1, "Degree is required"),
+  fieldOfStudy: z.string().optional(),
+  graduationDate: z.string().optional(), // Could use date type
+});
+
 
 const profileFormSchema = z.object({
   fullName: z.string().min(2, "Full name is required."),
   email: z.string().email(),
   phone: z.string().optional(),
   location: z.string().optional(),
-  headline: z.string().optional(), // e.g., "Senior Software Engineer at Tech Corp"
-  summary: z.string().optional(),
-  skills: z.array(z.string()).optional(), // Will be an array of strings
-  experience: z.array(z.object({
-    title: z.string(),
-    company: z.string(),
-    startDate: z.string(),
-    endDate: z.string().optional(),
-    description: z.string().optional(),
-  })).optional(),
-  education: z.array(z.object({
-    institution: z.string(),
-    degree: z.string(),
-    fieldOfStudy: z.string(),
-    graduationDate: z.string().optional(),
-  })).optional(),
-  resume: z.any().optional(), // For file upload
-  linkedinProfile: z.string().url("Invalid LinkedIn URL").optional(),
-  portfolioUrl: z.string().url("Invalid portfolio URL").optional(),
+  headline: z.string().min(5, "Headline should be descriptive.").optional(),
+  summary: z.string().min(20, "Summary should be a bit longer.").optional(),
+  skills: z.array(z.string()).optional(), 
+  experience: z.array(experienceSchema).optional(),
+  education: z.array(educationSchema).optional(),
+  resume: z.any().optional(), 
+  linkedinProfile: z.string().url("Invalid LinkedIn URL, ensure it includes http(s)://").optional().or(z.literal('')),
+  portfolioUrl: z.string().url("Invalid portfolio URL, ensure it includes http(s)://").optional().or(z.literal('')),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-interface EnrichedData {
-  skills: string[];
-  experienceSummary: string;
-}
-
 export default function CandidateProfilePage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, login } = useAuth(); // Assuming login can update user details
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [enrichedData, setEnrichedData] = useState<EnrichedData | null>(null);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [skillsInput, setSkillsInput] = useState("");
-
-
+  
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      fullName: user?.name || "",
-      email: user?.email || "",
+      fullName: "",
+      email: "",
       skills: [],
       experience: [],
       education: [],
+      linkedinProfile: "",
+      portfolioUrl: "",
     },
   });
+  
+  const { fields: experienceFields, append: appendExperience, remove: removeExperience } = useFieldArray({ control: form.control, name: "experience" });
+  const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({ control: form.control, name: "education" });
+
+  const resetFormValues = useCallback((currentUser: typeof user) => {
+    if (currentUser) {
+      form.reset({
+        fullName: currentUser.name,
+        email: currentUser.email,
+        // Mock data for other fields until actual data source or first edit
+        headline: form.getValues("headline") || "Aspiring Software Innovator | Eager to Learn",
+        summary: form.getValues("summary") || "Passionate about creating impactful technology solutions. Eager to learn and contribute to a dynamic team. Seeking new challenges to grow my skills in web development and AI.",
+        skills: form.getValues("skills")?.length ? form.getValues("skills") : ["JavaScript", "React", "Node.js", "Problem Solving"],
+        experience: form.getValues("experience")?.length ? form.getValues("experience") : [{ title: "Software Development Intern", company: "Tech Startup X", startDate: "2023-06-01", endDate: "2023-08-31", description: "Assisted senior developers in building and testing new features for a web application. Gained experience with agile methodologies and version control."}],
+        education: form.getValues("education")?.length ? form.getValues("education") : [{institution: "State University", degree: "BSc", fieldOfStudy: "Computer Science", graduationDate: "2024-05-01"}],
+        location: form.getValues("location") || "Anytown, USA",
+        phone: form.getValues("phone") || "123-456-7890",
+        linkedinProfile: form.getValues("linkedinProfile") || "",
+        portfolioUrl: form.getValues("portfolioUrl") || "",
+        resume: null, // Reset resume file input
+      });
+    }
+  }, [form]);
 
   useEffect(() => {
     if (user) {
-      form.reset({
-        fullName: user.name,
-        email: user.email,
-        // Mock data for other fields until actual data source
-        headline: "Aspiring Software Innovator",
-        summary: "Passionate about creating impactful technology solutions. Eager to learn and contribute to a dynamic team.",
-        skills: ["JavaScript", "React", "Node.js"],
-        experience: [{ title: "Intern", company: "Tech Startup", startDate: "2023-06-01", endDate: "2023-08-31", description: "Assisted senior developers..."}],
-        education: [{institution: "State University", degree: "BSc", fieldOfStudy: "Computer Science", graduationDate: "2024-05-01"}],
-        location: "Anytown, USA",
-      });
+      resetFormValues(user);
     }
-  }, [user, form]);
+  }, [user, resetFormValues]);
   
-  useEffect(() => {
-    if (enrichedData?.skills) {
-      const currentSkills = form.getValues("skills") || [];
-      const newSkills = Array.from(new Set([...currentSkills, ...enrichedData.skills]));
-      form.setValue("skills", newSkills);
-    }
-    if (enrichedData?.experienceSummary && !form.getValues("summary")) { // only set if summary is empty
-        form.setValue("summary", enrichedData.experienceSummary);
-    }
-  }, [enrichedData, form]);
-
-
   const handleResumeUpload = async (file: File) => {
-    setIsSubmitting(true); // Use submitting state for loader on AI processing
+    setIsAiProcessing(true);
     toast({
       title: "Processing Resume with AI...",
       description: "Extracting skills and summarizing experience.",
@@ -109,35 +112,46 @@ export default function CandidateProfilePage() {
       reader.readAsDataURL(file);
       reader.onloadend = async () => {
         const resumeDataUri = reader.result as string;
-        // const result = await enrichProfile({ resumeDataUri }); // AI Call
-        // Mocking AI call result
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const result: EnrichedData = {
-            skills: ["AI Extracted Skill 1", "Python", "Machine Learning"],
-            experienceSummary: "AI summarized experience: Successfully led multiple projects, demonstrating strong leadership and technical expertise in software development over 5 years."
-        };
-
-        setEnrichedData(result);
+        const result = await enrichProfile({ resumeDataUri }); // AI Call
+        
+        if (result.skills) {
+          const currentSkills = form.getValues("skills") || [];
+          const newSkills = Array.from(new Set([...currentSkills, ...result.skills]));
+          form.setValue("skills", newSkills, {shouldValidate: true});
+        }
+        if (result.experienceSummary && (!form.getValues("summary") || form.getValues("summary")?.length < result.experienceSummary.length)) {
+            form.setValue("summary", result.experienceSummary, {shouldValidate: true});
+        }
         toast({ title: "Profile Enriched by AI!", description: "Skills and summary updated from your resume." });
       };
     } catch (error) {
       console.error("Error enriching profile:", error);
-      toast({ variant: "destructive", title: "AI Enrichment Failed", description: "Could not process your resume." });
+      toast({ variant: "destructive", title: "AI Enrichment Failed", description: "Could not process your resume with AI." });
     } finally {
-      setIsSubmitting(false);
+      setIsAiProcessing(false);
     }
   };
   
   const onSubmit = async (data: ProfileFormValues) => {
     setIsSubmitting(true);
-    console.log("Profile Data:", data);
+    console.log("Profile Data Submitted:", data);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Update user in AuthContext (if name changed for avatar/header)
+    if (user && data.fullName !== user.name) {
+        // This is a mock update. In a real app, you'd update the backend
+        // and then potentially re-fetch user or update context from response.
+        const updatedUser = { ...user, name: data.fullName };
+        login(user.role); // This re-sets user from DEMO_USERS, so we need a proper update mechanism
+                           // For now, it's a simplification.
+    }
+
     setIsSubmitting(false);
     setIsEditing(false);
     toast({
       title: "Profile Updated!",
-      description: "Your profile information has been saved.",
+      description: "Your profile information has been successfully saved.",
     });
   };
 
@@ -145,7 +159,7 @@ export default function CandidateProfilePage() {
     if (skillsInput.trim() !== "") {
       const currentSkills = form.getValues("skills") || [];
       if (!currentSkills.includes(skillsInput.trim())) {
-        form.setValue("skills", [...currentSkills, skillsInput.trim()]);
+        form.setValue("skills", [...currentSkills, skillsInput.trim()], {shouldValidate: true});
       }
       setSkillsInput("");
     }
@@ -153,226 +167,163 @@ export default function CandidateProfilePage() {
 
   const removeSkill = (skillToRemove: string) => {
     const currentSkills = form.getValues("skills") || [];
-    form.setValue("skills", currentSkills.filter(skill => skill !== skillToRemove));
+    form.setValue("skills", currentSkills.filter(skill => skill !== skillToRemove), {shouldValidate: true});
   };
 
-
   if (authLoading || !user) {
-    return <div className="flex h-screen items-center justify-center"><p>Loading profile...</p></div>;
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">Loading profile...</p></div>;
   }
 
   return (
     <div className="space-y-6">
       <Card className="shadow-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-primary to-primary/70 h-32 md:h-40 relative">
+        <div className="bg-gradient-to-r from-primary/80 to-primary/60 h-32 md:h-40 relative">
            <Button 
               variant="outline" 
-              size="icon" 
+              size="sm" 
               className="absolute top-4 right-4 bg-background/80 hover:bg-background"
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={() => {
+                  setIsEditing(!isEditing);
+                  if(isEditing) form.handleSubmit(onSubmit)(); // Save if going from editing to not
+                  else if(user) resetFormValues(user); // Reset to original if canceling edit
+                }}
+              disabled={isSubmitting || isAiProcessing}
             >
-              {isEditing ? <Save className="h-5 w-5" /> : <Edit3 className="h-5 w-5" />}
+              {isEditing ? (isSubmitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4 mr-1" />) : <Edit3 className="h-4 w-4 mr-1" />}
+              {isEditing ? (isSubmitting ? "Saving..." : "Save") : "Edit"}
             </Button>
         </div>
         <div className="px-6 pb-6">
-          <div className="flex justify-center md:justify-start -mt-16 md:-mt-20">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-16 md:-mt-20">
             <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
-              <AvatarImage src={user.avatar || `https://placehold.co/200x200.png`} alt={user.name} data-ai-hint="person professional" />
-              <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={user.avatar || `https://placehold.co/200x200.png?text=${user.name.charAt(0)}`} alt={user.name} data-ai-hint="person professional"/>
+              <AvatarFallback>{user.name.split(" ").map(n=>n[0]).join("").toUpperCase()}</AvatarFallback>
             </Avatar>
-          </div>
-           <div className="pt-4 md:pt-2 md:ml-44 text-center md:text-left">
+            <div className="sm:ml-6 mt-4 sm:mt-0 text-center sm:text-left">
              <CardTitle className="text-2xl md:text-3xl">{form.watch("fullName")}</CardTitle>
-             <CardDescription className="text-base">{form.watch("headline")}</CardDescription>
+             <CardDescription className="text-base mt-1">{form.watch("headline")}</CardDescription>
              <p className="text-sm text-muted-foreground mt-1">{form.watch("location")}</p>
+             <div className="flex gap-2 mt-2 justify-center sm:justify-start">
+                {form.watch("linkedinProfile") && <Button variant="ghost" size="sm" asChild><Link href={form.watch("linkedinProfile")!} target="_blank"><ExternalLink className="h-4 w-4 mr-1"/> LinkedIn</Link></Button>}
+                {form.watch("portfolioUrl") && <Button variant="ghost" size="sm" asChild><Link href={form.watch("portfolioUrl")!} target="_blank"><ExternalLink className="h-4 w-4 mr-1"/> Portfolio</Link></Button>}
+             </div>
+            </div>
           </div>
         </div>
       </Card>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          {/* Basic Info */}
           <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField control={form.control} name="fullName" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl><Input {...field} readOnly={!isEditing} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="email" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl><Input type="email" {...field} readOnly /></FormControl> {/* Email usually not editable by user */}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} readOnly /></FormControl><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="phone" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl><Input {...field} readOnly={!isEditing} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="location" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl><Input {...field} readOnly={!isEditing} placeholder="e.g., San Francisco, CA" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField control={form.control} name="headline" render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>Headline</FormLabel>
-                    <FormControl><Input {...field} readOnly={!isEditing} placeholder="e.g., Senior Software Engineer | AI Enthusiast" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} readOnly={!isEditing} placeholder="e.g., San Francisco, CA" /></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="headline" render={({ field }) => (
+                  <FormItem className="md:col-span-2"><FormLabel>Headline</FormLabel><FormControl><Input {...field} readOnly={!isEditing} placeholder="e.g., Senior Software Engineer | AI Enthusiast" /></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="linkedinProfile" render={({ field }) => (
+                  <FormItem><FormLabel>LinkedIn Profile URL</FormLabel><FormControl><Input {...field} readOnly={!isEditing} placeholder="https://linkedin.com/in/yourprofile" /></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="portfolioUrl" render={({ field }) => (
+                  <FormItem><FormLabel>Portfolio/Website URL</FormLabel><FormControl><Input {...field} readOnly={!isEditing} placeholder="https://yourportfolio.com" /></FormControl><FormMessage /></FormItem>)}/>
             </CardContent>
           </Card>
           
+          {/* Resume */}
           <Card>
-            <CardHeader>
-              <CardTitle>Resume & Online Presence</CardTitle>
-               <CardDescription>Upload your latest resume. Our AI can help enrich your profile based on it.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-               <FormField
-                control={form.control}
-                name="resume"
-                render={({ field: { onChange, value, ...rest } }) => (
+            <CardHeader><CardTitle>Resume</CardTitle><CardDescription>Upload your latest resume. Our AI can help enrich your profile based on it.</CardDescription></CardHeader>
+            <CardContent>
+               <FormField control={form.control} name="resume" render={({ field: { onChange, value, ...rest } }) => (
                   <FormItem>
-                    <FormLabel>Upload Resume (PDF, DOC, DOCX)</FormLabel>
+                    <FormLabel>Upload Resume (PDF, DOCX)</FormLabel>
                     <div className="flex items-center gap-4">
-                      <FormControl>
-                        <Input 
-                          type="file" 
-                          accept=".pdf,.doc,.docx" 
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files.length > 0) {
-                              onChange(e.target.files[0]); // Store file object
-                              handleResumeUpload(e.target.files[0]);
-                            }
-                          }}
-                          {...rest}
-                          className="flex-grow"
-                          disabled={!isEditing || isSubmitting}
-                        />
-                      </FormControl>
-                       {isSubmitting && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+                      <FormControl><Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { onChange(e.target.files[0]); handleResumeUpload(e.target.files[0]); } }} {...rest} className="flex-grow" disabled={!isEditing || isAiProcessing} /></FormControl>
+                       {isAiProcessing && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
                     </div>
-                     <FormDescription>
-                      {value?.name ? `Current file: ${value.name}` : "No resume uploaded yet."}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField control={form.control} name="linkedinProfile" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>LinkedIn Profile URL</FormLabel>
-                    <FormControl><Input {...field} readOnly={!isEditing} placeholder="https://linkedin.com/in/yourprofile" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField control={form.control} name="portfolioUrl" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Portfolio/Website URL</FormLabel>
-                    <FormControl><Input {...field} readOnly={!isEditing} placeholder="https://yourportfolio.com" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <FormDescription>{typeof value === 'object' && value?.name ? `Current file: ${value.name}` : "No resume uploaded for this session or AI processing."}</FormDescription><FormMessage />
+                  </FormItem>)}/>
             </CardContent>
           </Card>
 
+          {/* Summary */}
           <Card>
-            <CardHeader><CardTitle>Summary</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Professional Summary</CardTitle></CardHeader>
             <CardContent>
               <FormField control={form.control} name="summary" render={({ field }) => (
-                  <FormItem>
-                    <FormControl><Textarea rows={5} {...field} readOnly={!isEditing} placeholder="A brief summary about your professional background..." /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormItem><FormControl><Textarea rows={5} {...field} readOnly={!isEditing} placeholder="A brief summary about your professional background, goals, and what you bring to the table..." /></FormControl><FormMessage /></FormItem>)}/>
             </CardContent>
           </Card>
 
+          {/* Skills */}
           <Card>
             <CardHeader><CardTitle>Skills</CardTitle></CardHeader>
             <CardContent>
               {isEditing && (
                  <div className="flex gap-2 mb-4">
-                    <Input 
-                      value={skillsInput}
-                      onChange={(e) => setSkillsInput(e.target.value)}
-                      placeholder="Add a skill (e.g., Python)"
-                      onKeyPress={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill();}}}
-                    />
-                    <Button type="button" onClick={addSkill}>Add Skill</Button>
+                    <Input value={skillsInput} onChange={(e) => setSkillsInput(e.target.value)} placeholder="Add a skill (e.g., Python)" onKeyPress={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill();}}} />
+                    <Button type="button" onClick={addSkill} variant="outline">Add</Button>
                   </div>
               )}
               <div className="flex flex-wrap gap-2">
-                {form.watch("skills")?.map((skill) => (
-                  <Badge key={skill} variant="secondary" className="py-1 px-3 text-sm">
-                    {skill}
-                    {isEditing && (
-                      <button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive">×</button>
-                    )}
-                  </Badge>
-                ))}
-                {form.watch("skills")?.length === 0 && !isEditing && <p className="text-muted-foreground">No skills added yet.</p>}
+                {form.watch("skills")?.map((skill) => (<Badge key={skill} variant="secondary" className="py-1 px-3 text-sm">{skill}{isEditing && (<button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive">×</button>)}</Badge>))}
+                {form.watch("skills")?.length === 0 && !isEditing && <p className="text-muted-foreground text-sm">No skills added yet. Click 'Edit' to add your skills.</p>}
               </div>
             </CardContent>
           </Card>
           
-          {/* Experience and Education sections would be more complex, involving dynamic arrays of fields. 
-              For brevity, these are simplified or shown as display-only for now.
-              Full form controls for these would use react-hook-form's useFieldArray.
-          */}
-           <Card>
-            <CardHeader><CardTitle>Work Experience</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {form.watch("experience")?.map((exp, index) => (
-                <div key={index} className="border-b pb-2 mb-2">
-                  <h4 className="font-semibold">{exp.title} at {exp.company}</h4>
-                  <p className="text-sm text-muted-foreground">{exp.startDate} - {exp.endDate || 'Present'}</p>
-                  {isEditing ? <Textarea defaultValue={exp.description} placeholder="Role description..." className="mt-1"/> : <p className="text-sm mt-1">{exp.description}</p>}
+          {/* Experience */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Work Experience</CardTitle>
+                {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendExperience({ title: "", company: "", startDate: "", description: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add Experience</Button>}
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {experienceFields.map((field, index) => (
+                <div key={field.id} className="p-4 border rounded-md space-y-3 relative bg-secondary/30">
+                   {isEditing && <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive hover:bg-destructive/10" onClick={() => removeExperience(index)}><Trash2 className="h-4 w-4"/></Button>}
+                  <FormField control={form.control} name={`experience.${index}.title`} render={({ field }) => (<FormItem><FormLabel>Job Title</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                  <FormField control={form.control} name={`experience.${index}.company`} render={({ field }) => (<FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name={`experience.${index}.startDate`} render={({ field }) => (<FormItem><FormLabel>Start Date</FormLabel><FormControl><Input type={isEditing ? "month": "text"} {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormField control={form.control} name={`experience.${index}.endDate`} render={({ field }) => (<FormItem><FormLabel>End Date (or Present)</FormLabel><FormControl><Input type={isEditing ? "month": "text"} {...field} readOnly={!isEditing} placeholder="Present" /></FormControl><FormMessage /></FormItem>)}/>
+                  </div>
+                  <FormField control={form.control} name={`experience.${index}.description`} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} readOnly={!isEditing} rows={3} placeholder="Key responsibilities and achievements..."/></FormControl><FormMessage /></FormItem>)}/>
                 </div>
               ))}
-               {form.watch("experience")?.length === 0 && <p className="text-muted-foreground">No experience added yet.</p>}
-               {isEditing && <Button type="button" variant="outline" size="sm" className="mt-2">Add Experience (UI Placeholder)</Button>}
+               {experienceFields.length === 0 && <p className="text-muted-foreground text-sm">No work experience added yet.</p>}
             </CardContent>
           </Card>
 
+          {/* Education */}
           <Card>
-            <CardHeader><CardTitle>Education</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-               {form.watch("education")?.map((edu, index) => (
-                <div key={index} className="border-b pb-2 mb-2">
-                  <h4 className="font-semibold">{edu.degree} in {edu.fieldOfStudy}</h4>
-                  <p className="text-sm text-muted-foreground">{edu.institution} ({edu.graduationDate || 'Expected'})</p>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Education</CardTitle>
+                {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendEducation({ institution: "", degree: "", fieldOfStudy: "", graduationDate: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add Education</Button>}
+            </CardHeader>
+            <CardContent className="space-y-6">
+               {educationFields.map((field, index) => (
+                <div key={field.id} className="p-4 border rounded-md space-y-3 relative bg-secondary/30">
+                   {isEditing && <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive hover:bg-destructive/10" onClick={() => removeEducation(index)}><Trash2 className="h-4 w-4"/></Button>}
+                  <FormField control={form.control} name={`education.${index}.institution`} render={({ field }) => (<FormItem><FormLabel>Institution</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                  <FormField control={form.control} name={`education.${index}.degree`} render={({ field }) => (<FormItem><FormLabel>Degree</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                  <FormField control={form.control} name={`education.${index}.fieldOfStudy`} render={({ field }) => (<FormItem><FormLabel>Field of Study</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                  <FormField control={form.control} name={`education.${index}.graduationDate`} render={({ field }) => (<FormItem><FormLabel>Graduation Date (or Expected)</FormLabel><FormControl><Input type={isEditing ? "month": "text"} {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                 </div>
               ))}
-              {form.watch("education")?.length === 0 && <p className="text-muted-foreground">No education added yet.</p>}
-              {isEditing && <Button type="button" variant="outline" size="sm" className="mt-2">Add Education (UI Placeholder)</Button>}
+              {educationFields.length === 0 && <p className="text-muted-foreground text-sm">No education details added yet.</p>}
             </CardContent>
           </Card>
 
           {isEditing && (
             <CardFooter className="flex justify-end gap-2 pt-8">
-              <Button type="button" variant="outline" onClick={() => { setIsEditing(false); form.reset(); /* TODO: Reset to original fetched data */ }}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if(user) resetFormValues(user); }} disabled={isSubmitting || isAiProcessing}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting || isAiProcessing}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save Changes
               </Button>
@@ -383,3 +334,5 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
+
+    

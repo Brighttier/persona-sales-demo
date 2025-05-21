@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Badge } from "@/components/ui/badge";
@@ -5,35 +6,41 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowRight, Eye } from "lucide-react";
+import { ArrowRight, Eye, Search } from "lucide-react";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
 
 const mockApplications = [
-  { id: "app1", jobId: "1", jobTitle: "Software Engineer, Frontend", company: "Tech Solutions Inc.", dateApplied: "2024-07-21", status: "Under Review" },
-  { id: "app2", jobId: "2", jobTitle: "Product Manager", company: "Innovate Hub", dateApplied: "2024-07-19", status: "Interview Scheduled" },
-  { id: "app3", jobId: "3", jobTitle: "UX Designer", company: "Creative Designs Co.", dateApplied: "2024-07-16", status: "Application Submitted" },
-  { id: "app4", jobId: "4", jobTitle: "Data Scientist", company: "Analytics Corp.", dateApplied: "2024-07-23", status: "Offer Extended" },
-  { id: "app5", jobId: "5", jobTitle: "Marketing Specialist", company: "Growth Co.", dateApplied: "2024-07-10", status: "Rejected" },
+  { id: "app1", jobId: "job1", jobTitle: "Software Engineer, Frontend", company: "Tech Solutions Inc.", dateApplied: "2024-07-21", status: "Under Review" },
+  { id: "app2", jobId: "job2", jobTitle: "Product Manager", company: "Innovate Hub", dateApplied: "2024-07-19", status: "Interview Scheduled" },
+  { id: "app3", jobId: "job3", jobTitle: "UX Designer", company: "Creative Designs Co.", dateApplied: "2024-07-16", status: "Application Submitted" },
+  { id: "app4", jobId: "job4", jobTitle: "Data Scientist", company: "Analytics Corp.", dateApplied: "2024-07-23", status: "Offer Extended" },
+  { id: "app5", jobId: "job5", jobTitle: "Marketing Specialist", company: "Growth Co.", dateApplied: "2024-07-10", status: "Rejected" },
+  { id: "app6", jobId: "job6", jobTitle: "Backend Developer", company: "Server Systems Ltd.", dateApplied: "2024-06-15", status: "Withdrawn" },
 ];
 
-const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch (status.toLowerCase()) {
-    case "interview scheduled":
-    case "offer extended":
-      return "default"; // Or a success variant if you have one
-    case "under review":
-    case "application submitted":
-      return "secondary";
-    case "rejected":
-      return "destructive";
-    default:
-      return "outline";
-  }
-};
+const getStatusPill = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "offer extended":
+        return <Badge className="bg-blue-100 text-blue-700 border-blue-300">{status}</Badge>;
+      case "interview scheduled":
+        return <Badge className="bg-green-100 text-green-700 border-green-300">{status}</Badge>;
+      case "under review":
+        return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">{status}</Badge>;
+      case "application submitted":
+        return <Badge className="bg-purple-100 text-purple-700 border-purple-300">{status}</Badge>;
+      case "rejected":
+        return <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-300">{status}</Badge>;
+      case "withdrawn":
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-700 border-gray-300">{status}</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
 
 export default function CandidateApplicationsPage() {
   const allApplications = mockApplications;
-  const activeApplications = mockApplications.filter(app => !["Rejected", "Offer Extended", "Withdrawn"].includes(app.status)); // Example filter
+  const activeApplications = mockApplications.filter(app => !["Rejected", "Offer Extended", "Withdrawn"].includes(app.status));
   const archivedApplications = mockApplications.filter(app => ["Rejected", "Offer Extended", "Withdrawn"].includes(app.status));
 
   const renderTable = (applications: typeof mockApplications) => (
@@ -53,12 +60,10 @@ export default function CandidateApplicationsPage() {
             <TableCell className="font-medium">{app.jobTitle}</TableCell>
             <TableCell>{app.company}</TableCell>
             <TableCell>{app.dateApplied}</TableCell>
-            <TableCell>
-              <Badge variant={getStatusVariant(app.status)}>{app.status}</Badge>
-            </TableCell>
+            <TableCell>{getStatusPill(app.status)}</TableCell>
             <TableCell className="text-right">
               <Button variant="ghost" size="sm" asChild>
-                <Link href={`/jobs/${app.jobId}`}>
+                <Link href={`/jobs/${app.jobId}`}> {/* Assuming jobId matches job board ID */}
                   <Eye className="mr-2 h-4 w-4" /> View Job
                 </Link>
               </Button>
@@ -66,7 +71,7 @@ export default function CandidateApplicationsPage() {
           </TableRow>
         )) : (
           <TableRow>
-            <TableCell colSpan={5} className="text-center h-24">No applications found.</TableCell>
+            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">No applications found in this category.</TableCell>
           </TableRow>
         )}
       </TableBody>
@@ -83,32 +88,28 @@ export default function CandidateApplicationsPage() {
       </Card>
       
       <Tabs defaultValue="active" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 md:w-auto md:inline-flex">
+        <TabsList className="grid w-full grid-cols-3 md:w-auto md:inline-flex mb-4">
           <TabsTrigger value="active">Active ({activeApplications.length})</TabsTrigger>
           <TabsTrigger value="all">All ({allApplications.length})</TabsTrigger>
           <TabsTrigger value="archived">Archived ({archivedApplications.length})</TabsTrigger>
         </TabsList>
-        <TabsContent value="active">
-          <Card>
+        <Card> {/* Wrap TabsContent in Card for consistent styling */}
+          <TabsContent value="active" className="m-0">
             <CardContent className="p-0">
              {renderTable(activeApplications)}
             </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="all">
-           <Card>
+          </TabsContent>
+          <TabsContent value="all" className="m-0">
             <CardContent className="p-0">
               {renderTable(allApplications)}
             </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="archived">
-           <Card>
+          </TabsContent>
+          <TabsContent value="archived" className="m-0">
             <CardContent className="p-0">
              {renderTable(archivedApplications)}
             </CardContent>
-          </Card>
-        </TabsContent>
+          </TabsContent>
+        </Card>
       </Tabs>
 
       <Card className="shadow-md">
@@ -129,3 +130,5 @@ export default function CandidateApplicationsPage() {
     </div>
   );
 }
+
+    

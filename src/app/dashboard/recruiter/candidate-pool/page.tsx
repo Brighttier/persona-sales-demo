@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,84 +8,93 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
-import { Eye, Filter, Mail, Search, UserPlus, ExternalLink, Star } from "lucide-react";
+import { Eye, Filter, Mail, Search, UserPlus, ExternalLink, Star, Briefcase, MapPin } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 
 const mockCandidates = [
-  { id: "cand1", name: "Alice Wonderland", role: "Software Engineer", experience: "5 Yrs", location: "Remote", skills: ["React", "Node.js", "AWS"], topSkill: "React", avatar: "https://placehold.co/100x100.png?text=AW", aiMatchScore: 92 },
-  { id: "cand2", name: "Bob The Builder", role: "Product Manager", experience: "8 Yrs", location: "New York, NY", skills: ["Agile", "Roadmapping", "JIRA"], topSkill: "Agile", avatar: "https://placehold.co/100x100.png?text=BB", aiMatchScore: 85 },
-  { id: "cand3", name: "Carol Danvers", role: "UX Designer", experience: "3 Yrs", location: "San Francisco, CA", skills: ["Figma", "Prototyping", "User Research"], topSkill: "Figma", avatar: "https://placehold.co/100x100.png?text=CD", aiMatchScore: 78 },
-  { id: "cand4", name: "David Copperfield", role: "Data Scientist", experience: "6 Yrs", location: "Remote", skills: ["Python", "ML", "TensorFlow"], topSkill: "Python", avatar: "https://placehold.co/100x100.png?text=DC", aiMatchScore: 95 },
+  { id: "cand1", name: "Alice Wonderland", role: "Software Engineer", experience: "5 Yrs", location: "Remote", skills: ["React", "Node.js", "AWS", "TypeScript", "GraphQL"], topSkill: "React", avatar: "https://placehold.co/100x100.png?text=AW", aiMatchScore: 92, lastActive: "2 days ago", interestedIn: ["Frontend", "Full Stack"] },
+  { id: "cand2", name: "Bob The Builder", role: "Product Manager", experience: "8 Yrs", location: "New York, NY", skills: ["Agile", "Roadmapping", "JIRA", "User Research"], topSkill: "Agile", avatar: "https://placehold.co/100x100.png?text=BB", aiMatchScore: 85, lastActive: "Online", interestedIn: ["Product Leadership"] },
+  { id: "cand3", name: "Carol Danvers", role: "UX Designer", experience: "3 Yrs", location: "San Francisco, CA", skills: ["Figma", "Prototyping", "User Research", "Adobe XD"], topSkill: "Figma", avatar: "https://placehold.co/100x100.png?text=CD", aiMatchScore: 78, lastActive: "1 week ago", interestedIn: ["UI/UX Design", "Mobile Design"] },
+  { id: "cand4", name: "David Copperfield", role: "Data Scientist", experience: "6 Yrs", location: "Remote", skills: ["Python", "ML", "TensorFlow", "SQL"], topSkill: "Python", avatar: "https://placehold.co/100x100.png?text=DC", aiMatchScore: 95, lastActive: "3 hours ago", interestedIn: ["Machine Learning", "AI Research"] },
 ];
 
 export default function CandidatePoolPage() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const { toast } = useToast();
+
+  const handleContact = (candidateName: string) => {
+    toast({ title: "Contact Candidate", description: `Initiated contact with ${candidateName}. (Simulated)`});
+  }
 
   return (
     <div className="space-y-6">
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Candidate Pool</CardTitle>
+          <CardTitle className="text-2xl">Talent Discovery</CardTitle>
           <CardDescription>Browse, filter, and discover talented individuals for your open roles.</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          <div className="md:col-span-2 space-y-1">
-            <label htmlFor="keywords" className="text-xs font-medium">Search by Name or Skills</label>
-            <Input id="keywords" placeholder="e.g., Alice, React, Python..." />
+        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border-t pt-6">
+          <div className="md:col-span-2 space-y-1.5">
+            <label htmlFor="keywords" className="text-xs font-medium text-muted-foreground">Search by Name, Skills, Role...</label>
+            <Input id="keywords" placeholder="e.g., Alice, React, Product Manager..." />
           </div>
-          <div className="space-y-1">
-            <label htmlFor="roleFilter" className="text-xs font-medium">Filter by Role</label>
-            <Select>
-              <SelectTrigger id="roleFilter"><SelectValue placeholder="All Roles" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="swe">Software Engineer</SelectItem>
-                <SelectItem value="pm">Product Manager</SelectItem>
-                <SelectItem value="uxd">UX Designer</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-1.5">
+            <label htmlFor="locationFilter" className="text-xs font-medium text-muted-foreground">Location</label>
+            <Input id="locationFilter" placeholder="City or Remote" />
           </div>
            <div className="flex gap-2">
             <Button className="flex-grow"><Search className="mr-2 h-4 w-4" /> Search</Button>
-            <Button variant="outline" size="icon"><Filter className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" aria-label="Advanced Filters"><Filter className="h-4 w-4" /></Button>
           </div>
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {mockCandidates.map((candidate) => (
-          <Card key={candidate.id} className="flex flex-col shadow-md hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="items-center text-center">
-              <Avatar className="h-20 w-20 mb-2 ring-2 ring-primary/50 ring-offset-2 ring-offset-background">
+          <Card key={candidate.id} className="flex flex-col shadow-sm hover:shadow-lg transition-shadow duration-300 rounded-lg overflow-hidden">
+            <CardHeader className="items-center text-center p-6 bg-secondary/30">
+              <Avatar className="h-24 w-24 mb-3 ring-2 ring-primary/30 ring-offset-2 ring-offset-background">
                 <AvatarImage src={candidate.avatar} alt={candidate.name} data-ai-hint="person professional" />
                 <AvatarFallback>{candidate.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
               </Avatar>
-              <CardTitle className="text-lg">{candidate.name}</CardTitle>
-              <CardDescription>{candidate.role} - {candidate.experience}</CardDescription>
-               <Badge variant="default" className="mt-1 bg-accent text-accent-foreground">
-                <Star className="mr-1 h-3 w-3 fill-current" /> AI Match: {candidate.aiMatchScore}%
+              <CardTitle className="text-xl">{candidate.name}</CardTitle>
+              <CardDescription className="text-primary">{candidate.role}</CardDescription>
+               <Badge variant="default" className="mt-2 bg-accent text-accent-foreground font-semibold">
+                <Star className="mr-1.5 h-3.5 w-3.5 fill-current" /> AI Match: {candidate.aiMatchScore}%
               </Badge>
             </CardHeader>
-            <CardContent className="flex-grow space-y-2 text-sm text-center">
-              <p className="text-muted-foreground">{candidate.location}</p>
+            <CardContent className="flex-grow p-6 space-y-3 text-sm">
+              <div className="flex items-center text-muted-foreground"><Briefcase className="mr-2 h-4 w-4"/> Experience: {candidate.experience}</div>
+              <div className="flex items-center text-muted-foreground"><MapPin className="mr-2 h-4 w-4"/> {candidate.location}</div>
+              
               <div className="pt-1">
-                <p className="text-xs font-semibold mb-1">Top Skills:</p>
-                <div className="flex flex-wrap justify-center gap-1">
+                <p className="text-xs font-semibold mb-1.5 text-muted-foreground">TOP SKILLS:</p>
+                <div className="flex flex-wrap gap-1.5">
                     {candidate.skills.slice(0,3).map(skill => (
-                        <Badge key={skill} variant="secondary">{skill}</Badge>
+                        <Badge key={skill} variant="secondary" className="font-normal">{skill}</Badge>
                     ))}
-                    {candidate.skills.length > 3 && <Badge variant="outline">+{candidate.skills.length - 3} more</Badge>}
+                    {candidate.skills.length > 3 && <Badge variant="outline" className="font-normal">+{candidate.skills.length - 3} more</Badge>}
                 </div>
               </div>
+               <div className="pt-1">
+                <p className="text-xs font-semibold mb-1.5 text-muted-foreground">INTERESTED IN:</p>
+                <div className="flex flex-wrap gap-1.5">
+                    {candidate.interestedIn.map(interest => (
+                        <Badge key={interest} variant="outline" className="font-normal border-primary/50 text-primary/90">{interest}</Badge>
+                    ))}
+                </div>
+              </div>
+               <p className="text-xs text-muted-foreground text-right pt-2">Last active: {candidate.lastActive}</p>
             </CardContent>
-            <CardFooter className="grid grid-cols-2 gap-2 pt-4">
+            <CardFooter className="grid grid-cols-2 gap-2 p-4 border-t">
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/dashboard/${user?.role}/candidates/${candidate.id}`}>
+                 {/* Link to a detailed candidate profile page, not built in this step */}
+                <Link href={`/dashboard/${role}/candidate-pool`}>
                   <Eye className="mr-1.5 h-4 w-4" /> View Profile
                 </Link>
               </Button>
-              <Button variant="default" size="sm">
+              <Button variant="default" size="sm" onClick={() => handleContact(candidate.name)}>
                 <Mail className="mr-1.5 h-4 w-4" /> Contact
               </Button>
             </CardFooter>
@@ -101,9 +111,10 @@ export default function CandidatePoolPage() {
           </Card>
         )}
         <div className="col-span-full flex justify-center mt-4">
-            <Button variant="outline">Load More Candidates</Button>
+            <Button variant="outline">Load More Candidates (Placeholder)</Button>
         </div>
     </div>
   );
 }
-// Placeholder for individual candidate profile page: /dashboard/recruiter/candidates/[candidateId]/page.tsx
+
+    

@@ -1,6 +1,7 @@
+
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowRight, Briefcase, CalendarCheck, Lightbulb, UserCircle2 } from "lucide-react";
@@ -10,6 +11,7 @@ import Image from "next/image";
 // import { recommendJobs } from "@/ai/flows/job-recommendation";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 interface RecommendedJob {
   id: string;
@@ -33,21 +35,25 @@ export default function CandidateDashboardPage() {
           const mockResumeText = "Extensive experience in full-stack development...";
           const mockJobEmbeddings = "Embeddings for various software engineering roles..."; // This would be complex data
 
+          // In a real app, you would call your AI flow:
           // const result = await recommendJobs({
           //   candidateProfile: mockProfile,
           //   resumeText: mockResumeText,
           //   jobDetailsEmbeddings: mockJobEmbeddings,
           // });
-          // For demo, using mock data directly as AI flow is not called.
+          
+          // For demo, using mock data directly as AI flow is not called here.
           await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
-          const mockRecommendedJobs = [
-            { id: "1", title: "Senior Frontend Developer", company: "Innovatech" },
-            { id: "2", title: "Full Stack Engineer", company: "Solutions Co." },
-            { id: "3", title: "React Native Developer", company: "MobileFirst Ltd." },
+          const mockRecommendedJobsData: RecommendedJob[] = [
+            { id: "jobRec1", title: "Senior Frontend Developer", company: "Innovatech" },
+            { id: "jobRec2", title: "Full Stack Engineer", company: "Solutions Co." },
+            { id: "jobRec3", title: "React Native Developer", company: "MobileFirst Ltd." },
           ];
           // setRecommendedJobs(result.recommendedJobs.map((title, i) => ({id: `${i+1}`, title, company: "AI Recommended Inc."})));
-          setRecommendedJobs(mockRecommendedJobs);
-          toast({ title: "Job Recommendations Loaded", description: "AI has found some jobs you might like!" });
+          setRecommendedJobs(mockRecommendedJobsData);
+          if (mockRecommendedJobsData.length > 0) {
+            toast({ title: "Job Recommendations Loaded", description: "AI has found some jobs you might like!" });
+          }
         } catch (error) {
           console.error("Error fetching job recommendations:", error);
           toast({ variant: "destructive", title: "Error", description: "Could not fetch job recommendations." });
@@ -60,7 +66,7 @@ export default function CandidateDashboardPage() {
   }, [user, toast]);
 
   if (!user) {
-    return <p>Loading user data...</p>;
+    return <div className="flex h-screen items-center justify-center"><p>Loading user data...</p></div>;
   }
 
   const upcomingInterviews = [
@@ -83,7 +89,7 @@ export default function CandidateDashboardPage() {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="shadow-md">
+        <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Upcoming Interviews</CardTitle>
             <CalendarCheck className="h-5 w-5 text-muted-foreground" />
@@ -107,7 +113,7 @@ export default function CandidateDashboardPage() {
           </CardFooter>
         </Card>
 
-        <Card className="shadow-md">
+        <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Recent Applications</CardTitle>
             <Briefcase className="h-5 w-5 text-muted-foreground" />
@@ -118,7 +124,7 @@ export default function CandidateDashboardPage() {
                 {recentApplications.slice(0,2).map(app => (
                   <li key={app.id} className="text-sm">
                     <strong>{app.jobTitle}</strong> at {app.company}
-                    <p className="text-xs"><Badge variant={app.status === 'Interview Scheduled' ? 'default' : 'secondary'}>{app.status}</Badge></p>
+                    <p className="text-xs"><Badge variant={app.status === 'Interview Scheduled' ? 'default' : 'secondary'} className={app.status === 'Interview Scheduled' ? 'bg-green-100 text-green-700 border-green-300' : ''}>{app.status}</Badge></p>
                   </li>
                 ))}
               </ul>
@@ -131,13 +137,12 @@ export default function CandidateDashboardPage() {
           </CardFooter>
         </Card>
         
-        <Card className="shadow-md">
+        <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Profile Status</CardTitle>
             <UserCircle2 className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {/* Placeholder for profile completion, could be a progress bar */}
             <p className="text-sm text-muted-foreground">Your profile is looking great! Consider adding more skills or experiences.</p>
             <div className="w-full bg-muted rounded-full h-2.5 mt-2">
                 <div className="bg-primary h-2.5 rounded-full" style={{width: "75%"}}></div>
@@ -158,17 +163,17 @@ export default function CandidateDashboardPage() {
           <CardDescription>Based on your profile, here are some jobs you might be interested in.</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoadingRecommendations ? <p>Loading recommendations...</p> :
+          {isLoadingRecommendations ? <p className="text-muted-foreground">Loading recommendations...</p> :
             recommendedJobs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {recommendedJobs.map(job => (
                 <Card key={job.id} className="shadow-sm hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-md">{job.title}</CardTitle>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">{job.title}</CardTitle>
                     <CardDescription>{job.company}</CardDescription>
                   </CardHeader>
                   <CardFooter>
-                    <Button variant="link" size="sm" asChild className="p-0 h-auto">
+                    <Button variant="link" size="sm" asChild className="p-0 h-auto text-primary">
                       <Link href={`/jobs/${job.id}`}>View Job <ArrowRight className="ml-1 h-3 w-3" /></Link>
                     </Button>
                   </CardFooter>
@@ -184,7 +189,7 @@ export default function CandidateDashboardPage() {
             <CardTitle>Ready for your next interview?</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row items-center gap-6">
-            <Image src="https://placehold.co/300x200.png" alt="AI Interview" width={300} height={200} className="rounded-lg" data-ai-hint="interview preparation"/>
+            <Image src="https://placehold.co/300x200.png" alt="AI Interview" width={300} height={200} className="rounded-lg shadow-sm" data-ai-hint="interview preparation"/>
             <div>
                 <p className="text-muted-foreground mb-4">
                 Practice with our AI Interview Simulator to gain confidence and receive valuable feedback. 
@@ -199,3 +204,5 @@ export default function CandidateDashboardPage() {
     </div>
   );
 }
+
+    

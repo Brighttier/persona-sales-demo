@@ -1,7 +1,8 @@
+
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Users, TrendingUp, Clock, Target, CheckCircle } from "lucide-react";
+import { BarChart3, Users, TrendingUp, Clock, Target, CheckCircle, PieChart as PieIcon } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
 const hiringFunnelData = [
@@ -17,13 +18,23 @@ const timeToHireData = [
   { month: 'Apr', days: 28 }, { month: 'May', days: 25 }, { month: 'Jun', days: 22 },
 ];
 
-const offerAcceptanceData = [ { name: 'Accepted', value: 80 }, { name: 'Rejected', value: 20 } ];
-const OFFER_COLORS = ['hsl(var(--chart-2))', 'hsl(var(--destructive))'];
+const offerAcceptanceData = [ 
+    { name: 'Accepted', value: 80, fill: 'hsl(var(--chart-2))' }, 
+    { name: 'Rejected', value: 20, fill: 'hsl(var(--destructive))' } 
+];
 
-const topPerformingRecruiters = [
-    { name: "Brenda S.", hires: 12, efficiency: "85%" },
-    { name: "John R.", hires: 9, efficiency: "78%" },
-    { name: "Sarah T.", hires: 7, efficiency: "92%" },
+
+const topPerformingRecruiters = [ // Assuming HMs might also see recruiter performance
+    { name: "Brenda S.", hires: 12, efficiency: "85%", timeToFill: "25 days" },
+    { name: "John R.", hires: 9, efficiency: "78%", timeToFill: "30 days" },
+    { name: "Sarah T.", hires: 7, efficiency: "92%", timeToFill: "22 days" },
+];
+
+const hiresByDepartmentData = [
+    { department: "Engineering", hires: 8, fill: 'hsl(var(--chart-1))'},
+    { department: "Product", hires: 4, fill: 'hsl(var(--chart-2))'},
+    { department: "Design", hires: 3, fill: 'hsl(var(--chart-3))'},
+    { department: "Marketing", hires: 2, fill: 'hsl(var(--chart-4))'},
 ]
 
 export default function HMAnalyticsPage() {
@@ -37,7 +48,7 @@ export default function HMAnalyticsPage() {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center"><Clock className="mr-2 h-4 w-4 text-muted-foreground"/>Average Time to Hire</CardTitle>
           </CardHeader>
@@ -46,7 +57,7 @@ export default function HMAnalyticsPage() {
             <p className="text-xs text-muted-foreground">-5% from last quarter</p>
           </CardContent>
         </Card>
-         <Card>
+         <Card className="shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center"><Target className="mr-2 h-4 w-4 text-muted-foreground"/>Offer Acceptance Rate</CardTitle>
           </CardHeader>
@@ -55,94 +66,113 @@ export default function HMAnalyticsPage() {
             <p className="text-xs text-muted-foreground">+2% from last quarter</p>
           </CardContent>
         </Card>
-         <Card>
+         <Card className="shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Cost Per Hire</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Quality of Hire (QoH)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">$3,500</div>
-            <p className="text-xs text-muted-foreground">- $200 from last quarter</p>
+            <div className="text-3xl font-bold">8.5<span className="text-lg text-muted-foreground">/10</span></div>
+            <p className="text-xs text-muted-foreground">Based on 6-month reviews</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
+        <Card className="lg:col-span-3 shadow-sm">
           <CardHeader>
-            <CardTitle>Hiring Funnel</CardTitle>
-            <CardDescription>Candidate progression through hiring stages.</CardDescription>
+            <CardTitle className="flex items-center"><BarChart3 className="mr-2 h-5 w-5 text-primary"/> Hiring Funnel</CardTitle>
+            <CardDescription>Candidate progression through hiring stages (last 90 days).</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={hiringFunnelData} layout="vertical" margin={{ top: 5, right: 20, left: 30, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" fontSize={12}/>
-                <YAxis dataKey="stage" type="category" width={100} fontSize={12}/>
-                <Tooltip />
+                <YAxis dataKey="stage" type="category" width={100} fontSize={12} tick={{ fill: 'hsl(var(--muted-foreground))' }}/>
+                <Tooltip wrapperStyle={{fontSize: "12px"}}/>
                 <Bar dataKey="count" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 shadow-sm">
           <CardHeader>
-            <CardTitle>Offer Acceptance Rate</CardTitle>
+            <CardTitle className="flex items-center"><PieIcon className="mr-2 h-5 w-5 text-primary"/> Offer Acceptance</CardTitle>
             <CardDescription>Breakdown of offers accepted vs. rejected.</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
               <PieChart>
-                <Pie data={offerAcceptanceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label fontSize={12}>
-                    {offerAcceptanceData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={OFFER_COLORS[index % OFFER_COLORS.length]} />
-                    ))}
+                <Pie data={offerAcceptanceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} fontSize={12}>
+                    {offerAcceptanceData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.fill} />))}
                 </Pie>
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: "12px" }} />
+                <Tooltip wrapperStyle={{fontSize: "12px"}}/>
+                <Legend wrapperStyle={{fontSize: "12px"}}/>
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
       
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
-            <CardTitle>Time to Hire Trend</CardTitle>
+            <CardTitle className="flex items-center"><TrendingUp className="mr-2 h-5 w-5 text-primary"/> Time to Hire Trend</CardTitle>
             <CardDescription>Average number of days from job posting to offer acceptance.</CardDescription>
         </CardHeader>
         <CardContent>
             <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={timeToHireData} margin={{ top: 5, right: 20, left: -15, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" fontSize={12}/>
-                    <YAxis fontSize={12}/>
-                    <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: "12px" }} />
+                    <XAxis dataKey="month" fontSize={12} tick={{ fill: 'hsl(var(--muted-foreground))' }}/>
+                    <YAxis fontSize={12} tick={{ fill: 'hsl(var(--muted-foreground))' }}/>
+                    <Tooltip wrapperStyle={{fontSize: "12px"}}/>
+                    <Legend wrapperStyle={{fontSize: "12px"}}/>
                     <Line type="monotone" dataKey="days" stroke="hsl(var(--primary))" strokeWidth={2} activeDot={{ r: 6 }} name="Avg. Days to Hire"/>
                 </LineChart>
             </ResponsiveContainer>
         </CardContent>
       </Card>
-      
-        <Card>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="shadow-sm">
             <CardHeader>
-                <CardTitle>Top Performing Recruiters</CardTitle>
-                <CardDescription>Based on hires and efficiency metrics.</CardDescription>
+                <CardTitle className="flex items-center"><Users className="mr-2 h-5 w-5 text-primary"/> Top Performing Recruiters</CardTitle>
+                <CardDescription>Based on hires and efficiency metrics this quarter.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ul className="space-y-3">
                     {topPerformingRecruiters.map(recruiter => (
-                        <li key={recruiter.name} className="flex justify-between items-center p-3 bg-secondary/30 rounded-md">
-                            <span className="font-medium">{recruiter.name}</span>
-                            <div className="text-right">
-                                <p className="text-sm">{recruiter.hires} Hires</p>
-                                <p className="text-xs text-muted-foreground">Efficiency: {recruiter.efficiency}</p>
+                        <li key={recruiter.name} className="flex justify-between items-center p-3 bg-secondary/40 rounded-md">
+                            <div>
+                                <span className="font-medium text-sm">{recruiter.name}</span>
+                                <p className="text-xs text-muted-foreground">Efficiency: {recruiter.efficiency} | Avg. Fill: {recruiter.timeToFill}</p>
                             </div>
+                            <Badge variant="default" className="text-sm bg-primary/80">{recruiter.hires} Hires</Badge>
                         </li>
                     ))}
                 </ul>
             </CardContent>
         </Card>
+         <Card className="shadow-sm">
+            <CardHeader>
+                <CardTitle className="flex items-center"><BarChart3 className="mr-2 h-5 w-5 text-primary"/> Hires by Department</CardTitle>
+                <CardDescription>Distribution of new hires across departments.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={hiresByDepartmentData} margin={{ top: 5, right:0, left: -25, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="department" fontSize={12} tick={{ fill: 'hsl(var(--muted-foreground))' }}/>
+                        <YAxis fontSize={12} tick={{ fill: 'hsl(var(--muted-foreground))' }}/>
+                        <Tooltip wrapperStyle={{fontSize: "12px"}}/>
+                        <Bar dataKey="hires" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                </ResponsiveContainer>
+            </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
+
+    
