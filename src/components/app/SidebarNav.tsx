@@ -29,7 +29,7 @@ import { WandSparkles } from 'lucide-react';
 export function SidebarNav() {
   const { role } = useAuth();
   const pathname = usePathname();
-  const { open } = useSidebar();
+  const { open } = useSidebar(); // Get the 'open' state
   const { startTour, isTourActive } = useGuidedTour();
   const navLinks = getNavLinksForRole(role);
 
@@ -51,7 +51,7 @@ export function SidebarNav() {
             className="justify-start"
           >
             <Link href={link.href}>
-              {link.label}
+              {link.label} {/* Sub-link labels are always visible as they are in a sub-menu */}
             </Link>
           </SidebarMenuSubButton>
         </SidebarMenuSubItem>
@@ -65,11 +65,13 @@ export function SidebarNav() {
           isActive={isActive(link.href)}
           className="justify-start"
           icon={<link.icon />}
-          tooltip={link.label}
+          tooltip={link.label} // Tooltip shows label when sidebar is icon-only
         >
-          <Link href={link.href}>{link.label}</Link>
+          <Link href={link.href}>
+            {open && link.label} {/* Only render the label if the sidebar is 'open' */}
+          </Link>
         </SidebarMenuButton>
-        {link.subLinks && link.subLinks.length > 0 && (
+        {link.subLinks && link.subLinks.length > 0 && open && ( // Only show sub-menu if sidebar is open
           <SidebarMenuSub>
             {link.subLinks.map(subLink => renderLink(subLink, true))}
           </SidebarMenuSub>
@@ -103,3 +105,4 @@ export function SidebarNav() {
     </>
   );
 }
+
