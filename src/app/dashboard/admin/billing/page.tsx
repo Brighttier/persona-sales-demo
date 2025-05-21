@@ -5,7 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, CreditCard, DollarSign, CalendarDays, RefreshCw, Settings2, PlusCircle } from "lucide-react";
+import { Download, CreditCard, DollarSign, CalendarDays, RefreshCw, Settings2, PlusCircle, Save } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const mockSubscriptions = [
   { id: "sub1", companyName: "Tech Solutions Inc.", plan: "Enterprise", amount: "$500/mo", status: "Active", nextBillingDate: "2024-08-01", paymentMethod: "**** **** **** 1234" },
@@ -18,9 +28,37 @@ const mockPlans = [
     { id: "basic", name: "Basic", price: "$50/month", features: ["10 Job Postings", "5 Users", "Basic Reporting"] },
     { id: "pro", name: "Pro", price: "$200/month", features: ["Unlimited Job Postings", "25 Users", "Advanced Reporting", "AI Screening Credits"] },
     { id: "enterprise", name: "Enterprise", price: "Custom", features: ["All Pro Features", "Dedicated Support", "Custom Integrations", "Volume AI Credits"] },
-]
+];
+
+const billingSettingsFormSchema = z.object({
+  defaultCurrency: z.string().min(1, "Default currency is required."),
+  invoiceFooterText: z.string().max(200, "Footer text cannot exceed 200 characters.").optional(),
+  sendRenewalReminders: z.boolean(),
+});
+
+type BillingSettingsFormValues = z.infer<typeof billingSettingsFormSchema>;
 
 export default function BillingPage() {
+  const { toast } = useToast();
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+
+  const settingsForm = useForm<BillingSettingsFormValues>({
+    resolver: zodResolver(billingSettingsFormSchema),
+    defaultValues: {
+      defaultCurrency: "USD",
+      invoiceFooterText: "Thank you for your business! Please contact support for any billing inquiries.",
+      sendRenewalReminders: true,
+    },
+  });
+
+  const onSettingsSubmit = (data: BillingSettingsFormValues) => {
+    console.log("Billing Settings Data (Placeholder):", data);
+    toast({
+      title: "Billing Settings Saved (Placeholder)",
+      description: "Your billing settings have been updated. This is a placeholder action.",
+    });
+    setIsSettingsDialogOpen(false); // Close dialog
+  };
 
   const getStatusPill = (status: string) => {
     switch(status) {
@@ -40,7 +78,88 @@ export default function BillingPage() {
             <CardTitle className="text-2xl">Billing & Subscriptions</CardTitle>
             <CardDescription>Manage company subscriptions, view invoices, and configure billing settings.</CardDescription>
           </div>
-          <Button variant="outline"><Settings2 className="mr-2 h-4 w-4"/> Billing Settings (Placeholder)</Button>
+          <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline"><Settings2 className="mr-2 h-4 w-4"/> Billing Settings</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Billing Settings</DialogTitle>
+                <DialogDescription>
+                  Configure default billing options for the platform. (Placeholder)
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...settingsForm}>
+                <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-4 py-4">
+                  <FormField
+                    control={settingsForm.control}
+                    name="defaultCurrency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Default Currency</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a currency" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="USD">USD - US Dollar</SelectItem>
+                            <SelectItem value="EUR">EUR - Euro</SelectItem>
+                            <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                            <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={settingsForm.control}
+                    name="invoiceFooterText"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Invoice Footer Text</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="e.g., Thank you for your business!" {...field} rows={3}/>
+                        </FormControl>
+                        <FormDescription>This text will appear on all generated invoices.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={settingsForm.control}
+                    name="sendRenewalReminders"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel>Send Renewal Reminders</FormLabel>
+                          <FormDescription>
+                            Automatically email customers before their subscription renews.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter className="pt-4">
+                    <DialogClose asChild>
+                       <Button type="button" variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button type="submit">
+                      <Save className="mr-2 h-4 w-4" /> Save Settings
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
       </Card>
 
