@@ -49,9 +49,8 @@ export default function RecruiterJobListingsPage() {
             <CardDescription>Oversee all job postings, track applicants, and manage their status.</CardDescription>
           </div>
           <Button asChild>
-            {/* This link would go to a /new or similar page which isn't built in this step */}
-            <Link href={`/dashboard/${role}/job-listings`}> 
-              <PlusCircle className="mr-2 h-4 w-4" /> Create New Job (Placeholder)
+            <Link href={`/dashboard/${role}/job-listings/new`}> 
+              <PlusCircle className="mr-2 h-4 w-4" /> Create New Job
             </Link>
           </Button>
         </CardHeader>
