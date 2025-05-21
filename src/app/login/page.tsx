@@ -16,7 +16,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && user) {
+    if (!isLoading && user && user.role) {
       router.push(`/dashboard/${user.role}/dashboard`);
     }
   }, [user, isLoading, router]);
@@ -27,9 +27,27 @@ export default function LoginPage() {
     }
   };
 
-  if (isLoading || user) {
+  // Show "Loading..." only while the AuthContext is determining the initial auth state.
+  // If isLoading is false:
+  // - and user is null, the form will render.
+  // - and user is true, the useEffect above will handle the redirect.
+  if (isLoading) {
     return <div className="flex h-screen items-center justify-center"><p>Loading...</p></div>;
   }
+
+  // If already logged in (user is true) and not loading, the useEffect should have redirected.
+  // If somehow the redirect hasn't happened yet, and we are not loading, but user is true,
+  // rendering the form momentarily is okay as redirect will occur.
+  // This prevents getting stuck if user is true.
+  if (user && !isLoading) {
+    // This state should ideally be very brief as useEffect redirects.
+    // You could show a specific "Redirecting..." message or just let the form flash.
+    // For now, let the useEffect handle it which might cause a brief form flash.
+    // Alternatively, return a redirecting message:
+    // return <div className="flex h-screen items-center justify-center"><p>Redirecting...</p></div>;
+    // However, sticking to the form rendering and letting useEffect redirect is common.
+  }
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 via-background to-background p-4">
