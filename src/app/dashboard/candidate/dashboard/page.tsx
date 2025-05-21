@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowRight, Briefcase, CalendarCheck, Lightbulb, UserCircle2 } from "lucide-react";
+import { ArrowRight, Briefcase, CalendarCheck, Lightbulb, UserCircle2, BotMessageSquare } from "lucide-react"; // Added BotMessageSquare
 import Link from "next/link";
 import Image from "next/image";
 // Placeholder for AI flow import
@@ -189,14 +189,14 @@ export default function CandidateDashboardPage() {
             <CardTitle>Ready for your next interview?</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row items-center gap-6">
-            <Image src="https://placehold.co/300x200.png" alt="AI Interview" width={300} height={200} className="rounded-lg shadow-sm" data-ai-hint="interview preparation"/>
+            <Image src="https://placehold.co/300x200.png" alt="AI Interview Simulation" width={300} height={200} className="rounded-lg shadow-sm" data-ai-hint="interview preparation"/>
             <div>
                 <p className="text-muted-foreground mb-4">
-                Practice with our AI Interview Simulator to gain confidence and receive valuable feedback. 
+                Engage in a realistic interview with our AI Simulator. Gain confidence and receive valuable feedback. 
                 Our AI will ask you relevant questions and help you polish your answers.
                 </p>
                 <Button asChild size="lg">
-                <Link href={`/dashboard/${user.role}/ai-interview`}>Start AI Interview Practice</Link>
+                <Link href={`/dashboard/${user.role}/ai-interview`}><BotMessageSquare className="mr-2 h-5 w-5" /> Start AI Interview Simulation</Link>
                 </Button>
             </div>
         </CardContent>

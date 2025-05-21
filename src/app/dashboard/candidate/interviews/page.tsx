@@ -4,7 +4,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, CheckCircle, Clock, MessageSquare, Video, UserCircle } from "lucide-react";
+import { CalendarDays, CheckCircle, Clock, MessageSquare, Video, UserCircle, BotMessageSquare } from "lucide-react"; // Added BotMessageSquare
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -12,7 +12,7 @@ const mockInterviews = [
   { id: "int1", jobTitle: "Software Engineer, Frontend", company: "Tech Solutions Inc.", date: "2024-08-15", time: "10:00 AM", type: "Technical Interview", status: "Upcoming", platform: "Google Meet", interviewer: "Dr. Eva Smith" },
   { id: "int2", jobTitle: "Product Manager", company: "Innovate Hub", date: "2024-08-20", time: "02:30 PM", type: "Behavioral Interview", status: "Upcoming", platform: "Zoom", interviewer: "Mr. John Doe"},
   { id: "int3", jobTitle: "UX Designer", company: "Creative Designs Co.", date: "2024-07-25", time: "11:00 AM", type: "Portfolio Review", status: "Completed", feedback: "Positive, awaiting next steps.", interviewer: "Ms. Jane Roe" },
-  { id: "int4", jobTitle: "Data Scientist", company: "Analytics Corp.", date: "2024-08-01", time: "09:00 AM", type: "AI Practice Session", status: "Completed", platform: "TalentVerse AI", interviewer: "AI Coach" },
+  { id: "int4", jobTitle: "Data Scientist", company: "Analytics Corp.", date: "2024-08-01", time: "09:00 AM", type: "AI Simulation", status: "Completed", platform: "TalentVerse AI", interviewer: "AI Interviewer" }, // Changed type and interviewer
 ];
 
 export default function CandidateInterviewsPage() {
@@ -63,7 +63,7 @@ export default function CandidateInterviewsPage() {
         <CardContent>
             <Button asChild>
                 <Link href={`/dashboard/${role}/ai-interview`}>
-                    <Video className="mr-2 h-4 w-4" /> Practice with AI Interviewer
+                    <BotMessageSquare className="mr-2 h-4 w-4" /> AI Interview Simulation
                 </Link>
             </Button>
         </CardContent>

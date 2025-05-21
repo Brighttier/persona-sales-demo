@@ -46,12 +46,12 @@ export const NAV_LINKS: NavLink[] = [
   },
   {
     href: `/dashboard/${USER_ROLES.CANDIDATE}/ai-interview`,
-    label: 'AI Interview Practice',
+    label: 'AI Interview Simulation',
     icon: BotMessageSquare,
     roles: [USER_ROLES.CANDIDATE],
     isTourStep: true,
     tourStepId: 'candidate-ai-interview-link',
-    tourText: 'Sharpen your interviewing skills! Practice with our AI, record your responses, and get instant feedback.'
+    tourText: 'Engage in a real interview with our conversational AI. Record your responses and get instant, insightful feedback to improve your skills.'
   },
   {
     href: `/dashboard/${USER_ROLES.CANDIDATE}/profile`,

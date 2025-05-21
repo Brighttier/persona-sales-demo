@@ -10,7 +10,7 @@ export default function LandingPage() {
     {
       icon: <BotMessageSquare className="h-10 w-10 text-primary" />,
       title: "AI Interview Simulation",
-      description: "Practice interviews with our advanced AI, get instant feedback, and improve your skills.",
+      description: "Engage in realistic interviews with our advanced AI, get instant feedback, and improve your skills.",
       dataAiHint: "AI robot"
     },
     {
