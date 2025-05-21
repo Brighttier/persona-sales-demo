@@ -27,7 +27,7 @@ interface AIInterviewClientProps {
 }
 
 type InterviewMainStage = "consent" | "loadingInitialMessage" | "conversation" | "loadingFeedback" | "feedback";
-type ConversationSubStage = "miraSpeaking" | "countdown" | "sessionRecording" | "loadingNextQuestion";
+type ConversationSubStage = "preparingStream" | "countdown" | "miraSpeaking" | "sessionRecording" | "loadingNextQuestion";
 
 declare global {
   interface Window {
@@ -42,21 +42,21 @@ const MAX_SESSION_DURATION_MS = 3 * 60 * 1000; // 3 minutes for 2 questions
 export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const { toast } = useToast();
   const [mainStage, setMainStage] = useState<InterviewMainStage>("consent");
-  const [conversationSubStage, setConversationSubStage] = useState<ConversationSubStage>("miraSpeaking");
+  const [conversationSubStage, setConversationSubStage] = useState<ConversationSubStage>("preparingStream");
   
   const [consentGiven, setConsentGiven] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [isSessionRecording, setIsSessionRecording] = useState(false);
+  const [isSessionRecordingActive, setIsSessionRecordingActive] = useState(false); // Tracks if mediaRecorder is active
   const [sessionVideoBlob, setSessionVideoBlob] = useState<Blob | null>(null);
   const [feedbackResult, setFeedbackResult] = useState<AiInterviewSimulationOutput | null>(null);
   
   const [aiGreeting, setAiGreeting] = useState<string | null>(null);
   const [currentAiQuestion, setCurrentAiQuestion] = useState<string | null>(null);
   
-  const [isMiraSpeaking, setIsMiraSpeaking] = useState(false);
-  const [currentAnswerTranscript, setCurrentAnswerTranscript] = useState(""); // Transcript for the current answer
-  const [accumulatedInterviewTranscript, setAccumulatedInterviewTranscript] = useState(""); // Full Q&A transcript
-  const [isListening, setIsListening] = useState(false);
+  const [isMiraCurrentlySpeaking, setIsMiraCurrentlySpeaking] = useState(false);
+  const [currentAnswerTranscript, setCurrentAnswerTranscript] = useState("");
+  const [accumulatedInterviewTranscript, setAccumulatedInterviewTranscript] = useState("");
+  const [isCandidateListeningActive, setIsCandidateListeningActive] = useState(false); // Tracks if STT is active
   const [speechApiError, setSpeechApiError] = useState<string | null>(null);
 
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -65,14 +65,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const [currentInterviewTurn, setCurrentInterviewTurn] = useState(0);
   const overallSessionTimerIdRef = useRef<NodeJS.Timeout | null>(null);
 
-
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-
 
   useEffect(() => {
     const loadVoices = () => {
@@ -93,13 +91,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     return () => { speechSynthesis.onvoiceschanged = null; };
   }, []);
 
-
-  useEffect(() => {
-    if (consentGiven && mainStage === "consent") {
-        setMainStage("loadingInitialMessage");
-    }
-  }, [consentGiven, mainStage]);
-
   const speak = useCallback((text: string, onEndCallback?: () => void) => {
     if (!('speechSynthesis' in window)) {
       setSpeechApiError("Your browser does not support Text-to-Speech.");
@@ -114,9 +105,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     if (selectedVoice) utterance.voice = selectedVoice;
     utterance.pitch = 1.0; utterance.rate = 0.95;
 
-    utterance.onstart = () => setIsMiraSpeaking(true);
+    utterance.onstart = () => setIsMiraCurrentlySpeaking(true);
     utterance.onend = () => {
-      setIsMiraSpeaking(false);
+      setIsMiraCurrentlySpeaking(false);
       utteranceRef.current = null;
       onEndCallback?.();
     };
@@ -124,13 +115,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       console.error("SpeechSynthesis Error:", event);
       setSpeechApiError(`TTS Error: ${event.error}`);
       toast({ variant: "destructive", title: "TTS Error", description: "Could not play Mira's voice."});
-      setIsMiraSpeaking(false);
+      setIsMiraCurrentlySpeaking(false);
       utteranceRef.current = null;
       onEndCallback?.(); 
     };
     speechSynthesis.speak(utterance);
   }, [toast, selectedVoice]);
-
 
   const cleanupStreamAndRecorders = useCallback(() => {
     if (streamRef.current) {
@@ -138,21 +128,24 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       streamRef.current = null;
     }
     if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
+    
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stop(); // This will trigger onstop if setup
     }
     mediaRecorderRef.current = null;
-    if (speechRecognitionRef.current && isListening) {
-      speechRecognitionRef.current.abort(); // Use abort to stop immediately
+    setIsSessionRecordingActive(false);
+
+    if (speechRecognitionRef.current && isCandidateListeningActive) {
+      speechRecognitionRef.current.abort();
     }
     speechRecognitionRef.current = null;
-    setIsListening(false);
-    setIsSessionRecording(false);
+    setIsCandidateListeningActive(false);
+
     if (overallSessionTimerIdRef.current) {
       clearTimeout(overallSessionTimerIdRef.current);
       overallSessionTimerIdRef.current = null;
     }
-  }, [isListening]);
+  }, [isCandidateListeningActive]);
   
   const initializeSpeechRecognition = useCallback(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -163,72 +156,76 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     
     const recognition = new SpeechRecognitionAPI();
     recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US';
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false); // Should only end when explicitly stopped for session
+    
+    recognition.onstart = () => setIsCandidateListeningActive(true);
+    recognition.onend = () => setIsCandidateListeningActive(false); 
+    
     recognition.onerror = (event) => {
       console.error('SpeechRecognition Error:', event.error);
       setSpeechApiError(`STT Error: ${event.error}`);
       if (event.error === 'no-speech') toast({ variant: "destructive", title: "No Speech Detected" });
       else if (event.error === 'audio-capture') toast({ variant: "destructive", title: "Microphone Error" });
       else if (event.error !== 'aborted') toast({ variant: "destructive", title: "Speech Recognition Error" });
-      setIsListening(false); // Force stop listening on error
+      setIsCandidateListeningActive(false);
     };
     recognition.onresult = (event) => {
-      let finalTranscriptForCurrentAnswer = ""; // Build from final results in this event
+      let finalTranscriptForCurrentAnswer = "";
       let interimTranscriptForCurrentAnswer = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) finalTranscriptForCurrentAnswer += event.results[i][0].transcript + ' ';
         else interimTranscriptForCurrentAnswer += event.results[i][0].transcript;
       }
-      // Append final parts to the ongoing currentAnswerTranscript, then add interim
       setCurrentAnswerTranscript(prev => (prev + finalTranscriptForCurrentAnswer).trim() + (interimTranscriptForCurrentAnswer ? ' ' + interimTranscriptForCurrentAnswer.trim() : ''));
     };
     return recognition;
   }, [toast]);
 
-  const startInterviewSessionRecording = useCallback(async () => {
-    if (isMiraSpeaking) {
-        toast({title: "Please wait", description: "Mira is still speaking."}); return;
-    }
-    setCurrentAnswerTranscript(""); setSpeechApiError(null); setSessionVideoBlob(null);
+  const startMediaAndCountdown = useCallback(async () => {
+    if (mainStage !== "conversation" || conversationSubStage !== "preparingStream") return;
+    setSpeechApiError(null); setSessionVideoBlob(null);
 
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         if (videoPreviewRef.current) {
             videoPreviewRef.current.srcObject = streamRef.current;
-            videoPreviewRef.current.muted = true; // Ensure preview is muted
+            videoPreviewRef.current.muted = true;
             videoPreviewRef.current.play().catch(e => console.error("Preview play error", e));
         }
-        setConversationSubStage("countdown"); setCountdown(5);
         
+        mediaRecorderRef.current = new MediaRecorder(streamRef.current);
+        recordedChunksRef.current = [];
+        mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+        mediaRecorderRef.current.onstop = () => { // Important for final blob
+          const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+          setSessionVideoBlob(blob);
+        };
+        
+        speechRecognitionRef.current = initializeSpeechRecognition();
+
+        setConversationSubStage("countdown"); setCountdown(5);
         const countdownInterval = setInterval(() => {
           setCountdown(prev => {
             if (prev === null || prev <= 1) {
               clearInterval(countdownInterval);
-              setConversationSubStage("sessionRecording"); setIsSessionRecording(true);
-              
-              if (streamRef.current) {
-                mediaRecorderRef.current = new MediaRecorder(streamRef.current);
-                recordedChunksRef.current = [];
-                mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
-                mediaRecorderRef.current.onstop = () => { // This is key for when recording stops
-                  const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-                  setSessionVideoBlob(blob); // Store the final blob
-                  // Proceed to submit for feedback AFTER blob is set
-                  // This needs to be coordinated with handleFinishInterview logic
-                  // For now, this onstop just prepares the blob. submitForFinalFeedback is called by handleFinishInterview
-                };
-                mediaRecorderRef.current.start(1000); // Timeslice optional, but can help with dataavailable
-
-                speechRecognitionRef.current = initializeSpeechRecognition();
-                if (speechRecognitionRef.current) speechRecognitionRef.current.start();
-                
-                overallSessionTimerIdRef.current = setTimeout(() => { 
-                  toast({ title: "Session Time Limit Reached", description: "Interview session ended automatically." });
-                  handleFinishInterview(); 
-                }, MAX_SESSION_DURATION_MS);
-              }
+              setConversationSubStage("miraSpeaking");
+              const textToSpeak = currentInterviewTurn === 0 ? `${aiGreeting} ${currentAiQuestion}` : currentAiQuestion;
+              speak(textToSpeak || "Error: No question to speak.", () => { // After Mira finishes speaking
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "recording") {
+                   mediaRecorderRef.current.start(1000); // Start video recording
+                   setIsSessionRecordingActive(true);
+                }
+                if (speechRecognitionRef.current && !isCandidateListeningActive) {
+                   speechRecognitionRef.current.start(); // Start STT
+                }
+                setConversationSubStage("sessionRecording");
+                if (currentInterviewTurn === 0) { // Start overall timer only once
+                    overallSessionTimerIdRef.current = setTimeout(() => { 
+                        toast({ title: "Session Time Limit Reached", description: "Interview session ended automatically." });
+                        handleFinishInterview(); 
+                    }, MAX_SESSION_DURATION_MS);
+                }
+              });
               return null;
             }
             return prev - 1;
@@ -236,16 +233,20 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         }, 1000);
       } catch (err) {
         console.error("Error accessing media devices.", err);
-        toast({ variant: "destructive", title: "Camera Error", description: "Could not access camera/microphone. Please check permissions." });
-        setConversationSubStage("miraSpeaking"); // Revert to a safe state
-        // Potentially reset to consent or offer a retry?
+        toast({ variant: "destructive", title: "Camera/Mic Error", description: "Please check permissions." });
+        setConversationSubStage("preparingStream"); // Revert to allow retry or reset
       }
     } else {
-      toast({ variant: "destructive", title: "Unsupported Browser", description: "Media recording is not supported." });
-      setConversationSubStage("miraSpeaking");
+      toast({ variant: "destructive", title: "Unsupported Browser", description: "Media recording not supported." });
+      setConversationSubStage("preparingStream");
     }
-  }, [toast, initializeSpeechRecognition, isMiraSpeaking]);
+  }, [toast, initializeSpeechRecognition, mainStage, conversationSubStage, currentInterviewTurn, aiGreeting, currentAiQuestion, speak, isCandidateListeningActive]);
 
+  useEffect(() => {
+    if (consentGiven && mainStage === "consent") {
+        setMainStage("loadingInitialMessage");
+    }
+  }, [consentGiven, mainStage]);
 
   useEffect(() => {
     if (mainStage === "loadingInitialMessage" && !aiGreeting && !currentAiQuestion) {
@@ -258,36 +259,39 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           setCurrentAiQuestion(result.firstQuestion);
           setAccumulatedInterviewTranscript(prev => `${prev}Mira: ${result.aiGreeting} ${result.firstQuestion}\n\n`);
           setMainStage("conversation");
-          setConversationSubStage("miraSpeaking");
-          speak(`${result.aiGreeting} ${result.firstQuestion}`, () => {
-            // After Mira speaks the first question, start the recording session
-            startInterviewSessionRecording();
-          });
+          setConversationSubStage("preparingStream"); // Ready to start media/countdown
           toast({ title: "Mira is ready!", description: "Your AI interviewer has joined." });
         } catch (error) {
           console.error("Error fetching initial AI message:", error);
           toast({ variant: "destructive", title: "AI Error", description: "Could not load AI. Please try refreshing." });
-          // Fallback if AI fails
           const fallbackGreeting = "Hello! I'm Mira. Apologies for the hiccup.";
           const fallbackQuestion = "Let's start. Tell me about yourself.";
           setAiGreeting(fallbackGreeting); setCurrentAiQuestion(fallbackQuestion);
           setAccumulatedInterviewTranscript(prev => `${prev}Mira: ${fallbackGreeting} ${fallbackQuestion}\n\n`);
-          setMainStage("conversation"); setConversationSubStage("miraSpeaking");
-          speak(`${fallbackGreeting} ${fallbackQuestion}`, () => startInterviewSessionRecording());
+          setMainStage("conversation"); setConversationSubStage("preparingStream");
         }
       };
       fetchInitialMessage();
     }
-  }, [mainStage, aiGreeting, currentAiQuestion, jobContext, toast, speak, startInterviewSessionRecording]);
+  }, [mainStage, aiGreeting, currentAiQuestion, jobContext, toast]);
+
+  // Effect to trigger media/countdown once initial message is loaded
+  useEffect(() => {
+    if (mainStage === "conversation" && conversationSubStage === "preparingStream" && aiGreeting && currentAiQuestion) {
+        startMediaAndCountdown();
+    }
+  }, [mainStage, conversationSubStage, aiGreeting, currentAiQuestion, startMediaAndCountdown]);
 
 
   const handleProceedToNextStep = async () => {
-    if (!currentAnswerTranscript.trim() && currentInterviewTurn < MAX_INTERVIEW_TURNS +1) { // Check trim only if not forced end
+    if (!currentAnswerTranscript.trim() && currentInterviewTurn < MAX_INTERVIEW_TURNS +1 && conversationSubStage === "sessionRecording") {
         toast({variant: "destructive", title: "Empty Answer", description: "Please provide an answer before proceeding."});
         return;
     }
     
-    // Append current Q&A to accumulated transcript
+    if (speechRecognitionRef.current && isCandidateListeningActive) {
+      speechRecognitionRef.current.stop(); // Stop STT before fetching next Q or finishing
+    }
     setAccumulatedInterviewTranscript(prev => `${prev}Candidate: ${currentAnswerTranscript || "(No audible answer provided)"}\n\n`);
 
     if (currentInterviewTurn < MAX_INTERVIEW_TURNS) {
@@ -303,16 +307,21 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         setCurrentAiQuestion(result.nextQuestion);
         setAccumulatedInterviewTranscript(prev => `${prev}Mira: ${result.nextQuestion}\n\n`);
         setCurrentInterviewTurn(prev => prev + 1);
-        setCurrentAnswerTranscript(""); // Reset transcript for the new answer
+        setCurrentAnswerTranscript(""); 
+        
         setConversationSubStage("miraSpeaking");
-        speak(result.nextQuestion, () => setConversationSubStage("sessionRecording")); // Back to recording state
+        speak(result.nextQuestion, () => { // After Mira finishes speaking follow-up
+            if (speechRecognitionRef.current && !isCandidateListeningActive) {
+                speechRecognitionRef.current.start(); // Restart STT for next answer
+            }
+            setConversationSubStage("sessionRecording");
+        });
       } catch (error) {
         console.error("Error fetching follow-up question:", error);
         toast({ variant: "destructive", title: "AI Error", description: "Could not get next question. Finishing interview." });
         handleFinishInterview();
       }
     } else {
-      // Max turns reached, end interview
       handleFinishInterview();
     }
   };
@@ -323,44 +332,49 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         overallSessionTimerIdRef.current = null;
     }
 
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-        mediaRecorderRef.current.onstop = async () => { // Ensure this onstop captures the final blob correctly
-            const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-            // Ensure accumulated transcript has the final answer if not yet added
-            // This check might be redundant if handleProceedToNextStep always updates before finish
-            if (currentAnswerTranscript.trim() && !accumulatedInterviewTranscript.endsWith("Candidate: "+currentAnswerTranscript.trim()+"\n\n")) {
-                 setAccumulatedInterviewTranscript(prev => `${prev}Candidate: ${currentAnswerTranscript || "(No audible answer provided for last question)"}\n\n`);
-            }
-            await submitForFinalFeedback(blob); // Pass blob directly
-        };
-        mediaRecorderRef.current.stop();
-    } else if (sessionVideoBlob) { // If recording stopped by timer and blob is already set
-        await submitForFinalFeedback(sessionVideoBlob);
-    } else {
-        // No recording was made or blob not ready, possibly an error or premature end
-        toast({variant: "destructive", title: "Recording Error", description: "No video to submit."});
-        resetFullInterview(); // Or go to a specific error state
-        return;
-    }
-
-    if (speechRecognitionRef.current && isListening) {
+    if (speechRecognitionRef.current && isCandidateListeningActive) {
         speechRecognitionRef.current.stop();
     }
-    setIsSessionRecording(false);
-    setMainStage("loadingFeedback");
+    // Ensure STT is stopped before stopping media recorder
+    // Add a small delay if necessary, or rely on mediaRecorderRef.current.onstop
+    
+    setMainStage("loadingFeedback"); // Move this before mediaRecorder.stop if onstop handles submission
 
-  }, [isListening, sessionVideoBlob, accumulatedInterviewTranscript, currentAnswerTranscript]);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.onstop = async () => { 
+            const finalBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+            setSessionVideoBlob(finalBlob); // Ensure state is updated before submit
+            // Ensure accumulated transcript has the final answer if not yet added
+            // This state update might not be immediate, so pass transcript directly
+            let finalTranscript = accumulatedInterviewTranscript;
+            if (currentAnswerTranscript.trim() && !finalTranscript.endsWith("Candidate: "+currentAnswerTranscript.trim()+"\n\n")) {
+                 finalTranscript += `Candidate: ${currentAnswerTranscript || "(No audible answer provided for last question)"}\n\n`;
+                 setAccumulatedInterviewTranscript(finalTranscript); // update state for UI if needed
+            }
+            await submitForFinalFeedback(finalBlob, finalTranscript);
+        };
+        mediaRecorderRef.current.stop();
+    } else if (sessionVideoBlob) { 
+        // If already stopped by timer and blob exists
+        await submitForFinalFeedback(sessionVideoBlob, accumulatedInterviewTranscript);
+    } else {
+        toast({variant: "destructive", title: "Recording Error", description: "No video to submit."});
+        resetFullInterview(); 
+        return;
+    }
+    setIsSessionRecordingActive(false);
+
+  }, [isCandidateListeningActive, sessionVideoBlob, accumulatedInterviewTranscript, currentAnswerTranscript]);
 
 
-  const submitForFinalFeedback = async (videoForSubmission: Blob) => {
+  const submitForFinalFeedback = async (videoForSubmission: Blob, finalTranscript: string) => {
     if (!videoForSubmission) {
       toast({ variant: "destructive", title: "No Video Recorded", description: "Cannot submit feedback without a video." });
       setMainStage("conversation"); 
-      setConversationSubStage("miraSpeaking"); // Revert to a safe state
+      setConversationSubStage("preparingStream"); 
       return;
     }
     
-    // `accumulatedInterviewTranscript` should be up-to-date by now.
     try {
       const reader = new FileReader();
       reader.readAsDataURL(videoForSubmission);
@@ -370,23 +384,23 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           jobDescription: jobContext.jobDescription,
           candidateResume: jobContext.candidateResume,
           videoDataUri,
-          interviewTranscript: accumulatedInterviewTranscript,
+          interviewTranscript: finalTranscript,
         };
         const result = await aiInterviewSimulation(input);
         setFeedbackResult(result);
         setMainStage("feedback");
         toast({ title: "Feedback Received!", description: "Mira has analyzed your responses." });
-        cleanupStreamAndRecorders(); // Final cleanup after successful submission
+        cleanupStreamAndRecorders(); 
       };
       reader.onerror = () => {
         toast({ variant: "destructive", title: "File Read Error", description: "Could not process video for submission." });
-        setMainStage("conversation"); setConversationSubStage("miraSpeaking");
+        setMainStage("conversation"); setConversationSubStage("preparingStream");
       }
     } catch (error) {
       console.error("Error getting feedback:", error);
       toast({ variant: "destructive", title: "Feedback Error", description: "Could not get AI feedback." });
       setMainStage("conversation"); 
-      setConversationSubStage("miraSpeaking"); 
+      setConversationSubStage("preparingStream"); 
     }
   };
   
@@ -401,7 +415,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     setCurrentInterviewTurn(0);
     setCountdown(null);
     setMainStage("loadingInitialMessage"); 
-    setConversationSubStage("miraSpeaking");
+    setConversationSubStage("preparingStream");
   };
   
   useEffect(() => {
@@ -437,16 +451,15 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const renderInterviewContent = () => {
     const isLoadingInitial = mainStage === "loadingInitialMessage";
     const isLoadingNextQuestion = conversationSubStage === "loadingNextQuestion";
-    const isLoadingFeedback = mainStage === "loadingFeedback";
 
     return (
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <Bot /> Mira - AI Interviewer 
-            {(isMiraSpeaking || conversationSubStage === "miraSpeaking") && <Volume2 className="h-5 w-5 text-primary animate-pulse" />}
+            {(isMiraCurrentlySpeaking || conversationSubStage === "miraSpeaking") && <Volume2 className="h-5 w-5 text-primary animate-pulse" />}
           </CardTitle>
-          {isLoadingInitial ? (
+          {isLoadingInitial || (conversationSubStage === "preparingStream" && mainStage === "conversation") ? (
             <div className="pt-2 space-y-1"><div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div><div className="h-4 bg-muted rounded w-1/2 animate-pulse"></div></div>
           ) : (
             <>
@@ -454,38 +467,38 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
               {currentAiQuestion && <CardDescription className={cn("pt-1 text-lg font-semibold", aiGreeting && currentInterviewTurn === 0 && "mt-1")}>{currentAiQuestion}</CardDescription>}
             </>
           )}
-           {isSessionRecording && <p className="text-sm text-primary pt-1">Question {currentInterviewTurn + 1} of {MAX_INTERVIEW_TURNS + 1}</p>}
+           {isSessionRecordingActive && <p className="text-sm text-primary pt-1">Question {currentInterviewTurn + 1} of {MAX_INTERVIEW_TURNS + 1}</p>}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
             <video ref={videoPreviewRef} className="w-full h-full object-cover transform scale-x-[-1]" playsInline autoPlay muted />
-            {!isSessionRecording && conversationSubStage !== "countdown" && !isLoadingInitial && <Camera className="absolute h-24 w-24 text-muted-foreground" />}
+            {!isSessionRecordingActive && conversationSubStage !== "countdown" && !isLoadingInitial && conversationSubStage !== "preparingStream" && <Camera className="absolute h-24 w-24 text-muted-foreground" />}
             {conversationSubStage === "countdown" && countdown !== null && (
               <div className="absolute text-6xl font-bold text-white bg-black/50 p-4 rounded-lg">{countdown}</div>
             )}
-            {isSessionRecording && (
+            {isSessionRecordingActive && (
               <div className="absolute top-2 left-2 bg-red-500 text-white p-1 px-2 rounded text-xs flex items-center animate-pulse">
                 <Timer className="h-4 w-4 mr-1" /> REC
               </div>
             )}
-            {isListening && isSessionRecording && (
+            {isCandidateListeningActive && isSessionRecordingActive && (
               <div className="absolute bottom-2 left-2 bg-black/50 text-white p-2 rounded flex items-center text-xs">
                 <Mic className="h-4 w-4 mr-1 animate-pulse text-red-400" /> Listening...
               </div>
             )}
           </div>
           
-          {currentAnswerTranscript && (conversationSubStage === "sessionRecording" || isLoadingNextQuestion) && (
+          {currentAnswerTranscript && (conversationSubStage === "sessionRecording" || isLoadingNextQuestion || conversationSubStage === "miraSpeaking" /* show transcript even if Mira is about to speak next */) && (
             <Card className="bg-secondary/50 p-3">
               <CardHeader className="p-1 pb-2"><CardTitle className="text-sm flex items-center"><UserCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Your Current Response (Live Transcript):</CardTitle></CardHeader>
               <CardContent className="p-1"><Textarea value={currentAnswerTranscript} readOnly rows={3} className="text-sm bg-background" placeholder="Your transcribed speech will appear here..."/></CardContent>
             </Card>
           )}
 
-          {isSessionRecording && conversationSubStage === "sessionRecording" && (
-             <Button onClick={handleProceedToNextStep} className="w-full" size="lg" disabled={isMiraSpeaking || isLoadingNextQuestion}>
+          {conversationSubStage === "sessionRecording" && isSessionRecordingActive && (
+             <Button onClick={handleProceedToNextStep} className="w-full" size="lg" disabled={isMiraCurrentlySpeaking || isLoadingNextQuestion}>
               {isLoadingNextQuestion ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
-              {currentInterviewTurn < MAX_INTERVIEW_TURNS ? "Next Question" : "Finish Interview & Get Feedback"}
+              {currentInterviewTurn < MAX_INTERVIEW_TURNS ? "Submit Answer & Next Question" : "Finish Interview & Get Feedback"}
             </Button>
           )}
            {isLoadingNextQuestion && (
