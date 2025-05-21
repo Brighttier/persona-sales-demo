@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,8 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { USER_ROLES, type UserRole } from "@/config/roles";
-import { MoreHorizontal, PlusCircle, Search, UserCog, UserX, Edit } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Search, UserCog, UserX, Edit, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useState } from "react";
 
 const mockUsers = [
   { id: "user1", name: "Alex Johnson", email: "alex.johnson@example.com", role: USER_ROLES.CANDIDATE, status: "Active", lastLogin: "2024-07-22" },
@@ -20,12 +27,40 @@ const mockUsers = [
   { id: "user5", name: "Edward Black", email: "edward.black@example.com", role: USER_ROLES.CANDIDATE, status: "Pending", lastLogin: "N/A" },
 ];
 
+const addUserFormSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters."),
+  email: z.string().email("Invalid email address."),
+  role: z.nativeEnum(USER_ROLES, { errorMap: () => ({ message: "Please select a valid role."}) }),
+});
+
+type AddUserFormValues = z.infer<typeof addUserFormSchema>;
+
 export default function UserManagementPage() {
   const { toast } = useToast();
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+
+  const form = useForm<AddUserFormValues>({
+    resolver: zodResolver(addUserFormSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      // role: undefined, // Will be set by Select placeholder
+    },
+  });
 
   const handleAction = (userId: string, action: string) => {
     toast({ title: `Action: ${action}`, description: `Performed ${action} on user ${userId}. (Simulated)`});
     // API call would happen here
+  };
+
+  const onAddUserSubmit = (data: AddUserFormValues) => {
+    console.log("Add User Data (Placeholder):", data);
+    toast({
+      title: "Add User (Placeholder)",
+      description: `User "${data.fullName}" with role "${data.role}" would be added. This is a placeholder.`,
+    });
+    form.reset();
+    setIsAddUserDialogOpen(false);
   };
   
   const getRoleBadgeVariant = (role: UserRole) => {
@@ -55,7 +90,81 @@ export default function UserManagementPage() {
             <CardTitle className="text-2xl">User Management</CardTitle>
             <CardDescription>Add, edit, and manage user accounts across the platform.</CardDescription>
           </div>
-          <Button><PlusCircle className="mr-2 h-4 w-4" /> Add New User (Placeholder)</Button>
+          <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><PlusCircle className="mr-2 h-4 w-4" /> Add New User</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New User</DialogTitle>
+                <DialogDescription>
+                  Fill in the details below to add a new user to the platform. (Placeholder)
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onAddUserSubmit)} className="space-y-4 py-4">
+                  <FormField
+                    control={form.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="john.doe@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>User Role</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a role" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.values(USER_ROLES).map((roleValue) => (
+                              <SelectItem key={roleValue} value={roleValue} className="capitalize">
+                                {roleValue.replace('-', ' ')}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter>
+                    <DialogClose asChild>
+                       <Button type="button" variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button type="submit">
+                      <Save className="mr-2 h-4 w-4" /> Add User
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
       </Card>
 
@@ -143,3 +252,6 @@ export default function UserManagementPage() {
     </div>
   );
 }
+
+
+    
