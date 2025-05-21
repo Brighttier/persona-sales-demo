@@ -68,6 +68,3 @@ const aiInterviewSimulationFlow = ai.defineFlow(
     return output!;
   }
 );
-
-
-    

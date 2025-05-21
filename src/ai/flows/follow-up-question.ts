@@ -10,7 +10,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const FollowUpQuestionInputSchema = z.object({
+const FollowUpQuestionInputSchema = z.object({
   jobDescription: z.string().describe('The description of the job being interviewed for.'),
   candidateResume: z.string().describe("The candidate's resume (summary or key points)."),
   previousQuestion: z.string().describe("The question Mira (AI interviewer) previously asked."),
@@ -18,7 +18,7 @@ export const FollowUpQuestionInputSchema = z.object({
 });
 export type FollowUpQuestionInput = z.infer<typeof FollowUpQuestionInputSchema>;
 
-export const FollowUpQuestionOutputSchema = z.object({
+const FollowUpQuestionOutputSchema = z.object({
   nextQuestion: z.string().describe("The follow-up question Mira should ask."),
 });
 export type FollowUpQuestionOutput = z.infer<typeof FollowUpQuestionOutputSchema>;
