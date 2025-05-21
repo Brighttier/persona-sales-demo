@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -7,20 +8,22 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, Camera, CheckCircle, Loader2, Send, Video, XCircle } from "lucide-react";
+import { Bot, Camera, CheckCircle, Loader2, Send, Video } from "lucide-react"; // Removed XCircle as it's not used
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { AiInterviewSimulationInput, AiInterviewSimulationOutput } from "@/ai/flows/ai-interview-simulation";
-import { aiInterviewSimulation } from "@/ai/flows/ai-interview-simulation"; // Actual AI flow
+import { aiInterviewSimulation } from "@/ai/flows/ai-interview-simulation";
+import { getInitialInterviewUtterance, type InitialInterviewUtteranceInput } from "@/ai/flows/initial-interview-message";
 import { cn } from "@/lib/utils";
 
 interface AIInterviewClientProps {
   jobContext: {
+    jobTitle: string; // Added jobTitle
     jobDescription: string;
     candidateResume: string;
   };
 }
 
-type InterviewStage = "consent" | "ready" | "countdown" | "recording" | "review" | "feedback";
+type InterviewStage = "consent" | "loadingMessage" | "ready" | "countdown" | "recording" | "review" | "feedback";
 
 export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const { toast } = useToast();
@@ -33,12 +36,50 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const [feedback, setFeedback] = useState<AiInterviewSimulationOutput | null>(null);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   
+  const [aiGreeting, setAiGreeting] = useState<string | null>(null);
+  const [currentAiQuestion, setCurrentAiQuestion] = useState<string | null>(null);
+  const [isLoadingInitialMessage, setIsLoadingInitialMessage] = useState(false);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const aiQuestion = "Tell me about a challenging project you worked on and how you overcame the obstacles."; // Mock AI question
+  useEffect(() => {
+    if (consentGiven && stage === "consent") { // Move to loading message stage once consent is given
+        setStage("loadingMessage");
+    }
+  }, [consentGiven, stage]);
+
+
+  useEffect(() => {
+    // Fetch initial AI message when stage is loadingMessage and message not yet fetched
+    if (stage === "loadingMessage" && !aiGreeting && !isLoadingInitialMessage) {
+      const fetchInitialMessage = async () => {
+        setIsLoadingInitialMessage(true);
+        try {
+          const input: InitialInterviewUtteranceInput = {
+            jobTitle: jobContext.jobTitle,
+          };
+          const result = await getInitialInterviewUtterance(input);
+          setAiGreeting(result.aiGreeting);
+          setCurrentAiQuestion(result.firstQuestion);
+          setStage("ready"); // Move to ready stage after fetching message
+          toast({ title: "Mira is ready!", description: "Your AI interviewer has joined." });
+        } catch (error) {
+          console.error("Error fetching initial AI message:", error);
+          toast({ variant: "destructive", title: "AI Error", description: "Could not load AI. Please try refreshing." });
+          setAiGreeting("Hello! I'm Mira, your AI Interviewer. Apologies for the technical hiccup.");
+          setCurrentAiQuestion("To start, could you tell me about yourself?");
+          setStage("ready"); // Still move to ready with fallback
+        } finally {
+          setIsLoadingInitialMessage(false);
+        }
+      };
+      fetchInitialMessage();
+    }
+  }, [stage, aiGreeting, jobContext, toast, isLoadingInitialMessage]);
+
 
   const cleanupStream = useCallback(() => {
     if (streamRef.current) {
@@ -81,11 +122,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                   cleanupStream();
                 };
                 mediaRecorderRef.current.start();
-                setTimeout(() => { // Max 30 seconds recording
+                setTimeout(() => { 
                   if (mediaRecorderRef.current?.state === 'recording') {
                     mediaRecorderRef.current.stop();
+                    toast({ title: "Recording Complete", description: "Maximum recording time reached." });
                   }
-                }, 30000);
+                }, 30000); // Max 30 seconds recording
               }
               return null;
             }
@@ -108,7 +150,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
-    // stream cleanup is handled in onstop
   }, []);
 
   const submitForFeedback = async () => {
@@ -123,13 +164,14 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       reader.onloadend = async () => {
         const videoDataUri = reader.result as string;
         const input: AiInterviewSimulationInput = {
-          ...jobContext,
+          jobDescription: jobContext.jobDescription,
+          candidateResume: jobContext.candidateResume,
           videoDataUri,
         };
         const result = await aiInterviewSimulation(input);
         setFeedback(result);
         setStage("feedback");
-        toast({ title: "Feedback Received!", description: "AI has analyzed your response." });
+        toast({ title: "Feedback Received!", description: "Mira has analyzed your response." });
       };
     } catch (error) {
       console.error("Error getting feedback:", error);
@@ -146,11 +188,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     setFeedback(null);
     setIsRecording(false);
     setCountdown(null);
-    // Do not reset consent, allow multiple attempts.
+    // Don't reset AI greeting/question for retry, keep them.
     setStage("ready"); 
   };
   
-  // Cleanup stream on unmount
   useEffect(() => {
     return () => {
       cleanupStream();
@@ -160,7 +201,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
   return (
     <>
-      <Dialog open={stage === "consent"} onOpenChange={(open) => !open && stage === "consent" && setStage("consent") /* Keep dialog open if not consented */}>
+      <Dialog open={stage === "consent"} onOpenChange={(open) => !open && stage === "consent" && setStage("consent")}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Consent for Recording</DialogTitle>
@@ -175,7 +216,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             </Label>
           </div>
           <DialogFooter>
-            <Button type="button" onClick={() => { if(consentGiven) setStage("ready"); else toast({variant: "destructive", title: "Consent Required", description: "Please provide consent to continue."})}}>
+            <Button type="button" onClick={() => { 
+                if(consentGiven) setStage("loadingMessage"); // Changed to loadingMessage
+                else toast({variant: "destructive", title: "Consent Required", description: "Please provide consent to continue."})
+            }}>
               Continue
             </Button>
           </DialogFooter>
@@ -184,16 +228,26 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Bot /> AI Interviewer Question</CardTitle>
-          <CardDescription className="pt-2 text-lg">{aiQuestion}</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-xl"><Bot /> Mira - AI Interviewer</CardTitle>
+          {isLoadingInitialMessage || stage === "loadingMessage" ? (
+            <div className="pt-2 space-y-1">
+              <div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div>
+              <div className="h-4 bg-muted rounded w-1/2 animate-pulse"></div>
+            </div>
+          ) : (
+            <>
+              {aiGreeting && <CardDescription className="pt-2 text-lg">{aiGreeting}</CardDescription>}
+              {currentAiQuestion && <CardDescription className="pt-1 text-lg font-semibold">{currentAiQuestion}</CardDescription>}
+            </>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden">
-            <video ref={videoPreviewRef} playsInline autoPlay muted className={cn("w-full h-full object-cover", (stage === "review" && videoBlobUrl) && "hidden")} />
-            {stage === "review" && videoBlobUrl && (
+            <video ref={videoPreviewRef} playsInline autoPlay muted className={cn("w-full h-full object-cover", ((stage === "review" || stage ==="feedback") && videoBlobUrl) && "hidden")} />
+            {(stage === "review" || stage === "feedback") && videoBlobUrl && (
               <video src={videoBlobUrl} controls className="w-full h-full object-cover" />
             )}
-            {stage !== "countdown" && stage !== "recording" && stage !== "review" && (
+            {stage !== "countdown" && stage !== "recording" && stage !== "review" && stage !== "feedback" && (
                 <Camera className="h-24 w-24 text-muted-foreground" />
             )}
             {stage === "countdown" && countdown !== null && (
@@ -201,7 +255,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             )}
           </div>
           
-          {stage === "ready" && (
+          {stage === "ready" && !isLoadingInitialMessage && (
             <Button onClick={startCountdownAndRecording} className="w-full" size="lg">
               <Video className="mr-2 h-5 w-5" /> Start Recording Answer
             </Button>
@@ -226,13 +280,15 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       {stage === "feedback" && feedback && (
         <Card className="shadow-md mt-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><CheckCircle className="text-green-500" /> AI Feedback</CardTitle>
+            <CardTitle className="flex items-center gap-2"><CheckCircle className="text-green-500" /> Mira's Feedback</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea readOnly value={feedback.feedback} rows={10} className="bg-muted text-foreground" />
           </CardContent>
           <CardFooter>
-            <Button onClick={resetInterview} className="w-full">Try Another Question (Reset)</Button>
+            <Button onClick={() => { resetInterview(); setAiGreeting(null); setCurrentAiQuestion(null); setStage("loadingMessage"); }} className="w-full">
+              Start New Simulation
+            </Button>
           </CardFooter>
         </Card>
       )}

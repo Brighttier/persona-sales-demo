@@ -1,11 +1,13 @@
+
 import { AIInterviewClient } from "./components/AIInterviewClient";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
-export default function AIInterviewSimulationPage() { // Changed Page Name
+export default function AIInterviewSimulationPage() { 
   const jobContext = {
+    jobTitle: "Software Engineer", // Added for more direct use
     jobDescription: "We are looking for a proactive Software Engineer with experience in React and Node.js to join our innovative team. The ideal candidate should be a problem-solver and a great team player.",
     candidateResume: "Experienced Full Stack Developer with 5 years in web technologies including React, Angular, Node.js, Python. Proven ability to lead projects and mentor junior developers. BSc in Computer Science."
   };
@@ -16,7 +18,7 @@ export default function AIInterviewSimulationPage() { // Changed Page Name
         <CardHeader>
           <CardTitle className="text-2xl">AI Interview Simulation</CardTitle>
           <CardDescription>
-            Engage in a conversational interview with our AI. You'll be asked a question, and your video response will be recorded and analyzed to provide you with feedback.
+            Engage in a conversational interview with our AI, Mira. She'll ask you questions, and your video response will be recorded and analyzed to provide you with feedback.
           </CardDescription>
         </CardHeader>
       </Card>
