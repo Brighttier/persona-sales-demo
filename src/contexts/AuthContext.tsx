@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { User, UserRole} from '@/config/roles';
@@ -17,6 +18,7 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = 'talentverse-user';
+const COOKIE_KEY = 'talentverse-user'; // Same key for cookie, used by middleware
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -25,27 +27,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // setIsLoading(true); // Initial state is already true
     try {
       const storedUser = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedUser) {
         const parsedUser: User = JSON.parse(storedUser);
         setUser(parsedUser);
         setRole(parsedUser.role);
+        // Sync cookie: if user found in localStorage, ensure cookie is set for middleware
+        const userJson = JSON.stringify(parsedUser);
+        document.cookie = `${COOKIE_KEY}=${encodeURIComponent(userJson)}; path=/; max-age=${60 * 60 * 24 * 7}`; // Expires in 7 days
+      } else {
+        // No user in localStorage, ensure cookie is also cleared for consistency
+        document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`; // Expire cookie
       }
     } catch (error) {
-      console.error("Failed to load user from localStorage", error);
+      console.error("Failed to load user from localStorage or sync cookie", error);
       localStorage.removeItem(LOCAL_STORAGE_KEY);
+      document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`; // Clear potentially problematic cookie
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
   const login = useCallback((selectedRole: UserRole) => {
     const demoUser = DEMO_USERS[selectedRole];
     if (demoUser) {
       setUser(demoUser);
       setRole(demoUser.role);
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(demoUser));
+      const userJson = JSON.stringify(demoUser);
+      localStorage.setItem(LOCAL_STORAGE_KEY, userJson);
+      // Set cookie for middleware
+      document.cookie = `${COOKIE_KEY}=${encodeURIComponent(userJson)}; path=/; max-age=${60 * 60 * 24 * 7}`; // Expires in 7 days
       router.push(`/dashboard/${demoUser.role}/dashboard`);
     }
   }, [router]);
@@ -54,6 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setRole(null);
     localStorage.removeItem(LOCAL_STORAGE_KEY);
+    // Clear cookie for middleware
+    document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`; // Expire cookie
     router.push('/login');
   }, [router]);
 
