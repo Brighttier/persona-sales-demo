@@ -36,8 +36,8 @@ declare global {
   }
 }
 
-const MAX_INTERVIEW_TURNS = 1; // Initial question + 1 follow-up
-const MAX_SESSION_DURATION_MS = 3 * 60 * 1000; // 3 minutes for 2 questions
+const MAX_INTERVIEW_TURNS = 1; 
+const MAX_SESSION_DURATION_MS = 3 * 60 * 1000; 
 
 export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const { toast } = useToast();
@@ -46,7 +46,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   
   const [consentGiven, setConsentGiven] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [isSessionRecordingActive, setIsSessionRecordingActive] = useState(false); // Tracks if mediaRecorder is active
+  const [isSessionRecordingActive, setIsSessionRecordingActive] = useState(false); 
   const [sessionVideoBlob, setSessionVideoBlob] = useState<Blob | null>(null);
   const [feedbackResult, setFeedbackResult] = useState<AiInterviewSimulationOutput | null>(null);
   
@@ -56,7 +56,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const [isMiraCurrentlySpeaking, setIsMiraCurrentlySpeaking] = useState(false);
   const [currentAnswerTranscript, setCurrentAnswerTranscript] = useState("");
   const [accumulatedInterviewTranscript, setAccumulatedInterviewTranscript] = useState("");
-  const [isCandidateListeningActive, setIsCandidateListeningActive] = useState(false); // Tracks if STT is active
+  const [isCandidateListeningActive, setIsCandidateListeningActive] = useState(false); 
   const [speechApiError, setSpeechApiError] = useState<string | null>(null);
 
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -106,8 +106,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
   const speak = useCallback((text: string, onEndCallback?: () => void) => {
     if (!text || text.trim() === "") {
-        console.warn("Speak function called with empty text. Aborting speech.");
-        // toast({ variant: "destructive", title: "TTS Error", description: "Attempted to speak empty text."}); // Can be noisy
+        console.warn("Speak function called with empty or whitespace-only text. Aborting speech.");
         onEndCallback?.();
         return;
     }
@@ -172,7 +171,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     setIsSessionRecordingActive(false);
 
     if (speechRecognitionRef.current && isCandidateListeningActive) {
-      speechRecognitionRef.current.abort();
+      speechRecognitionRef.current.abort(); // Use abort for immediate stop
     }
     speechRecognitionRef.current = null;
     setIsCandidateListeningActive(false);
@@ -187,7 +186,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
       setSpeechApiError("Your browser does not support Speech-to-Text.");
-      toast({ variant: "destructive", title: "STT Not Supported" }); return null;
+      toast({ variant: "destructive", title: "STT Not Supported", description: "Speech-to-Text is not available in this browser." }); return null;
     }
     
     const recognition = new SpeechRecognitionAPI();
@@ -196,20 +195,33 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     recognition.onstart = () => setIsCandidateListeningActive(true);
     recognition.onend = () => setIsCandidateListeningActive(false); 
     
-    recognition.onerror = (event) => {
-      console.error('SpeechRecognition Error:', event.error);
-      let errorMsg = `STT Error: ${event.error}`;
-      if (event.error === 'no-speech') {
-        toast({ variant: "destructive", title: "No Speech Detected", description: "Please ensure your microphone is working and you are speaking clearly." });
-        errorMsg = "No speech was detected by the STT service.";
-      } else if (event.error === 'audio-capture') {
-        toast({ variant: "destructive", title: "Microphone Error", description: "Could not capture audio. Check microphone permissions." });
-         errorMsg = "STT could not capture audio. Check microphone permissions.";
-      } else if (event.error !== 'aborted') {
-        toast({ variant: "destructive", title: "Speech Recognition Error", description: `An error occurred: ${event.error}` });
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('SpeechRecognition Error Full Event:', event);
+      const errorCode = event.error;
+      let toastMessage: { title: string; description: string; variant: "destructive" } | null = null;
+      let persistentErrorMsg: string | null = null;
+
+      if (errorCode === 'no-speech') {
+        toastMessage = { variant: "destructive", title: "No Speech Detected", description: "Please ensure your microphone is working and you are speaking clearly." };
+        persistentErrorMsg = "No speech was detected. Please check your microphone, ensure it has permission, and speak clearly.";
+      } else if (errorCode === 'audio-capture') {
+        toastMessage = { variant: "destructive", title: "Microphone Error", description: "Could not capture audio. Check microphone permissions and ensure it's not in use by another app." };
+        persistentErrorMsg = "Could not capture audio. Please check microphone permissions and ensure it's not used by another application.";
+      } else if (errorCode === 'not-allowed') {
+        toastMessage = { variant: "destructive", title: "Permission Denied", description: "Microphone access was denied. Please enable it in your browser settings." };
+        persistentErrorMsg = "Microphone access was denied. Please enable it in your browser settings to use speech-to-text.";
+      } else if (errorCode !== 'aborted') { 
+        toastMessage = { variant: "destructive", title: "Speech Recognition Error", description: `An unexpected error occurred: ${errorCode}.` };
+        persistentErrorMsg = `An unexpected speech recognition error occurred: ${errorCode}. You might need to check browser permissions or try again.`;
       }
-      setSpeechApiError(errorMsg);
-      setIsCandidateListeningActive(false);
+
+      if (toastMessage) {
+        toast(toastMessage);
+      }
+      if (persistentErrorMsg) {
+        setSpeechApiError(persistentErrorMsg);
+      }
+      setIsCandidateListeningActive(false); 
     };
     recognition.onresult = (event) => {
       let finalTranscriptForCurrentAnswer = "";
@@ -287,7 +299,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       setConversationSubStage("preparingStream");
       setSpeechApiError("Media recording (camera/microphone) is not supported in this browser.");
     }
-  }, [toast, initializeSpeechRecognition, mainStage, conversationSubStage, currentInterviewTurn, aiGreeting, currentAiQuestion, speak, isCandidateListeningActive]);
+  }, [toast, initializeSpeechRecognition, mainStage, conversationSubStage, currentInterviewTurn, aiGreeting, currentAiQuestion, speak, isCandidateListeningActive, handleFinishInterview]);
 
   useEffect(() => {
     if (consentGiven && mainStage === "consent") {
@@ -333,13 +345,19 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const handleProceedToNextStep = async () => {
     if (!currentAnswerTranscript.trim() && currentInterviewTurn < MAX_INTERVIEW_TURNS +1 && conversationSubStage === "sessionRecording") {
         toast({variant: "destructive", title: "Empty Answer", description: "Please provide an answer before proceeding."});
-        return;
+        // Do not return here if STT had an error, allow proceeding with empty transcript
+        if (!speechApiError?.includes("No speech was detected")) { // Allow proceed if 'no-speech' error occurred
+          return;
+        }
     }
     
     if (speechRecognitionRef.current && isCandidateListeningActive) {
       speechRecognitionRef.current.stop(); 
     }
     setAccumulatedInterviewTranscript(prev => `${prev}Candidate: ${currentAnswerTranscript || "(No audible answer provided)"}\n\n`);
+    setCurrentAnswerTranscript(""); // Clear current answer for next turn
+    setSpeechApiError(null); // Clear previous speech API errors for the next turn
+
 
     if (currentInterviewTurn < MAX_INTERVIEW_TURNS) {
       setConversationSubStage("loadingNextQuestion");
@@ -348,13 +366,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           jobDescription: jobContext.jobDescription,
           candidateResume: jobContext.candidateResume,
           previousQuestion: currentAiQuestion || "",
-          candidateAnswer: currentAnswerTranscript,
+          candidateAnswer: accumulatedInterviewTranscript.split("Candidate:").pop()?.trim() || "", // Get last candidate answer
         };
         const result = await getFollowUpQuestion(input);
         setCurrentAiQuestion(result.nextQuestion);
         setAccumulatedInterviewTranscript(prev => `${prev}Mira: ${result.nextQuestion}\n\n`);
         setCurrentInterviewTurn(prev => prev + 1);
-        setCurrentAnswerTranscript(""); 
         
         setConversationSubStage("miraSpeaking");
         speak(result.nextQuestion, () => { 
@@ -391,8 +408,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             const finalBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
             setSessionVideoBlob(finalBlob); 
             let finalTranscript = accumulatedInterviewTranscript;
-            if (currentAnswerTranscript.trim() && !finalTranscript.endsWith("Candidate: "+currentAnswerTranscript.trim()+"\n\n")) {
-                 finalTranscript += `Candidate: ${currentAnswerTranscript || "(No audible answer provided for last question)"}\n\n`;
+            // Ensure the very last spoken part is included if not already added by a 'proceed' action
+            if (currentAnswerTranscript.trim() && !finalTranscript.endsWith(`${currentAnswerTranscript.trim()}\n\n`)) {
+                 finalTranscript += `Candidate: ${currentAnswerTranscript.trim() || "(No audible answer provided for last question)"}\n\n`;
                  setAccumulatedInterviewTranscript(finalTranscript); 
             }
             await submitForFinalFeedback(finalBlob, finalTranscript);
@@ -408,10 +426,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
     setIsSessionRecordingActive(false);
 
-  }, [isCandidateListeningActive, sessionVideoBlob, accumulatedInterviewTranscript, currentAnswerTranscript, toast, cleanupStreamAndRecorders]);
+  }, [isCandidateListeningActive, sessionVideoBlob, accumulatedInterviewTranscript, currentAnswerTranscript, toast, cleanupStreamAndRecorders, jobContext, submitForFinalFeedback, resetFullInterview]);
 
 
-  const submitForFinalFeedback = async (videoForSubmission: Blob, finalTranscript: string) => {
+  const submitForFinalFeedback = useCallback(async (videoForSubmission: Blob, finalTranscript: string) => {
     if (!videoForSubmission) {
       toast({ variant: "destructive", title: "No Video Recorded", description: "Cannot submit feedback without a video." });
       setMainStage("conversation"); 
@@ -449,9 +467,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       setConversationSubStage("preparingStream"); 
       setSpeechApiError("Failed to get feedback from AI.");
     }
-  };
+  }, [jobContext, toast, cleanupStreamAndRecorders]);
   
-  const resetFullInterview = () => {
+  const resetFullInterview = useCallback(() => {
     cleanupStreamAndRecorders();
     if ('speechSynthesis' in window && speechSynthesis.speaking) speechSynthesis.cancel();
     
@@ -462,9 +480,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     setCurrentInterviewTurn(0);
     setCountdown(null);
     setSpeechApiError(null);
-    setMainStage("loadingInitialMessage"); 
+    // Reset to consent to allow re-triggering full flow, or loadingInitialMessage if you want to skip consent
+    setConsentGiven(false); // Require re-consent
+    setMainStage("consent"); 
+    // setMainStage("loadingInitialMessage"); // If skipping consent on retry
     setConversationSubStage("preparingStream");
-  };
+  }, [cleanupStreamAndRecorders]);
   
   useEffect(() => {
     return () => { 
