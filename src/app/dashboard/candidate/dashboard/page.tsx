@@ -124,7 +124,7 @@ export default function CandidateDashboardPage() {
                 {recentApplications.slice(0,2).map(app => (
                   <li key={app.id} className="text-sm">
                     <strong>{app.jobTitle}</strong> at {app.company}
-                    <p className="text-xs"><Badge variant={app.status === 'Interview Scheduled' ? 'default' : 'secondary'} className={app.status === 'Interview Scheduled' ? 'bg-green-100 text-green-700 border-green-300' : ''}>{app.status}</Badge></p>
+                    <div className="text-xs"><Badge variant={app.status === 'Interview Scheduled' ? 'default' : 'secondary'} className={app.status === 'Interview Scheduled' ? 'bg-green-100 text-green-700 border-green-300' : ''}>{app.status}</Badge></div>
                   </li>
                 ))}
               </ul>
