@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -5,9 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal, PlusCircle, Search, Edit, Trash2, Eye, Users, Briefcase } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Search, Edit, Trash2, Eye, Users, Briefcase, Save } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useState } from "react";
 
 const mockCompanies = [
   { id: "comp1", name: "Tech Solutions Inc.", plan: "Enterprise", users: 150, jobsPosted: 25, status: "Active", logo: "https://placehold.co/40x40.png?text=TS" },
@@ -16,12 +23,37 @@ const mockCompanies = [
   { id: "comp4", name: "Legacy Corp", plan: "Pro", users: 50, jobsPosted: 8, status: "Inactive", logo: "https://placehold.co/40x40.png?text=LC" },
 ];
 
+const addCompanyFormSchema = z.object({
+  companyName: z.string().min(2, "Company name must be at least 2 characters."),
+  // Add more fields as needed for a real implementation, e.g., plan, admin user email
+});
+
+type AddCompanyFormValues = z.infer<typeof addCompanyFormSchema>;
+
 export default function CompanyManagementPage() {
   const { toast } = useToast();
+  const [isAddCompanyDialogOpen, setIsAddCompanyDialogOpen] = useState(false);
+
+  const form = useForm<AddCompanyFormValues>({
+    resolver: zodResolver(addCompanyFormSchema),
+    defaultValues: {
+      companyName: "",
+    },
+  });
 
   const handleAction = (companyId: string, action: string) => {
     toast({ title: `Action: ${action}`, description: `Performed ${action} on company ${companyId}. (Simulated)`});
     // API call would happen here
+  };
+
+  const onAddCompanySubmit = (data: AddCompanyFormValues) => {
+    console.log("Add Company Data (Placeholder):", data);
+    toast({
+      title: "Add Company (Placeholder)",
+      description: `Company "${data.companyName}" would be added. This is a placeholder.`,
+    });
+    form.reset();
+    setIsAddCompanyDialogOpen(false);
   };
 
   return (
@@ -32,7 +64,45 @@ export default function CompanyManagementPage() {
             <CardTitle className="text-2xl">Company Management</CardTitle>
             <CardDescription>Manage companies using the TalentVerse AI platform.</CardDescription>
           </div>
-          <Button><PlusCircle className="mr-2 h-4 w-4" /> Add New Company (Placeholder)</Button>
+          <Dialog open={isAddCompanyDialogOpen} onOpenChange={setIsAddCompanyDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><PlusCircle className="mr-2 h-4 w-4" /> Add New Company</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Company</DialogTitle>
+                <DialogDescription>
+                  Fill in the details below to add a new company to the platform. (Placeholder)
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onAddCompanySubmit)} className="space-y-4 py-4">
+                  <FormField
+                    control={form.control}
+                    name="companyName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Acme Corp" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Add more fields here for a real form */}
+                  <DialogFooter>
+                    <DialogClose asChild>
+                       <Button type="button" variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button type="submit">
+                      <Save className="mr-2 h-4 w-4" /> Add Company
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
       </Card>
 
