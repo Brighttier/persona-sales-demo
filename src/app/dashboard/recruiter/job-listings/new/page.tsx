@@ -188,7 +188,7 @@ export default function CreateNewJobPage() {
                   <FormItem>
                     <FormLabel>Required Qualifications & Experience *</FormLabel>
                     <FormControl><Textarea placeholder="List essential skills, experience, and education. Start each with a hyphen (-)." {...field} rows={8} /></FormControl>
-                    <FormDescription>Specify the must-have criteria for candidates.</FormMessage>
+                    <FormDescription>Specify the must-have criteria for candidates.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -213,10 +213,10 @@ export default function CreateNewJobPage() {
               Cancel
             </Button>
             <Button type="button" variant="secondary" onClick={form.handleSubmit(handleSaveAsDraft)}>
-              <Save className="mr-2 h-4 w-4" /> Save as Draft (Placeholder)
+              <Save className="mr-2 h-4 w-4" /> Save as Draft
             </Button>
             <Button type="button" onClick={form.handleSubmit(handleSubmitForApproval)}>
-              <Send className="mr-2 h-4 w-4" /> Submit for Approval (Placeholder)
+              <Send className="mr-2 h-4 w-4" /> Submit for Approval
             </Button>
           </CardFooter>
         </form>
