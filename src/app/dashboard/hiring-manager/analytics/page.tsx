@@ -41,7 +41,7 @@ const hiresByDepartmentData = [
 export default function HMAnalyticsPage() {
   return (
     <div className="space-y-8">
-      <Card className="shadow-md">
+      <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl">Hiring Performance Analytics</CardTitle>
           <CardDescription>Deep dive into your team's recruitment metrics and identify areas for improvement.</CardDescription>
@@ -49,7 +49,7 @@ export default function HMAnalyticsPage() {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center"><Clock className="mr-2 h-4 w-4 text-muted-foreground"/>Average Time to Hire</CardTitle>
           </CardHeader>
@@ -58,7 +58,7 @@ export default function HMAnalyticsPage() {
             <p className="text-xs text-muted-foreground">-5% from last quarter</p>
           </CardContent>
         </Card>
-         <Card className="shadow-sm">
+         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center"><Target className="mr-2 h-4 w-4 text-muted-foreground"/>Offer Acceptance Rate</CardTitle>
           </CardHeader>
@@ -67,7 +67,7 @@ export default function HMAnalyticsPage() {
             <p className="text-xs text-muted-foreground">+2% from last quarter</p>
           </CardContent>
         </Card>
-         <Card className="shadow-sm">
+         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Quality of Hire (QoH)</CardTitle>
           </CardHeader>
@@ -79,7 +79,7 @@ export default function HMAnalyticsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3 shadow-sm">
+        <Card className="lg:col-span-3 shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader>
             <CardTitle className="flex items-center"><BarChart3 className="mr-2 h-5 w-5 text-primary"/> Hiring Funnel</CardTitle>
             <CardDescription>Candidate progression through hiring stages (last 90 days).</CardDescription>
@@ -100,7 +100,7 @@ export default function HMAnalyticsPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-2 shadow-sm">
+        <Card className="lg:col-span-2 shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader>
             <CardTitle className="flex items-center"><PieIcon className="mr-2 h-5 w-5 text-primary"/> Offer Acceptance</CardTitle>
             <CardDescription>Breakdown of offers accepted vs. rejected.</CardDescription>
@@ -119,7 +119,7 @@ export default function HMAnalyticsPage() {
         </Card>
       </div>
       
-      <Card className="shadow-sm">
+      <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
         <CardHeader>
             <CardTitle className="flex items-center"><TrendingUp className="mr-2 h-5 w-5 text-primary"/> Time to Hire Trend</CardTitle>
             <CardDescription>Average number of days from job posting to offer acceptance.</CardDescription>
@@ -139,7 +139,7 @@ export default function HMAnalyticsPage() {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
             <CardHeader>
                 <CardTitle className="flex items-center"><Users className="mr-2 h-5 w-5 text-primary"/> Top Performing Recruiters</CardTitle>
                 <CardDescription>Based on hires and efficiency metrics this quarter.</CardDescription>
@@ -158,7 +158,7 @@ export default function HMAnalyticsPage() {
                 </ul>
             </CardContent>
         </Card>
-         <Card className="shadow-sm">
+         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
             <CardHeader>
                 <CardTitle className="flex items-center"><BarChart3 className="mr-2 h-5 w-5 text-primary"/> Hires by Department</CardTitle>
                 <CardDescription>Distribution of new hires across departments.</CardDescription>
@@ -183,5 +183,3 @@ export default function HMAnalyticsPage() {
     </div>
   );
 }
-
-    

@@ -71,14 +71,14 @@ export default function JobApprovalsPage() {
   return (
     <Dialog onOpenChange={(open) => !open && setSelectedJob(null)}>
       <div className="space-y-6">
-        <Card className="shadow-md">
+        <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl">Job Posting Approvals</CardTitle>
             <CardDescription>Review and approve or reject job postings submitted by recruiters.</CardDescription>
           </CardHeader>
         </Card>
 
-        <Card>
+        <Card className="shadow-lg">
           <CardHeader className="border-b">
              <div className="flex items-center space-x-2">
                 <SearchIcon className="h-4 w-4 text-muted-foreground" />
@@ -182,5 +182,3 @@ export default function JobApprovalsPage() {
     </Dialog>
   );
 }
-
-    

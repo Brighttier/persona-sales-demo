@@ -37,7 +37,7 @@ export default function HiringManagerDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-md bg-gradient-to-r from-primary/10 via-background to-background">
+      <Card className="shadow-xl bg-gradient-to-r from-primary/10 via-background to-background">
         <CardHeader>
           <CardTitle className="text-3xl">Hiring Manager Dashboard</CardTitle>
           <CardDescription>Overview of your team's hiring activities, {user.name.split(" ")[0]}.</CardDescription>
@@ -45,7 +45,7 @@ export default function HiringManagerDashboardPage() {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open Positions</CardTitle>
             <Briefcase className="h-5 w-5 text-muted-foreground" />
@@ -55,7 +55,7 @@ export default function HiringManagerDashboardPage() {
             <Link href={`/dashboard/${role}/job-approvals`} className="text-xs text-primary hover:underline mt-1 block">Review Jobs</Link>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Job Approvals</CardTitle>
             <UserCheck className="h-5 w-5 text-muted-foreground" />
@@ -65,7 +65,7 @@ export default function HiringManagerDashboardPage() {
              <Link href={`/dashboard/${role}/job-approvals`} className="text-xs text-primary hover:underline mt-1 block">Approve Now</Link>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Interviews Today</CardTitle>
             <CalendarCheck className="h-5 w-5 text-muted-foreground" />
@@ -79,7 +79,7 @@ export default function HiringManagerDashboardPage() {
       </div>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Candidates in Pipeline</CardTitle>
             <Users className="h-5 w-5 text-muted-foreground" />
@@ -89,7 +89,7 @@ export default function HiringManagerDashboardPage() {
             <p className="text-xs text-muted-foreground mt-1">Across all open positions</p>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Interview Feedback Due</CardTitle>
             <MessageSquare className="h-5 w-5 text-muted-foreground" />
@@ -99,7 +99,7 @@ export default function HiringManagerDashboardPage() {
             <Link href={`/dashboard/${role}/interviews`} className="text-xs text-primary hover:underline mt-1 block">Provide Feedback</Link>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg. Time to Fill</CardTitle>
             <BarChartIcon className="h-5 w-5 text-muted-foreground" />
@@ -113,7 +113,7 @@ export default function HiringManagerDashboardPage() {
 
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="shadow-sm">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader>
             <CardTitle>Monthly Hires</CardTitle>
              <CardDescription>Number of candidates hired each month by your team.</CardDescription>
@@ -130,7 +130,7 @@ export default function HiringManagerDashboardPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-         <Card className="shadow-sm">
+         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader>
             <CardTitle>Top Candidate Sources</CardTitle>
             <CardDescription>Where your best candidates are coming from.</CardDescription>
@@ -149,7 +149,7 @@ export default function HiringManagerDashboardPage() {
         </Card>
       </div>
 
-      <Card className="shadow-md">
+      <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader>
             <CardTitle>Key Actions & Quick Links</CardTitle>
           </CardHeader>
@@ -168,5 +168,3 @@ export default function HiringManagerDashboardPage() {
     </div>
   );
 }
-
-    

@@ -62,7 +62,7 @@ export default function HMInterviewsPage() {
 
 
   const renderInterviewCard = (interview: TeamInterview, isYourInterview: boolean) => (
-    <Card key={interview.id} className="shadow-sm hover:shadow-md transition-shadow">
+    <Card key={interview.id} className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
       <CardHeader>
         <div className="flex justify-between items-start">
             <div>
@@ -104,7 +104,7 @@ export default function HMInterviewsPage() {
   return (
     <Dialog onOpenChange={(open) => !open && setSelectedInterview(null)}>
       <div className="space-y-8">
-        <Card className="shadow-md">
+        <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl">Manage Team Interviews</CardTitle>
             <CardDescription>View upcoming interviews, provide feedback, and track candidate progress.</CardDescription>
@@ -123,7 +123,7 @@ export default function HMInterviewsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {yourInterviews.map(interview => renderInterviewCard(interview, true))}
               </div>
-            ) : <Card className="text-center py-10"><CardContent><CalendarDays className="mx-auto h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No upcoming interviews assigned directly to you.</p></CardContent></Card>}
+            ) : <Card className="text-center py-10 shadow-lg"><CardContent><CalendarDays className="mx-auto h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No upcoming interviews assigned directly to you.</p></CardContent></Card>}
           </TabsContent>
           
           <TabsContent value="team-interviews">
@@ -132,7 +132,7 @@ export default function HMInterviewsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {teamInterviews.map(interview => renderInterviewCard(interview, false))}
               </div>
-            ) : <Card className="text-center py-10"><CardContent><Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No other team interviews scheduled at the moment.</p></CardContent></Card>}
+            ) : <Card className="text-center py-10 shadow-lg"><CardContent><Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No other team interviews scheduled at the moment.</p></CardContent></Card>}
           </TabsContent>
         </Tabs>
       </div>
@@ -158,5 +158,3 @@ export default function HMInterviewsPage() {
     </Dialog>
   );
 }
-
-    
