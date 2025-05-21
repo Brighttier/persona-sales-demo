@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Briefcase, Users, CheckSquare, TrendingUp, ArrowRight, MessageSquare, UserPlus, Search } from "lucide-react";
+import { Briefcase, Users, CheckSquare, TrendingUp, ArrowRight, MessageSquare, UserPlus, Search, CalendarCheck } from "lucide-react"; // Added CalendarCheck
 import Link from "next/link";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Badge } from "@/components/ui/badge";
