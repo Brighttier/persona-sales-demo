@@ -1,9 +1,10 @@
+
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, Building, CreditCard, Settings, ShieldAlert, Activity, ArrowRight } from "lucide-react";
+import { Users, Building, CreditCard, Settings, ShieldAlert, Activity, ArrowRight, Brain } from "lucide-react"; // Added Brain for AI Usage
 import Link from "next/link";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -24,6 +25,16 @@ const userRoleDistributionData = [
   { name: 'Hiring Managers', value: 150 }, { name: 'Admins', value: 50 },
 ];
 const ROLE_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
+
+const aiUsageData = [
+  { name: 'Tech Solutions Inc.', usage: 1200, fill: 'hsl(var(--chart-1))' },
+  { name: 'Innovate Hub', usage: 850, fill: 'hsl(var(--chart-2))' },
+  { name: 'AI Screening', usage: 700, fill: 'hsl(var(--chart-3))' }, // Feature specific
+  { name: 'Brenda S. (Recruiter)', usage: 450, fill: 'hsl(var(--chart-4))' },
+  { name: 'AI Interviews', usage: 950, fill: 'hsl(var(--chart-5))' }, // Feature specific
+  { name: 'Creative Designs Co.', usage: 300, fill: 'hsl(var(--chart-1))' },
+];
+
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -122,6 +133,32 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center"><Brain className="mr-2 h-5 w-5 text-primary"/> AI Feature Usage</CardTitle>
+            <CardDescription>Overview of AI credits/tokens consumed by companies, recruiters, or features.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={aiUsageData} margin={{ top: 5, right: 0, left: -15, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" fontSize={12} interval={0} angle={-30} textAnchor="end" height={70} />
+                    <YAxis fontSize={12} label={{ value: 'AI Units / Credits Consumed', angle: -90, position: 'insideLeft', offset:-5, style: {textAnchor: 'middle', fontSize: '12px', fill: 'hsl(var(--muted-foreground))'} }}/>
+                    <Tooltip wrapperStyle={{fontSize: "12px"}}/>
+                    <Legend wrapperStyle={{fontSize: "12px"}}/>
+                    <Bar dataKey="usage" name="Usage Units" radius={[4, 4, 0, 0]}>
+                        {aiUsageData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </CardContent>
+        <CardFooter>
+             <Button variant="outline">Detailed AI Usage Report</Button>
+        </CardFooter>
+      </Card>
 
       <Card>
         <CardHeader>
