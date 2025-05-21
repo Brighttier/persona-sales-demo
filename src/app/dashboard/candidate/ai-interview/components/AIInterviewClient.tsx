@@ -8,11 +8,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, Camera, CheckCircle, Loader2, Send, Video, Mic, Volume2, UserCircle } from "lucide-react";
+import { Bot, Camera, CheckCircle, Loader2, Send, Video, Mic, Volume2, UserCircle, MessageSquare } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { AiInterviewSimulationInput, AiInterviewSimulationOutput } from "@/ai/flows/ai-interview-simulation";
 import { aiInterviewSimulation } from "@/ai/flows/ai-interview-simulation";
 import { getInitialInterviewUtterance, type InitialInterviewUtteranceInput } from "@/ai/flows/initial-interview-message";
+import { getFollowUpQuestion, type FollowUpQuestionInput } from "@/ai/flows/follow-up-question";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -25,7 +26,8 @@ interface AIInterviewClientProps {
   };
 }
 
-type InterviewStage = "consent" | "loadingMessage" | "miraSpeaking" | "ready" | "countdown" | "recording" | "review" | "feedback";
+type InterviewMainStage = "consent" | "loadingInitialMessage" | "conversation" | "loadingFeedback" | "feedback";
+type ConversationSubStage = "miraSpeaking" | "readyToRecord" | "countdown" | "recording" | "reviewingAnswer" | "loadingNextQuestion" ;
 
 // SpeechRecognition type fix for older/prefixed browsers
 declare global {
@@ -35,22 +37,23 @@ declare global {
   }
 }
 
+const MAX_INTERVIEW_TURNS = 1; // Initial question + 1 follow-up
 
 export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const { toast } = useToast();
-  const [stage, setStage] = useState<InterviewStage>("consent");
+  const [mainStage, setMainStage] = useState<InterviewMainStage>("consent");
+  const [conversationSubStage, setConversationSubStage] = useState<ConversationSubStage>("miraSpeaking");
+  
   const [consentGiven, setConsentGiven] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
-  const [feedback, setFeedback] = useState<AiInterviewSimulationOutput | null>(null);
-  const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
+  const [feedbackResult, setFeedbackResult] = useState<AiInterviewSimulationOutput | null>(null);
   
   const [aiGreeting, setAiGreeting] = useState<string | null>(null);
   const [currentAiQuestion, setCurrentAiQuestion] = useState<string | null>(null);
-  const [isLoadingInitialMessage, setIsLoadingInitialMessage] = useState(false);
-
+  
   const [isMiraSpeaking, setIsMiraSpeaking] = useState(false);
   const [userTranscript, setUserTranscript] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -58,6 +61,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+
+  const [currentInterviewTurn, setCurrentInterviewTurn] = useState(0); // 0 for initial, 1 for first follow-up
+  const [accumulatedTranscript, setAccumulatedTranscript] = useState("");
 
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -73,47 +79,26 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       const voices = speechSynthesis.getVoices();
       if (voices.length > 0) {
         setAvailableVoices(voices);
-        // Attempt to select a preferred voice
-        let preferredVoice = voices.find(
-          (voice) => voice.lang === 'en-US' && (voice.name.includes('Female') || voice.name.includes('Zira') || voice.name.includes('Susan'))
-        );
-        if (!preferredVoice) {
-          preferredVoice = voices.find(
-            (voice) => voice.lang === 'en-GB' && voice.name.includes('Female')
-          );
-        }
-        if (!preferredVoice) {
-          preferredVoice = voices.find((voice) => voice.lang === 'en-US' && voice.name.toLowerCase().includes('female'));
-        }
-        if (!preferredVoice) {
-          preferredVoice = voices.find((voice) => voice.lang.startsWith('en-') && voice.name.toLowerCase().includes('female'));
-        }
-        // Fallbacks
-        if (!preferredVoice) {
-          preferredVoice = voices.find((voice) => voice.lang === 'en-US');
-        }
-        if (!preferredVoice) {
-          preferredVoice = voices.find((voice) => voice.lang.startsWith('en-'));
-        }
+        let preferredVoice = voices.find(v => v.lang === 'en-US' && (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Susan')));
+        if (!preferredVoice) preferredVoice = voices.find(v => v.lang === 'en-GB' && v.name.includes('Female'));
+        if (!preferredVoice) preferredVoice = voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('female'));
+        if (!preferredVoice) preferredVoice = voices.find(v => v.lang.startsWith('en-') && v.name.toLowerCase().includes('female'));
+        if (!preferredVoice) preferredVoice = voices.find(v => v.lang === 'en-US');
+        if (!preferredVoice) preferredVoice = voices.find(v => v.lang.startsWith('en-'));
         setSelectedVoice(preferredVoice || voices[0] || null);
       }
     };
-
-    // Voices are loaded asynchronously.
     speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices(); // Initial attempt
-
-    return () => {
-      speechSynthesis.onvoiceschanged = null;
-    };
+    loadVoices();
+    return () => { speechSynthesis.onvoiceschanged = null; };
   }, []);
 
 
   useEffect(() => {
-    if (consentGiven && stage === "consent") {
-        setStage("loadingMessage");
+    if (consentGiven && mainStage === "consent") {
+        setMainStage("loadingInitialMessage");
     }
-  }, [consentGiven, stage]);
+  }, [consentGiven, mainStage]);
 
   const speak = useCallback((text: string, onEndCallback?: () => void) => {
     if (!('speechSynthesis' in window)) {
@@ -122,19 +107,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       onEndCallback?.(); 
       return;
     }
-    
-    if (speechSynthesis.speaking) {
-        speechSynthesis.cancel();
-    }
+    if (speechSynthesis.speaking) speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
     utteranceRef.current = utterance;
-
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
-    utterance.pitch = 1.0; // Standard pitch
-    utterance.rate = 0.95;  // Slightly slower for clarity
+    if (selectedVoice) utterance.voice = selectedVoice;
+    utterance.pitch = 1.0; utterance.rate = 0.95;
 
     utterance.onstart = () => setIsMiraSpeaking(true);
     utterance.onend = () => {
@@ -155,40 +133,33 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
 
   useEffect(() => {
-    if (stage === "loadingMessage" && !aiGreeting && !currentAiQuestion && !isLoadingInitialMessage) {
+    if (mainStage === "loadingInitialMessage" && !aiGreeting && !currentAiQuestion) {
       const fetchInitialMessage = async () => {
-        setIsLoadingInitialMessage(true);
         setSpeechApiError(null);
         try {
-          const input: InitialInterviewUtteranceInput = {
-            jobTitle: jobContext.jobTitle,
-          };
+          const input: InitialInterviewUtteranceInput = { jobTitle: jobContext.jobTitle };
           const result = await getInitialInterviewUtterance(input);
           setAiGreeting(result.aiGreeting);
           setCurrentAiQuestion(result.firstQuestion);
-          setStage("miraSpeaking"); 
-          speak(`${result.aiGreeting} ${result.firstQuestion}`, () => {
-            setStage("ready"); 
-          });
+          setAccumulatedTranscript(prev => `${prev}Mira: ${result.aiGreeting} ${result.firstQuestion}\n\n`);
+          setMainStage("conversation");
+          setConversationSubStage("miraSpeaking");
+          speak(`${result.aiGreeting} ${result.firstQuestion}`, () => setConversationSubStage("readyToRecord"));
           toast({ title: "Mira is ready!", description: "Your AI interviewer has joined." });
         } catch (error) {
           console.error("Error fetching initial AI message:", error);
           toast({ variant: "destructive", title: "AI Error", description: "Could not load AI. Please try refreshing." });
-          const fallbackGreeting = "Hello! I'm Mira, your AI Interviewer. Apologies for the technical hiccup.";
-          const fallbackQuestion = "To start, could you tell me about yourself?";
-          setAiGreeting(fallbackGreeting);
-          setCurrentAiQuestion(fallbackQuestion);
-          setStage("miraSpeaking");
-          speak(`${fallbackGreeting} ${fallbackQuestion}`, () => {
-            setStage("ready");
-          });
-        } finally {
-          setIsLoadingInitialMessage(false);
+          const fallbackGreeting = "Hello! I'm Mira. Apologies for the hiccup.";
+          const fallbackQuestion = "Let's start. Tell me about yourself.";
+          setAiGreeting(fallbackGreeting); setCurrentAiQuestion(fallbackQuestion);
+          setAccumulatedTranscript(prev => `${prev}Mira: ${fallbackGreeting} ${fallbackQuestion}\n\n`);
+          setMainStage("conversation"); setConversationSubStage("miraSpeaking");
+          speak(`${fallbackGreeting} ${fallbackQuestion}`, () => setConversationSubStage("readyToRecord"));
         }
       };
       fetchInitialMessage();
     }
-  }, [stage, aiGreeting, currentAiQuestion, jobContext, toast, isLoadingInitialMessage, speak]);
+  }, [mainStage, aiGreeting, currentAiQuestion, jobContext, toast, speak]);
 
 
   const cleanupStream = useCallback(() => {
@@ -196,101 +167,72 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
-    if (videoPreviewRef.current) {
-      videoPreviewRef.current.srcObject = null;
-    }
+    if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
   }, []);
   
   const initializeSpeechRecognition = useCallback(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
       setSpeechApiError("Your browser does not support Speech-to-Text.");
-      toast({ variant: "destructive", title: "STT Not Supported", description: "Cannot transcribe your speech in this browser." });
-      return null;
+      toast({ variant: "destructive", title: "STT Not Supported" }); return null;
     }
     
     const recognition = new SpeechRecognitionAPI();
-    recognition.continuous = true; 
-    recognition.interimResults = true; 
-    recognition.lang = 'en-US';
-
+    recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US';
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
     recognition.onerror = (event) => {
       console.error('SpeechRecognition Error:', event.error);
       setSpeechApiError(`STT Error: ${event.error}`);
-      if (event.error === 'no-speech') {
-        toast({ variant: "destructive", title: "No Speech Detected", description: "Please ensure your microphone is working and you are speaking." });
-      } else if (event.error === 'audio-capture') {
-         toast({ variant: "destructive", title: "Microphone Error", description: "Could not capture audio. Check microphone permissions." });
-      } else if (event.error !== 'aborted') { 
-         toast({ variant: "destructive", title: "Speech Recognition Error", description: `Could not transcribe speech: ${event.error}` });
-      }
+      if (event.error === 'no-speech') toast({ variant: "destructive", title: "No Speech Detected" });
+      else if (event.error === 'audio-capture') toast({ variant: "destructive", title: "Microphone Error" });
+      else if (event.error !== 'aborted') toast({ variant: "destructive", title: "Speech Recognition Error" });
       setIsListening(false);
     };
     recognition.onresult = (event) => {
+      let finalTranscript = userTranscript; // Keep previous final parts for current turn
       let interimTranscript = '';
-      let finalTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        } else {
-          interimTranscript += event.results[i][0].transcript;
-        }
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + ' ';
+        else interimTranscript += event.results[i][0].transcript;
       }
-      setUserTranscript(prev => prev + finalTranscript + interimTranscript); 
+      setUserTranscript(finalTranscript.trim() + (interimTranscript ? ' ' + interimTranscript.trim() : '')); 
     };
     return recognition;
-  }, [toast]);
+  }, [toast, userTranscript]);
 
 
   const startCountdownAndRecording = useCallback(async () => {
     if (isMiraSpeaking) {
-        toast({title: "Please wait", description: "Mira is still speaking."});
-        return;
+        toast({title: "Please wait", description: "Mira is still speaking."}); return;
     }
-    setUserTranscript(""); 
-    setSpeechApiError(null);
+    setUserTranscript(""); setSpeechApiError(null); setVideoBlob(null); setVideoBlobUrl(null);
 
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (videoPreviewRef.current) {
-          videoPreviewRef.current.srcObject = streamRef.current;
-        }
-        setStage("countdown");
-        setCountdown(5);
+        if (videoPreviewRef.current) videoPreviewRef.current.srcObject = streamRef.current;
+        setConversationSubStage("countdown"); setCountdown(5);
         const countdownInterval = setInterval(() => {
           setCountdown(prev => {
             if (prev === null || prev <= 1) {
               clearInterval(countdownInterval);
-              setStage("recording");
-              setIsRecording(true);
-              
+              setConversationSubStage("recording"); setIsRecording(true);
               if (streamRef.current) {
                 mediaRecorderRef.current = new MediaRecorder(streamRef.current);
                 recordedChunksRef.current = [];
-                mediaRecorderRef.current.ondataavailable = (event) => {
-                  if (event.data.size > 0) recordedChunksRef.current.push(event.data);
-                };
+                mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
                 mediaRecorderRef.current.onstop = () => {
                   const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
                   const url = URL.createObjectURL(blob);
-                  setVideoBlobUrl(url);
-                  setVideoBlob(blob);
-                  setStage("review");
+                  setVideoBlobUrl(url); setVideoBlob(blob);
+                  setConversationSubStage("reviewingAnswer");
                   cleanupStream();
-                  if (speechRecognitionRef.current && isListening) {
-                    speechRecognitionRef.current.stop();
-                  }
+                  if (speechRecognitionRef.current && isListening) speechRecognitionRef.current.stop();
                 };
                 mediaRecorderRef.current.start();
-
                 speechRecognitionRef.current = initializeSpeechRecognition();
-                if (speechRecognitionRef.current) {
-                  speechRecognitionRef.current.start();
-                }
-
+                if (speechRecognitionRef.current) speechRecognitionRef.current.start();
                 setTimeout(() => { 
                   if (mediaRecorderRef.current?.state === 'recording') {
                     mediaRecorderRef.current.stop(); 
@@ -305,219 +247,245 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         }, 1000);
       } catch (err) {
         console.error("Error accessing media devices.", err);
-        toast({ variant: "destructive", title: "Camera Error", description: "Could not access camera/microphone." });
-        setStage("ready");
+        toast({ variant: "destructive", title: "Camera Error" });
+        setConversationSubStage("readyToRecord");
       }
     } else {
-      toast({ variant: "destructive", title: "Unsupported Browser", description: "Video recording not supported." });
-      setStage("ready");
+      toast({ variant: "destructive", title: "Unsupported Browser" });
+      setConversationSubStage("readyToRecord");
     }
   }, [toast, cleanupStream, initializeSpeechRecognition, isListening, isMiraSpeaking]);
   
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.stop(); 
-    }
-    if (speechRecognitionRef.current && isListening) {
-        speechRecognitionRef.current.stop();
-    }
-    setIsRecording(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") mediaRecorderRef.current.stop(); 
+    if (speechRecognitionRef.current && isListening) speechRecognitionRef.current.stop();
+    setIsRecording(false); // This will be set false by onstop too
   }, [isListening]);
 
-  const submitForFeedback = async () => {
-    if (!videoBlob) {
-      toast({ variant: "destructive", title: "No Video", description: "Please record a video first." });
+  const handleSendAnswer = async () => {
+    if (!userTranscript.trim()) {
+        toast({variant: "destructive", title: "Empty Answer", description: "Please provide an answer."});
+        return;
+    }
+    setAccumulatedTranscript(prev => `${prev}Candidate: ${userTranscript}\n\n`);
+
+    if (currentInterviewTurn < MAX_INTERVIEW_TURNS) {
+      // Get follow-up question
+      setConversationSubStage("loadingNextQuestion");
+      try {
+        const input: FollowUpQuestionInput = {
+          jobDescription: jobContext.jobDescription,
+          candidateResume: jobContext.candidateResume,
+          previousQuestion: currentAiQuestion || "",
+          candidateAnswer: userTranscript,
+        };
+        const result = await getFollowUpQuestion(input);
+        setCurrentAiQuestion(result.nextQuestion);
+        setAccumulatedTranscript(prev => `${prev}Mira: ${result.nextQuestion}\n\n`);
+        setCurrentInterviewTurn(prev => prev + 1);
+        setUserTranscript(""); setVideoBlob(null); setVideoBlobUrl(null); // Reset for next turn
+        setConversationSubStage("miraSpeaking");
+        speak(result.nextQuestion, () => setConversationSubStage("readyToRecord"));
+      } catch (error) {
+        console.error("Error fetching follow-up question:", error);
+        toast({ variant: "destructive", title: "AI Error", description: "Could not get next question." });
+        // Offer to proceed to feedback or retry? For now, proceed to feedback.
+        setMainStage("loadingFeedback"); // Transition to feedback submission
+        await submitForFinalFeedback();
+      }
+    } else {
+      // Max turns reached, submit for final feedback
+      setMainStage("loadingFeedback");
+      await submitForFinalFeedback();
+    }
+  };
+  
+  const submitForFinalFeedback = async () => {
+    if (!videoBlob) { // Ensure last video is available
+      toast({ variant: "destructive", title: "No Video", description: "Please record a video for the last question." });
+      setMainStage("conversation"); 
+      setConversationSubStage("reviewingAnswer"); // Go back to review to allow recording
       return;
     }
-    setIsLoadingFeedback(true);
+    setMainStage("loadingFeedback");
     try {
       const reader = new FileReader();
-      reader.readAsDataURL(videoBlob);
+      reader.readAsDataURL(videoBlob); // Using the last recorded video blob
       reader.onloadend = async () => {
         const videoDataUri = reader.result as string;
         const input: AiInterviewSimulationInput = {
           jobDescription: jobContext.jobDescription,
           candidateResume: jobContext.candidateResume,
           videoDataUri,
+          interviewTranscript: accumulatedTranscript, // Send full transcript
         };
-        console.log("User transcript before sending for feedback:", userTranscript); 
         const result = await aiInterviewSimulation(input);
-        setFeedback(result);
-        setStage("feedback");
-        toast({ title: "Feedback Received!", description: "Mira has analyzed your response." });
+        setFeedbackResult(result);
+        setMainStage("feedback");
+        toast({ title: "Feedback Received!", description: "Mira has analyzed your responses." });
       };
     } catch (error) {
       console.error("Error getting feedback:", error);
       toast({ variant: "destructive", title: "Feedback Error", description: "Could not get AI feedback." });
-    } finally {
-      setIsLoadingFeedback(false);
+      setMainStage("conversation"); // Revert to allow retry or reset
+      setConversationSubStage("readyToRecord"); 
     }
   };
 
-  const resetInterview = (fullReset = false) => {
+
+  const resetTurn = () => { // For re-recording the current question's answer
     cleanupStream();
     if (speechSynthesis.speaking) speechSynthesis.cancel();
     if (speechRecognitionRef.current && isListening) speechRecognitionRef.current.abort();
+    setVideoBlobUrl(null); setVideoBlob(null); setUserTranscript("");
+    setIsRecording(false); setCountdown(null); setIsMiraSpeaking(false);
+    setConversationSubStage("readyToRecord");
+  };
 
-    setVideoBlobUrl(null);
-    setVideoBlob(null);
-    setFeedback(null);
-    setIsRecording(false);
-    setCountdown(null);
-    setUserTranscript("");
-    setIsMiraSpeaking(false);
-    setSpeechApiError(null);
-
-    if (fullReset) {
-        setAiGreeting(null);
-        setCurrentAiQuestion(null);
-        setStage("loadingMessage"); 
-    } else {
-        setStage("ready"); 
-    }
+  const resetFullInterview = () => {
+    resetTurn(); // Resets current turn things
+    setAccumulatedTranscript(""); setCurrentInterviewTurn(0);
+    setAiGreeting(null); setCurrentAiQuestion(null); setFeedbackResult(null);
+    setMainStage("loadingInitialMessage"); // Restart from fetching initial greeting
   };
   
   useEffect(() => {
-    return () => {
+    return () => { // Cleanup on unmount
       cleanupStream();
-      if (speechSynthesis.speaking) {
-        speechSynthesis.cancel();
-      }
-      if (speechRecognitionRef.current && isListening) {
-        speechRecognitionRef.current.abort();
-      }
+      if (speechSynthesis.speaking) speechSynthesis.cancel();
+      if (speechRecognitionRef.current && isListening) speechRecognitionRef.current.abort();
     };
   }, [cleanupStream, isListening]);
 
 
-  return (
-    <>
-      <Dialog open={stage === "consent"} onOpenChange={(open) => !open && stage === "consent" && setStage("consent")}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Consent for Recording & Speech</DialogTitle>
-            <DialogDescription>
-              To proceed with the AI interview simulation, we need your consent to access your camera and microphone for recording your response, and to use speech technologies (Text-to-Speech for Mira, Speech-to-Text for your responses). Your recording and transcript will be used solely for providing you with AI-generated feedback.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center space-x-2 py-4">
-            <Checkbox id="consent-checkbox" checked={consentGiven} onCheckedChange={(checked) => setConsentGiven(Boolean(checked))} />
-            <Label htmlFor="consent-checkbox" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              I consent to video/audio recording and speech functionalities for this AI interview simulation.
-            </Label>
-          </div>
-          <DialogFooter>
-            <Button type="button" onClick={() => { 
-                if(consentGiven) setStage("loadingMessage");
-                else toast({variant: "destructive", title: "Consent Required", description: "Please provide consent to continue."})
-            }}>
-              Continue
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  const renderConsentDialog = () => (
+    <Dialog open={mainStage === "consent"} onOpenChange={(open) => !open && mainStage === "consent" && setMainStage("consent")}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader><DialogTitle>Consent for Recording & Speech</DialogTitle>
+          <DialogDescription>
+            We need your consent for camera/microphone access for recording, and speech technologies (Text-to-Speech for Mira, Speech-to-Text for your responses). Your data is used solely for AI-generated feedback.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex items-center space-x-2 py-4">
+          <Checkbox id="consent-checkbox" checked={consentGiven} onCheckedChange={(checked) => setConsentGiven(Boolean(checked))} />
+          <Label htmlFor="consent-checkbox">I consent to video/audio recording and speech functionalities.</Label>
+        </div>
+        <DialogFooter>
+          <Button type="button" onClick={() => { 
+              if(consentGiven) setMainStage("loadingInitialMessage");
+              else toast({variant: "destructive", title: "Consent Required"})
+          }}>Continue</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
-      {speechApiError && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>{speechApiError}</AlertDescription>
-        </Alert>
-      )}
+  const renderInterviewContent = () => {
+    const isLoading = mainStage === "loadingInitialMessage" || conversationSubStage === "loadingNextQuestion" || mainStage === "loadingFeedback";
+    const showVideoPreview = conversationSubStage !== "reviewingAnswer" && mainStage !== "feedback";
+    const showRecordedVideo = (conversationSubStage === "reviewingAnswer" || mainStage === "feedback") && videoBlobUrl;
 
+    return (
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <Bot /> Mira - AI Interviewer 
-            {isMiraSpeaking && <Volume2 className="h-5 w-5 text-primary animate-pulse" />}
+            {(isMiraSpeaking || conversationSubStage === "miraSpeaking") && <Volume2 className="h-5 w-5 text-primary animate-pulse" />}
           </CardTitle>
-          {isLoadingInitialMessage || stage === "loadingMessage" ? (
-            <div className="pt-2 space-y-1">
-              <div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div>
-              <div className="h-4 bg-muted rounded w-1/2 animate-pulse"></div>
-            </div>
+          {mainStage === "loadingInitialMessage" ? (
+            <div className="pt-2 space-y-1"><div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div><div className="h-4 bg-muted rounded w-1/2 animate-pulse"></div></div>
           ) : (
             <>
-              {aiGreeting && <CardDescription className="pt-2 text-lg">{aiGreeting}</CardDescription>}
-              {currentAiQuestion && <CardDescription className="pt-1 text-lg font-semibold">{currentAiQuestion}</CardDescription>}
+              {aiGreeting && currentInterviewTurn === 0 && <CardDescription className="pt-2 text-lg">{aiGreeting}</CardDescription>}
+              {currentAiQuestion && <CardDescription className={cn("pt-1 text-lg font-semibold", aiGreeting && currentInterviewTurn === 0 && "mt-1")}>{currentAiQuestion}</CardDescription>}
             </>
           )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
-            <video ref={videoPreviewRef} playsInline autoPlay muted className={cn("w-full h-full object-cover", ((stage === "review" || stage ==="feedback") && videoBlobUrl) && "hidden", isRecording && "transform scale-x-[-1]")} />
-            {(stage === "review" || stage === "feedback") && videoBlobUrl && (
-              <video src={videoBlobUrl} controls className="w-full h-full object-cover" />
-            )}
-            {stage !== "countdown" && stage !== "recording" && stage !== "review" && stage !== "feedback" && !((stage==="miraSpeaking" || stage ==="ready") && videoPreviewRef.current?.srcObject) && (
-                <Camera className="h-24 w-24 text-muted-foreground" />
-            )}
-            {stage === "countdown" && countdown !== null && (
+            {showVideoPreview && <video ref={videoPreviewRef} playsInline autoPlay muted className={cn("w-full h-full object-cover", isRecording && "transform scale-x-[-1]")} />}
+            {showRecordedVideo && <video src={videoBlobUrl} controls className="w-full h-full object-cover" />}
+            {!isLoading && !showVideoPreview && !showRecordedVideo && conversationSubStage !== "countdown" && <Camera className="h-24 w-24 text-muted-foreground" />}
+            {conversationSubStage === "countdown" && countdown !== null && (
               <div className="absolute text-6xl font-bold text-white bg-black/50 p-4 rounded-lg">{countdown}</div>
             )}
-            {isListening && stage === "recording" && (
+            {isListening && conversationSubStage === "recording" && (
               <div className="absolute bottom-2 left-2 bg-black/50 text-white p-2 rounded flex items-center text-xs">
                 <Mic className="h-4 w-4 mr-1 animate-pulse text-red-400" /> Listening...
               </div>
             )}
           </div>
           
-          {stage === "ready" && !isLoadingInitialMessage && (
+          {conversationSubStage === "readyToRecord" && !isLoading && (
             <Button onClick={startCountdownAndRecording} className="w-full" size="lg" disabled={isMiraSpeaking}>
               <Video className="mr-2 h-5 w-5" /> Start Recording Answer
             </Button>
           )}
-          {stage === "recording" && (
-            <Button onClick={stopRecording} variant="destructive" className="w-full" size="lg">
-              Stop Recording
-            </Button>
+          {conversationSubStage === "recording" && (
+            <Button onClick={stopRecording} variant="destructive" className="w-full" size="lg">Stop Recording</Button>
           )}
-           {userTranscript && (stage === "recording" || stage === "review") && (
+           {(userTranscript && (conversationSubStage === "recording" || conversationSubStage === "reviewingAnswer")) && (
             <Card className="bg-secondary/50 p-3">
-              <CardHeader className="p-1 pb-2">
-                <CardTitle className="text-sm flex items-center"><UserCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Your Response (Transcript):</CardTitle>
-              </CardHeader>
-              <CardContent className="p-1">
-                <Textarea value={userTranscript} readOnly rows={3} className="text-sm bg-background" placeholder="Your transcribed speech will appear here..."/>
-              </CardContent>
+              <CardHeader className="p-1 pb-2"><CardTitle className="text-sm flex items-center"><UserCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Your Response (Live Transcript):</CardTitle></CardHeader>
+              <CardContent className="p-1"><Textarea value={userTranscript} readOnly rows={3} className="text-sm bg-background" placeholder="Your transcribed speech will appear here..."/></CardContent>
             </Card>
           )}
-          {stage === "review" && videoBlobUrl && (
+          {conversationSubStage === "reviewingAnswer" && videoBlobUrl && (
             <div className="grid grid-cols-2 gap-4">
-              <Button onClick={() => resetInterview(false)} variant="outline" size="lg">Record Again</Button>
-              <Button onClick={submitForFeedback} disabled={isLoadingFeedback} size="lg">
-                {isLoadingFeedback ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
-                Submit for Feedback
+              <Button onClick={resetTurn} variant="outline" size="lg">Record Again</Button>
+              <Button onClick={handleSendAnswer} disabled={isLoading} size="lg">
+                {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
+                {currentInterviewTurn < MAX_INTERVIEW_TURNS ? "Send & Next Question" : "Send & Get Feedback"}
               </Button>
             </div>
           )}
+           {conversationSubStage === "loadingNextQuestion" && (
+            <div className="flex items-center justify-center p-4"><Loader2 className="mr-2 h-6 w-6 animate-spin"/> Mira is thinking of the next question...</div>
+          )}
         </CardContent>
       </Card>
+    );
+  };
 
-      {stage === "feedback" && feedback && (
-        <Card className="shadow-md mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><CheckCircle className="text-green-500" /> Mira's Feedback on Video</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea readOnly value={feedback.feedback} rows={10} className="bg-muted text-foreground" />
-            {userTranscript && (
-                 <Card className="bg-secondary/50 p-3 mt-4">
-                    <CardHeader className="p-1 pb-2">
-                        <CardTitle className="text-sm flex items-center"><UserCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Your Final Transcript:</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-1">
-                        <Textarea value={userTranscript} readOnly rows={5} className="text-sm bg-background"/>
-                    </CardContent>
-                </Card>
-            )}
-          </CardContent>
-          <CardFooter>
-            <Button onClick={() => resetInterview(true)} className="w-full">
-              Start New Simulation
-            </Button>
-          </CardFooter>
-        </Card>
+  const renderFeedbackContent = () => (
+    <Card className="shadow-md mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><CheckCircle className="text-green-500" /> Mira's Feedback</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Alert>
+            <MessageSquare className="h-4 w-4" />
+            <AlertTitle>Feedback on your responses:</AlertTitle>
+            <AlertDescription className="whitespace-pre-line">
+                {feedbackResult?.feedback || "No feedback content."}
+            </AlertDescription>
+        </Alert>
+        {accumulatedTranscript && (
+             <Card className="bg-secondary/50 p-3 mt-4">
+                <CardHeader className="p-1 pb-2"><CardTitle className="text-sm flex items-center"><UserCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Full Interview Transcript:</CardTitle></CardHeader>
+                <CardContent className="p-1"><Textarea value={accumulatedTranscript} readOnly rows={8} className="text-sm bg-background whitespace-pre-line"/></CardContent>
+            </Card>
+        )}
+      </CardContent>
+      <CardFooter>
+        <Button onClick={resetFullInterview} className="w-full">Start New Simulation</Button>
+      </CardFooter>
+    </Card>
+  );
+
+  return (
+    <>
+      {renderConsentDialog()}
+      {speechApiError && <Alert variant="destructive" className="mb-4"><AlertDescription>{speechApiError}</AlertDescription></Alert>}
+      
+      {(mainStage === "loadingInitialMessage" || mainStage === "conversation" || mainStage === "loadingFeedback") && renderInterviewContent()}
+      {mainStage === "loadingFeedback" && !feedbackResult && (
+          <div className="text-center p-8 space-y-2">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+              <p className="text-muted-foreground">Mira is preparing your feedback...</p>
+          </div>
       )}
+      {mainStage === "feedback" && feedbackResult && renderFeedbackContent()}
     </>
   );
 }
-
