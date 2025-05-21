@@ -1,7 +1,7 @@
 
 import type { UserRole } from '@/config/roles';
 import { USER_ROLES } from '@/config/roles';
-import { LayoutDashboard, Briefcase, Users, CalendarDays, UserCircle, Settings, Building, CreditCard, BotMessageSquare, ShieldCheck, BarChart3, CheckSquare, UserCheck, Search } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Users, CalendarDays, UserCircle, Settings, Building, CreditCard, BotMessageSquare, ShieldCheck, BarChart3, CheckSquare, UserCheck, Search, FileText, BarChartHorizontalBig } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavLink {
@@ -139,7 +139,7 @@ export const NAV_LINKS: NavLink[] = [
     tourText: 'Dive into data! View analytics on hiring funnels, time-to-hire, offer acceptance rates, and more.'
   },
 
-  // Admin Links (using existing definitions from provided files, assuming they are correct)
+  // Admin Links
   {
     href: `/dashboard/${USER_ROLES.ADMIN}/dashboard`,
     label: 'Dashboard',
@@ -175,6 +175,15 @@ export const NAV_LINKS: NavLink[] = [
     isTourStep: true,
     tourStepId: 'admin-billing-link',
     tourText: 'Oversee all billing information, manage subscription plans, and view revenue metrics.'
+  },
+  {
+    href: `/dashboard/${USER_ROLES.ADMIN}/reports`,
+    label: 'Reports',
+    icon: BarChartHorizontalBig, // Changed from FileText
+    roles: [USER_ROLES.ADMIN],
+    isTourStep: true,
+    tourStepId: 'admin-reports-link',
+    tourText: 'Generate and view various system-wide reports, from user activity to financial summaries.'
   },
   {
     href: `/dashboard/${USER_ROLES.ADMIN}/settings`,
