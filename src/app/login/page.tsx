@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 via-background to-background p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
-          <Logo className="justify-center mb-4" />
+          <Logo className="justify-center mb-4" text="Persona AI" />
           <CardTitle className="text-2xl">Welcome to TalentVerse AI</CardTitle>
           <CardDescription>Select your role to continue (Demo Login)</CardDescription>
         </CardHeader>
