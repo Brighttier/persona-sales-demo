@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { useRouter } from "next/navigation"; // Added for navigation
 
 const mockJobListings = [
   { id: "job1", title: "Software Engineer, Frontend", status: "Active", applicants: 25, interviews: 5, hired: 1, department: "Engineering", location: "Remote", aiScreeningStatus: "Completed" },
@@ -24,6 +25,7 @@ const mockJobListings = [
 export default function RecruiterJobListingsPage() {
   const { user, role } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleJobAction = (jobId: string, action: string) => {
     toast({ title: `Action: ${action}`, description: `Performed ${action} on job ${jobId}. (Simulated)`});
@@ -114,8 +116,11 @@ export default function RecruiterJobListingsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        {/* The links for view/edit would go to [jobId]/view or [jobId]/edit which are not built */}
-                        <DropdownMenuItem onClick={() => handleJobAction(job.id, 'view_applicants')}><Users className="mr-2 h-4 w-4" />View Applicants</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/${role}/job-listings/${job.id}/applicants`}>
+                            <Users className="mr-2 h-4 w-4" />View Applicants
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleJobAction(job.id, 'edit_job')}><Edit className="mr-2 h-4 w-4" />Edit Job</DropdownMenuItem>
                          <DropdownMenuItem onClick={() => handleJobAction(job.id, 'ai_screen')}><ShieldCheck className="mr-2 h-4 w-4" />AI Screen Applicants</DropdownMenuItem>
                         <DropdownMenuSeparator />
