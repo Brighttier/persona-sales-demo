@@ -53,7 +53,7 @@ interface ApplicantDetail {
   portfolio?: string;
   headline?: string;
   mockResumeDataUri?: string;
-  resumeText?: string; // Added for quick screening
+  resumeText: string; // Added for quick screening
   mockExperience?: ExperienceItem[];
   mockEducation?: EducationItem[];
   mockCertifications?: CertificationItem[];
@@ -90,7 +90,7 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
       { name: "Google Cloud Professional Data Engineer", issuingOrganization: "Google Cloud", date: "2023-01" }
     ]
   },
-  "app5": {
+  "app5": { // Assuming cand3, cand4 were placeholders or from candidate-pool, taking app5 for this mock
     id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", email: "eve@example.com", headline: "Creative Vue.js Developer",
     mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=",
     resumeText: "Eve Brown - Creative Vue.js Developer. Expertise in Vue.js, Vuex, Vuetify, and Firebase. Designed and implemented UIs at Web Creations. BA Graphic Design.",
@@ -104,6 +104,38 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
       { name: "Certified Vue.js Developer", issuingOrganization: "Vue School", date: "2022-08" }
     ]
   },
+  "cand1": {
+    id: "cand1", name: "Alice Wonderland", avatar: "https://placehold.co/100x100.png?text=AW", email: "alice.wonder@example.com", phone: "555-0102", linkedin: "https://linkedin.com/in/alicewonder", headline: "Frontend Magician",
+    mockResumeDataUri: "data:text/plain;base64,QWxpY2UgV29uZGVybGFuZDogUmVhY3QsIEphdmFTY3JpcHQsIEhUTUwsIENTUy4=",
+    resumeText: "Alice Wonderland - Frontend Magician. Skills: React, JavaScript, HTML, CSS. 5 years experience creating enchanting user interfaces. Led UI development at TeaParty Inc.",
+    mockExperience: [{ title: "UI Enchantress", company: "TeaParty Inc.", duration: "2020 - Present", description: "Crafted delightful user experiences with React and whimsy." }],
+    mockEducation: [{ institution: "Wonderland Academy", degree: "BFA Interactive Design", field: "Digital Arts", year: "2019" }],
+    mockCertifications: [{ name: "Mad Hatter Certified UI Designer", issuingOrganization: "Wonderland Council", date: "2021" }]
+  },
+  "cand2": {
+    id: "cand2", name: "Bob The Builder", avatar: "https://placehold.co/100x100.png?text=BB", email: "bob.builder@example.com", phone: "555-0103", linkedin: "https://linkedin.com/in/bobthebuilder", headline: "Product Construction Expert",
+    mockResumeDataUri: "data:text/plain;base64,Qm9iIFRoZSBCdWlsZGVyOiBQcm9kdWN0IE1hbmFnZW1lbnQsIEFnaWxlLCBSb2FkbWFwcGluZy4=",
+    resumeText: "Bob The Builder - Product Construction Expert. Skills: Product Management, Agile, Roadmapping, JIRA. 8 years experience building successful products. Yes, we can!",
+    mockExperience: [{ title: "Chief Product Architect", company: "Builder's Guild", duration: "2018 - Present", description: "Led product strategy and execution for several flagship tools." }],
+    mockEducation: [{ institution: "University of Construction", degree: "Master of Product Management", field: "Product Strategy", year: "2017" }],
+    mockCertifications: [{ name: "Certified Scrum Product Owner (CSPO)", issuingOrganization: "Scrum Alliance", date: "2018" }]
+  },
+  "cand3": {
+    id: "cand3", name: "Carol Danvers", avatar: "https://placehold.co/100x100.png?text=CD", email: "carol.danvers@example.com", phone: "555-0104", linkedin: "https://linkedin.com/in/caroldanvers", headline: "Captain of UX Design",
+    mockResumeDataUri: "data:text/plain;base64,Q2Fyb2wgRGFudmVyczogVVggRGVzaWduLCBGaWdtYSwgUHJvdG90eXBpbmcu",
+    resumeText: "Carol Danvers - Captain of UX Design. Skills: UX Design, Figma, Prototyping, User Research. 3 years experience creating stellar user experiences. Higher, further, faster.",
+    mockExperience: [{ title: "Lead UX Pilot", company: "Starforce Design", duration: "2021 - Present", description: "Designed user-centric interfaces for intergalactic applications." }],
+    mockEducation: [{ institution: "Air Force Academy of Design", degree: "BSc User Experience", field: "Human-Computer Interaction", year: "2020" }],
+    mockCertifications: [{ name: "Certified Figma Design Expert", issuingOrganization: "Figma Academy", date: "2022" }]
+  },
+   "cand4": {
+    id: "cand4", name: "David Copperfield", avatar: "https://placehold.co/100x100.png?text=DC", email: "david.copperfield@example.com", phone: "555-0105", linkedin: "https://linkedin.com/in/davidcopperfield", headline: "Data Illusionist",
+    mockResumeDataUri: "data:text/plain;base64,RGF2aWQgQ29wcGVyZmllbGQ6IERhdGEgU2NpZW5jZSwgUHl0aG9uLCBNTC4=",
+    resumeText: "David Copperfield - Data Illusionist. Skills: Data Science, Python, Machine Learning, TensorFlow. 6 years experience making data disappear and reappear as insights. It's all about misdirection.",
+    mockExperience: [{ title: "Chief Data Sorcerer", company: "Magic & Models Inc.", duration: "2019 - Present", description: "Developed predictive models and data visualizations that amazed audiences." }],
+    mockEducation: [{ institution: "Houdini University of Statistics", degree: "PhD Applied Magic (Data Science)", field: "Statistical Sorcery", year: "2018" }],
+    mockCertifications: [{ name: "Certified TensorFlow Developer", issuingOrganization: "Google", date: "2020" }]
+  }
 };
 
 const resumeUploadSchema = z.object({
@@ -191,15 +223,14 @@ export default function CandidateProfilePage() {
         if (candidate) setCandidate({...candidate, mockResumeDataUri: "New resume uploaded", resumeText: newResumeText });
         toast({ title: "New Resume Enriched!", description: "Profile updated with new resume data." });
         resumeForm.reset();
-        setIsEnriching(false);
       };
       reader.onerror = () => {
         toast({ variant: "destructive", title: "File Read Error", description: "Could not read the resume file."});
-        setIsEnriching(false);
       }
     } catch (error) {
       console.error("Error enriching profile with new resume:", error);
       toast({ variant: "destructive", title: "AI Enrichment Failed", description: "Could not process the new resume." });
+    } finally {
       setIsEnriching(false);
     }
   };
@@ -341,6 +372,51 @@ export default function CandidateProfilePage() {
 
         {/* Right Column */}
         <div className="space-y-6">
+          <Card className="shadow-lg">
+            <CardHeader><CardTitle className="text-lg">Resume</CardTitle></CardHeader>
+            <CardContent>
+                <p className="text-sm text-muted-foreground mb-2">
+                    {candidate.mockResumeDataUri === "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu"
+                    ? "Original Mock Resume on file for Alice."
+                    : candidate.mockResumeDataUri === "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg=="
+                    ? "Original Mock Resume on file for Bob."
+                    : candidate.mockResumeDataUri === "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4="
+                    ? "Original Mock Resume on file for Eve."
+                    : candidate.mockResumeDataUri ? "New resume processed." : "No resume on file."}
+                </p>
+                <Form {...resumeForm}>
+                    <form onSubmit={resumeForm.handleSubmit(handleResumeEnrichment)} className="space-y-3">
+                        <FormField
+                            control={resumeForm.control}
+                            name="resumeFile"
+                            render={({ field: { onChange, value, ...rest }}) => (
+                                <FormItem>
+                                    <FormLabel className="sr-only">New Resume</FormLabel>
+                                    <FormControl>
+                                        <Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => onChange(e.target.files)} {...rest} className="text-xs"/>
+                                    </FormControl>
+                                    <FormMessage className="text-xs"/>
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="submit" size="sm" className="w-full" disabled={isEnriching || isLoading}>
+                            {isEnriching ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileUp className="mr-2 h-4 w-4"/>}
+                            Upload & Re-Enrich
+                        </Button>
+                    </form>
+                </Form>
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg">
+            <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
+            <CardContent>
+              {(isEnriching || isLoading) && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
+              {!isEnriching && !isLoading && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted. Upload resume.</p>}
+              <div className="flex flex-wrap gap-2">
+                {skillsToDisplay.map(skill => <Badge key={skill} variant="default" className="text-sm py-1 px-2">{skill}</Badge>)}
+              </div>
+            </CardContent>
+          </Card>
            <Card className="shadow-lg">
             <CardHeader><CardTitle className="text-lg flex items-center"><ShieldCheck className="mr-2 h-5 w-5 text-primary"/>Quick Screen Candidate</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -375,51 +451,6 @@ export default function CandidateProfilePage() {
                         </AlertDescription>
                     </Alert>
                 )}
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg">
-            <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
-            <CardContent>
-              {(isEnriching || isLoading) && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
-              {!isEnriching && !isLoading && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted. Upload resume.</p>}
-              <div className="flex flex-wrap gap-2">
-                {skillsToDisplay.map(skill => <Badge key={skill} variant="default" className="text-sm py-1 px-2">{skill}</Badge>)}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg">
-            <CardHeader><CardTitle className="text-lg">Resume</CardTitle></CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground mb-2">
-                    {candidate.mockResumeDataUri === "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu"
-                    ? "Original Mock Resume on file for Alice."
-                    : candidate.mockResumeDataUri === "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg=="
-                    ? "Original Mock Resume on file for Bob."
-                    : candidate.mockResumeDataUri === "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4="
-                    ? "Original Mock Resume on file for Eve."
-                    : candidate.mockResumeDataUri ? "New resume processed." : "No resume on file."}
-                </p>
-                <Form {...resumeForm}>
-                    <form onSubmit={resumeForm.handleSubmit(handleResumeEnrichment)} className="space-y-3">
-                        <FormField
-                            control={resumeForm.control}
-                            name="resumeFile"
-                            render={({ field: { onChange, value, ...rest }}) => (
-                                <FormItem>
-                                    <FormLabel className="sr-only">New Resume</FormLabel>
-                                    <FormControl>
-                                        <Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => onChange(e.target.files)} {...rest} className="text-xs"/>
-                                    </FormControl>
-                                    <FormMessage className="text-xs"/>
-                                </FormItem>
-                            )}
-                        />
-                        <Button type="submit" size="sm" className="w-full" disabled={isEnriching || isLoading}>
-                            {isEnriching ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileUp className="mr-2 h-4 w-4"/>}
-                            Upload & Re-Enrich
-                        </Button>
-                    </form>
-                </Form>
             </CardContent>
           </Card>
         </div>
