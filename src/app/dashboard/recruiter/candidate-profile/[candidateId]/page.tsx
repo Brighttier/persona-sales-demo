@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Edit3, FileUp, Loader2, Save, VenetianMask, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, UserCircle, BrainCircuit, Star, Award, Building } from "lucide-react";
+import { ArrowLeft, FileUp, Loader2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, UserCircle, BrainCircuit, Star, Award, Building, ShieldCheck, BarChart } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
@@ -16,6 +16,10 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { enrichProfile, type EnrichProfileOutput } from "@/ai/flows/profile-enrichment";
+import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 // Data structures for profile sections
 interface ExperienceItem {
@@ -35,7 +39,7 @@ interface EducationItem {
 interface CertificationItem {
   name: string;
   issuingOrganization: string;
-  date: string; // e.g., "2023-03" or "March 2023"
+  date: string; 
   credentialID?: string;
 }
 
@@ -49,6 +53,7 @@ interface ApplicantDetail {
   portfolio?: string;
   headline?: string;
   mockResumeDataUri?: string;
+  resumeText?: string; // Added for quick screening
   mockExperience?: ExperienceItem[];
   mockEducation?: EducationItem[];
   mockCertifications?: CertificationItem[];
@@ -58,6 +63,7 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
   "app1": {
     id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", email: "alice@example.com", phone: "555-0101", linkedin: "https://linkedin.com/in/alicejohnson", headline: "Senior React Developer",
     mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu",
+    resumeText: "Alice Johnson - Senior React Developer. Skills: React, Redux, TypeScript, Node.js, GraphQL. Experience: 5 years developing scalable web applications. Led front-end team at Innovatech. Improved performance by 20%. Education: BSc Computer Science, State University.",
     mockExperience: [
       { title: "Lead Frontend Developer", company: "Innovatech Solutions", duration: "2021 - Present", description: "Led a team of 5 frontend developers in agile environment. Architected and implemented new user-facing features using React, Redux, and TypeScript. Improved application performance by 20%." },
       { title: "Software Engineer", company: "Web Wizards Inc.", duration: "2019 - 2021", description: "Developed and maintained responsive web applications. Collaborated with UX/UI designers to translate mockups into functional components." }
@@ -73,6 +79,7 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
   "app2": {
     id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", email: "bob@example.com", headline: "Full Stack Python Developer",
     mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==",
+    resumeText: "Bob Williams - Full Stack Python Developer. Proficient in Django, Flask, SQL, and REST APIs. Built backend systems for Data Corp. MSc Data Science from Tech Institute.",
     mockExperience: [
       { title: "Backend Developer", company: "Data Corp", duration: "2020 - 2023", description: "Built scalable APIs with Django and Flask. Managed PostgreSQL databases and integrated third-party services." }
     ],
@@ -86,6 +93,7 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
   "app5": {
     id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", email: "eve@example.com", headline: "Creative Vue.js Developer",
     mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=",
+    resumeText: "Eve Brown - Creative Vue.js Developer. Expertise in Vue.js, Vuex, Vuetify, and Firebase. Designed and implemented UIs at Web Creations. BA Graphic Design.",
     mockExperience: [
       { title: "UI Developer", company: "Web Creations", duration: "2022 - Present", description: "Designed and implemented user interfaces with Vue.js, Vuex, and Vuetify. Focused on accessibility and responsive design." }
     ],
@@ -98,11 +106,17 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
   },
 };
 
-
 const resumeUploadSchema = z.object({
   resumeFile: z.any().refine(file => file && file.length > 0, "Resume file is required."),
 });
 type ResumeUploadFormValues = z.infer<typeof resumeUploadSchema>;
+
+const mockQuickScreenJobs = [
+    { id: "job1", title: "Software Engineer, Frontend", description: "Develop user-facing features using React and Next.js. 5+ years experience needed." },
+    { id: "job2", title: "Senior Backend Developer (Python)", description: "Lead Python backend development, design APIs, manage databases. 7+ years experience in Python, Django/Flask." },
+    { id: "job3", title: "UX Lead Designer", description: "Oversee UX strategy, conduct user research, create prototypes. 6+ years experience in UX." },
+    { id: "job4", title: "Junior Data Analyst", description: "Analyze data, create reports, support data-driven decisions. Entry-level, SQL and Python preferred." },
+];
 
 export default function CandidateProfilePage() {
   const params = useParams();
@@ -114,6 +128,11 @@ export default function CandidateProfilePage() {
   const [enrichedData, setEnrichedData] = useState<EnrichProfileOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnriching, setIsEnriching] = useState(false);
+  
+  const [selectedJobIdForScreening, setSelectedJobIdForScreening] = useState<string | undefined>(undefined);
+  const [quickScreenResult, setQuickScreenResult] = useState<CandidateScreeningOutput | null>(null);
+  const [isQuickScreeningLoading, setIsQuickScreeningLoading] = useState(false);
+
 
   const resumeForm = useForm<ResumeUploadFormValues>({
     resolver: zodResolver(resumeUploadSchema),
@@ -153,17 +172,26 @@ export default function CandidateProfilePage() {
     if (!file) return;
 
     setIsEnriching(true);
+    setQuickScreenResult(null); // Clear previous screening result
     toast({ title: "Processing New Resume...", description: "AI is analyzing the uploaded file." });
     try {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onloadend = async () => {
         const resumeDataUri = reader.result as string;
+        // Convert data URI to simple text for resumeText for quick screening (simplification for demo)
+        // In a real app, you'd parse PDF/DOCX to text properly.
+        let newResumeText = "Uploaded resume content." 
+        if (resumeDataUri.startsWith('data:text/plain;base64,')){
+            newResumeText = atob(resumeDataUri.split(',')[1]);
+        }
+
         const result = await enrichProfile({ resumeDataUri });
         setEnrichedData(result);
-        if (candidate) setCandidate({...candidate, mockResumeDataUri: "New resume uploaded"});
+        if (candidate) setCandidate({...candidate, mockResumeDataUri: "New resume uploaded", resumeText: newResumeText });
         toast({ title: "New Resume Enriched!", description: "Profile updated with new resume data." });
         resumeForm.reset();
+        setIsEnriching(false);
       };
       reader.onerror = () => {
         toast({ variant: "destructive", title: "File Read Error", description: "Could not read the resume file."});
@@ -175,6 +203,37 @@ export default function CandidateProfilePage() {
       setIsEnriching(false);
     }
   };
+  
+  const handleQuickScreen = async () => {
+    if (!candidate || !candidate.resumeText || !selectedJobIdForScreening) {
+        toast({ variant: "destructive", title: "Missing Data", description: "Candidate resume or selected job is missing for screening." });
+        return;
+    }
+    const selectedJob = mockQuickScreenJobs.find(job => job.id === selectedJobIdForScreening);
+    if (!selectedJob) {
+        toast({ variant: "destructive", title: "Job Not Found", description: "Selected job details could not be found." });
+        return;
+    }
+
+    setIsQuickScreeningLoading(true);
+    setQuickScreenResult(null);
+    try {
+        const screeningInput: CandidateScreeningInput = {
+            jobDetails: selectedJob.description,
+            resume: candidate.resumeText,
+            candidateProfile: `Name: ${candidate.name}, Email: ${candidate.email}, Skills: ${(enrichedData?.skills || []).join(', ')}`,
+        };
+        const result = await aiCandidateScreening(screeningInput);
+        setQuickScreenResult(result);
+        toast({ title: "Quick Screen Complete!", description: `AI analysis for ${selectedJob.title} finished.` });
+    } catch (error) {
+        console.error("Quick Screening Error:", error);
+        toast({ variant: "destructive", title: "Quick Screen Failed", description: "Could not process the screening request." });
+    } finally {
+        setIsQuickScreeningLoading(false);
+    }
+  };
+
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">Loading profile...</p></div>;
@@ -229,7 +288,7 @@ export default function CandidateProfilePage() {
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row justify-between items-center">
               <CardTitle className="text-lg flex items-center"><BrainCircuit className="mr-2 h-5 w-5 text-primary"/> AI-Generated Summary</CardTitle>
-              {isEnriching && <Loader2 className="h-5 w-5 animate-spin text-primary"/>}
+              {(isEnriching || isLoading) && <Loader2 className="h-5 w-5 animate-spin text-primary"/>}
             </CardHeader>
             <CardContent>
               <p className="text-sm text-foreground/80 whitespace-pre-line">{summaryToDisplay}</p>
@@ -282,12 +341,48 @@ export default function CandidateProfilePage() {
 
         {/* Right Column */}
         <div className="space-y-6">
+           <Card className="shadow-lg">
+            <CardHeader><CardTitle className="text-lg flex items-center"><ShieldCheck className="mr-2 h-5 w-5 text-primary"/>Quick Screen Candidate</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+                <Select onValueChange={setSelectedJobIdForScreening} value={selectedJobIdForScreening}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select a job to screen for..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {mockQuickScreenJobs.map(job => (
+                            <SelectItem key={job.id} value={job.id}>{job.title}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Button onClick={handleQuickScreen} className="w-full" disabled={isQuickScreeningLoading || !selectedJobIdForScreening}>
+                    {isQuickScreeningLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <BarChart className="mr-2 h-4 w-4" />}
+                    Screen for this Job
+                </Button>
+                 {isQuickScreeningLoading && (
+                    <div className="flex items-center justify-center text-sm text-muted-foreground">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin"/> AI is analyzing...
+                    </div>
+                )}
+                {quickScreenResult && !isQuickScreeningLoading && (
+                     <Alert variant={quickScreenResult.suitabilityScore > 70 ? "default" : "destructive"} className={quickScreenResult.suitabilityScore > 70 ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}>
+                        <ShieldCheck className={`h-4 w-4 ${quickScreenResult.suitabilityScore > 70 ? "!text-green-600" : "!text-red-600"}`} />
+                        <AlertTitle className={quickScreenResult.suitabilityScore > 70 ? "text-green-700" : "text-red-700"}>
+                            Suitability Score: {quickScreenResult.suitabilityScore}/100
+                        </AlertTitle>
+                        <AlertDescription className="text-xs space-y-1 mt-1">
+                            <p className="font-medium">Summary: <span className="font-normal whitespace-pre-line">{quickScreenResult.summary}</span></p>
+                            <p className="font-medium">Recommendation: <span className="font-normal whitespace-pre-line">{quickScreenResult.recommendation}</span></p>
+                        </AlertDescription>
+                    </Alert>
+                )}
+            </CardContent>
+          </Card>
           <Card className="shadow-lg">
             <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
             <CardContent>
-              {isEnriching && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
-              {!isEnriching && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted. Upload resume.</p>}
-              <div className="flex flex-wrap gap-2"> {/* Changed from flex-col to flex-wrap */}
+              {(isEnriching || isLoading) && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
+              {!isEnriching && !isLoading && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted. Upload resume.</p>}
+              <div className="flex flex-wrap gap-2">
                 {skillsToDisplay.map(skill => <Badge key={skill} variant="default" className="text-sm py-1 px-2">{skill}</Badge>)}
               </div>
             </CardContent>
@@ -319,7 +414,7 @@ export default function CandidateProfilePage() {
                                 </FormItem>
                             )}
                         />
-                        <Button type="submit" size="sm" className="w-full" disabled={isEnriching}>
+                        <Button type="submit" size="sm" className="w-full" disabled={isEnriching || isLoading}>
                             {isEnriching ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileUp className="mr-2 h-4 w-4"/>}
                             Upload & Re-Enrich
                         </Button>
@@ -332,5 +427,3 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
-
-    
