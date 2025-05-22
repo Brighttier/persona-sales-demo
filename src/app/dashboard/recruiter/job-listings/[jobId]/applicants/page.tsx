@@ -8,11 +8,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlus, UserX, Users } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlus, UserX, Users, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation"; // useRouter can be used for programmatic navigation if needed
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+// AI Screening Flow
+import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
 
 interface Applicant {
   id: string;
@@ -23,23 +27,25 @@ interface Applicant {
   status: "New" | "Screening" | "Interview" | "Offer" | "Hired" | "Rejected" | "Withdrawn";
   email: string;
   skills: string[];
+  resumeText?: string; // For AI screening placeholder
+  jobTitleAppliedFor?: string; // For AI screening placeholder
 }
 
-const mockApplicants: Applicant[] = [
-  { id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", applicationDate: "2024-07-25", aiMatchScore: 92, status: "New", email: "alice@example.com", skills: ["React", "Node.js", "TypeScript"] },
-  { id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", applicationDate: "2024-07-24", aiMatchScore: 85, status: "Screening", email: "bob@example.com", skills: ["Python", "Django", "SQL"] },
-  { id: "app3", name: "Carol Davis", avatar: "https://placehold.co/100x100.png?text=CD", applicationDate: "2024-07-23", aiMatchScore: 78, status: "Interview", email: "carol@example.com", skills: ["Java", "Spring Boot", "Microservices"] },
-  { id: "app4", name: "David Miller", avatar: "https://placehold.co/100x100.png?text=DM", applicationDate: "2024-07-22", status: "Rejected", email: "david@example.com", skills: ["PHP", "Laravel"] },
-  { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", applicationDate: "2024-07-26", aiMatchScore: 95, status: "New", email: "eve@example.com", skills: ["JavaScript", "Vue.js", "Firebase"] },
+const initialMockApplicants: Applicant[] = [
+  { id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", applicationDate: "2024-07-25", aiMatchScore: 92, status: "New", email: "alice@example.com", skills: ["React", "Node.js", "TypeScript"], resumeText: "Highly skilled React developer with 5 years of experience in Node.js and TypeScript.", jobTitleAppliedFor: "Software Engineer, Frontend"},
+  { id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", applicationDate: "2024-07-24", aiMatchScore: 85, status: "Screening", email: "bob@example.com", skills: ["Python", "Django", "SQL"], resumeText: "Data-driven Python developer, proficient in Django and SQL databases.", jobTitleAppliedFor: "Software Engineer, Frontend" },
+  { id: "app3", name: "Carol Davis", avatar: "https://placehold.co/100x100.png?text=CD", applicationDate: "2024-07-23", aiMatchScore: 78, status: "Interview", email: "carol@example.com", skills: ["Java", "Spring Boot", "Microservices"], resumeText: "Experienced Java engineer specializing in Spring Boot and microservice architectures.", jobTitleAppliedFor: "Software Engineer, Frontend" },
+  { id: "app4", name: "David Miller", avatar: "https://placehold.co/100x100.png?text=DM", applicationDate: "2024-07-22", status: "Rejected", email: "david@example.com", skills: ["PHP", "Laravel"], resumeText: "Full-stack PHP developer with Laravel expertise.", jobTitleAppliedFor: "Software Engineer, Frontend" },
+  { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", applicationDate: "2024-07-26", aiMatchScore: 95, status: "New", email: "eve@example.com", skills: ["JavaScript", "Vue.js", "Firebase"], resumeText: "Creative Vue.js developer with Firebase backend knowledge.", jobTitleAppliedFor: "Software Engineer, Frontend" },
 ];
 
 // Mock job titles - in a real app, you'd fetch this based on jobId
-const mockJobTitles: { [key: string]: string } = {
-  "job1": "Software Engineer, Frontend",
-  "job2": "Product Manager",
-  "job3": "UX Designer",
-  "job4": "Data Scientist",
-  "job5": "DevOps Engineer",
+const mockJobTitles: { [key: string]: { title: string, description: string } } = {
+  "job1": { title: "Software Engineer, Frontend", description: "Develop user-facing features for our web applications using React and Next.js."},
+  "job2": { title: "Product Manager", description: "Lead product strategy and development for innovative new features."},
+  "job3": { title: "UX Designer", description: "Create intuitive and engaging user experiences for our platform."},
+  "job4": { title: "Data Scientist", description: "Analyze large datasets to extract valuable insights and build predictive models."},
+  "job5": { title: "DevOps Engineer", description: "Manage and improve our CI/CD pipelines and cloud infrastructure."},
 };
 
 export default function ViewApplicantsPage() {
@@ -48,16 +54,72 @@ export default function ViewApplicantsPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const jobTitle = mockJobTitles[jobId] || `Job ID: ${jobId}`; // Fallback to Job ID if not found
+  const [applicants, setApplicants] = useState<Applicant[]>(initialMockApplicants);
+  const [selectedApplicantForStatus, setSelectedApplicantForStatus] = useState<Applicant | null>(null);
+  const [newStatus, setNewStatus] = useState<Applicant["status"] | "">("");
+  const [isScreeningLoading, setIsScreeningLoading] = useState(false);
+  const [selectedApplicantForScreening, setSelectedApplicantForScreening] = useState<Applicant | null>(null);
 
-  const handleApplicantAction = (applicantName: string, action: string) => {
-    toast({
-      title: `Action: ${action}`,
-      description: `Performed ${action} for ${applicantName}. (Placeholder)`,
-    });
+
+  const jobData = mockJobTitles[jobId] || { title: `Job ID: ${jobId}`, description: "Details for this job are not available."};
+
+  const handleUpdateStatus = () => {
+    if (selectedApplicantForStatus && newStatus) {
+      setApplicants(prev => prev.map(app => app.id === selectedApplicantForStatus.id ? {...app, status: newStatus as Applicant["status"]} : app));
+      toast({
+        title: "Status Updated",
+        description: `${selectedApplicantForStatus.name}'s status changed to ${newStatus}.`,
+      });
+      setSelectedApplicantForStatus(null);
+      setNewStatus("");
+    }
+  };
+
+  const handleRejectCandidate = (applicant: Applicant) => {
+     setApplicants(prev => prev.map(app => app.id === applicant.id ? {...app, status: "Rejected"} : app));
+     toast({
+        title: "Candidate Rejected",
+        description: `${applicant.name} has been marked as rejected.`,
+        variant: "destructive"
+      });
+  };
+
+  const handleAIScreen = async (applicant: Applicant) => {
+    if (!applicant.resumeText || !applicant.jobTitleAppliedFor) {
+        toast({ variant: "destructive", title: "Missing Data", description: "Cannot perform AI screening without resume text and job title." });
+        return;
+    }
+    setSelectedApplicantForScreening(applicant);
+    setIsScreeningLoading(true);
+    try {
+        const screeningInput: CandidateScreeningInput = {
+            jobDetails: jobData.description, // Using the current job's description
+            resume: applicant.resumeText,
+            candidateProfile: `Name: ${applicant.name}, Email: ${applicant.email}, Skills: ${applicant.skills.join(', ')}`,
+        };
+        const result = await aiCandidateScreening(screeningInput);
+        toast({
+            title: `AI Screening for ${applicant.name}`,
+            description: (
+                <div className="text-xs">
+                    <p className="font-semibold">Score: {result.suitabilityScore}/100</p>
+                    <p>Summary: {result.summary.substring(0,100)}...</p>
+                    <p>Recommendation: {result.recommendation}</p>
+                </div>
+            ),
+            duration: 8000,
+        });
+    } catch (error) {
+        console.error("AI Screening Error:", error);
+        toast({ variant: "destructive", title: "AI Screening Failed", description: "Could not screen candidate." });
+    } finally {
+        setIsScreeningLoading(false);
+        setSelectedApplicantForScreening(null);
+    }
   };
 
   const getStatusPill = (status: Applicant["status"]) => {
+    // (getStatusPill implementation from previous step, unchanged)
     switch (status) {
       case "New": return <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-300">{status}</Badge>;
       case "Screening": return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-300">{status}</Badge>;
@@ -81,7 +143,7 @@ export default function ViewApplicantsPage() {
 
       <Card className="shadow-xl">
         <CardHeader>
-          <CardTitle className="text-2xl flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Applicants for: {jobTitle}</CardTitle>
+          <CardTitle className="text-2xl flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Applicants for: {jobData.title}</CardTitle>
           <CardDescription>Review and manage candidates who applied for this position.</CardDescription>
         </CardHeader>
       </Card>
@@ -100,12 +162,9 @@ export default function ViewApplicantsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="New">New</SelectItem>
-                  <SelectItem value="Screening">Screening</SelectItem>
-                  <SelectItem value="Interview">Interview</SelectItem>
-                  <SelectItem value="Offer">Offer</SelectItem>
-                  <SelectItem value="Hired">Hired</SelectItem>
-                  <SelectItem value="Rejected">Rejected</SelectItem>
+                  {["New", "Screening", "Interview", "Offer", "Hired", "Rejected", "Withdrawn"].map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button variant="outline">Apply Filters</Button>
@@ -124,7 +183,7 @@ export default function ViewApplicantsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockApplicants.map((applicant) => (
+              {applicants.map((applicant) => (
                 <TableRow key={applicant.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -159,20 +218,23 @@ export default function ViewApplicantsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleApplicantAction(applicant.name, 'View Profile')}>
-                          <Eye className="mr-2 h-4 w-4" />View Profile
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/recruiter/candidate-profile/${applicant.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />View Profile
+                          </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleApplicantAction(applicant.name, 'AI Screen Candidate')}>
-                          <ShieldCheck className="mr-2 h-4 w-4" />AI Screen
+                        <DropdownMenuItem onClick={() => handleAIScreen(applicant)} disabled={isScreeningLoading && selectedApplicantForScreening?.id === applicant.id}>
+                          {isScreeningLoading && selectedApplicantForScreening?.id === applicant.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                          AI Screen
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleApplicantAction(applicant.name, 'Update Status')}>
+                        <DropdownMenuItem onClick={() => { setSelectedApplicantForStatus(applicant); setNewStatus(applicant.status); }}>
                           <Edit3 className="mr-2 h-4 w-4" />Update Status
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleApplicantAction(applicant.name, 'Schedule Interview')}>
+                        <DropdownMenuItem onClick={() => toast({title: "Schedule Interview (Placeholder)", description: `Scheduling interview for ${applicant.name}.`})}>
                           <CalendarPlus className="mr-2 h-4 w-4" />Schedule Interview
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleApplicantAction(applicant.name, 'Reject Candidate')}>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleRejectCandidate(applicant)}>
                           <UserX className="mr-2 h-4 w-4" />Reject Candidate
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -180,7 +242,7 @@ export default function ViewApplicantsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {mockApplicants.length === 0 && (
+              {applicants.length === 0 && (
                  <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                         No applicants found for this job.
@@ -191,6 +253,37 @@ export default function ViewApplicantsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog for Update Status */}
+      <Dialog open={!!selectedApplicantForStatus} onOpenChange={() => setSelectedApplicantForStatus(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Status for {selectedApplicantForStatus?.name}</DialogTitle>
+            <DialogDescription>Select the new status for this applicant.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newStatus">New Status</Label>
+              <Select value={newStatus} onValueChange={(value) => setNewStatus(value as Applicant["status"])}>
+                <SelectTrigger id="newStatus">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {["New", "Screening", "Interview", "Offer", "Hired", "Rejected", "Withdrawn"].map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedApplicantForStatus(null)}>Cancel</Button>
+            <Button onClick={handleUpdateStatus}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+    
