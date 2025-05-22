@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { useRouter } from "next/navigation"; // Added for navigation
+import { useRouter } from "next/navigation"; 
 
 const mockJobListings = [
   { id: "job1", title: "Software Engineer, Frontend", status: "Active", applicants: 25, interviews: 5, hired: 1, department: "Engineering", location: "Remote", aiScreeningStatus: "Completed" },
@@ -96,7 +96,11 @@ export default function RecruiterJobListingsPage() {
             <TableBody>
               {mockJobListings.map((job) => (
                 <TableRow key={job.id}>
-                  <TableCell className="font-medium">{job.title}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={`/dashboard/${role}/job-listings/${job.id}/applicants`} className="hover:underline text-primary">
+                      {job.title}
+                    </Link>
+                  </TableCell>
                   <TableCell>{job.department}</TableCell>
                   <TableCell>{job.location}</TableCell>
                   <TableCell>{getStatusPill(job.status)}</TableCell>
