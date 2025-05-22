@@ -9,22 +9,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Save, Send, FileText } from "lucide-react";
+import { ArrowLeft, Save, Send, FileText, WandSparkles, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+// AI Flow Import
+import { generateJobPostingDetails, type GenerateJobPostingOutput } from "@/ai/flows/generate-job-posting-flow";
 
 const jobPostingSchema = z.object({
   jobTitle: z.string().min(5, "Job title must be at least 5 characters."),
+  company: z.string().min(1, "Company name is required."),
   department: z.string().min(2, "Department is required."),
   location: z.string().min(2, "Location is required (e.g., City, State or Remote)."),
+  experienceRequired: z.string().min(1, "Experience level is required (e.g., 3+ Years, Senior Level)."),
   jobType: z.enum(["Full-time", "Part-time", "Contract", "Internship"], { required_error: "Job type is required."}),
   salaryRange: z.string().optional(),
-  jobDescription: z.string().min(50, "Job description must be at least 50 characters."),
-  responsibilities: z.string().min(50, "Responsibilities section must be at least 50 characters. Use bullet points for clarity."),
-  qualifications: z.string().min(50, "Qualifications section must be at least 50 characters. Use bullet points for clarity."),
-  skills: z.string().optional(),
+  jobDescription: z.string().min(10, "Job description should be at least 10 characters. AI can help generate more.").optional(), // Made optional for AI gen
+  responsibilities: z.string().min(10, "Responsibilities section should be at least 10 characters. AI can help generate more.").optional(), // Made optional for AI gen
+  qualifications: z.string().min(10, "Qualifications section should be at least 10 characters. AI can help generate more.").optional(), // Made optional for AI gen
+  skills: z.array(z.string()).optional(),
 });
 
 type JobPostingFormValues = z.infer<typeof jobPostingSchema>;
@@ -32,19 +38,24 @@ type JobPostingFormValues = z.infer<typeof jobPostingSchema>;
 export default function CreateNewJobPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [skillsInput, setSkillsInput] = useState("");
+
 
   const form = useForm<JobPostingFormValues>({
     resolver: zodResolver(jobPostingSchema),
     defaultValues: {
       jobTitle: "",
+      company: "",
       department: "",
       location: "",
+      experienceRequired: "",
       jobType: undefined,
       salaryRange: "",
       jobDescription: "",
-      responsibilities: "- ", // Start with a bullet point
-      qualifications: "- ", // Start with a bullet point
-      skills: "",
+      responsibilities: "- ", 
+      qualifications: "- ", 
+      skills: [],
     },
   });
 
@@ -66,6 +77,64 @@ export default function CreateNewJobPage() {
     router.push("/dashboard/recruiter/job-listings");
   };
 
+  const handleGenerateWithAI = async () => {
+    const jobTitle = form.getValues("jobTitle");
+    const company = form.getValues("company");
+    const experienceRequired = form.getValues("experienceRequired");
+
+    if (!jobTitle) {
+      toast({
+        variant: "destructive",
+        title: "Job Title Required",
+        description: "Please enter a job title before generating with AI.",
+      });
+      return;
+    }
+
+    setIsAiGenerating(true);
+    toast({ title: "AI is Generating...", description: "Please wait while Persona AI crafts the job details." });
+
+    try {
+      const result: GenerateJobPostingOutput = await generateJobPostingDetails({ 
+        jobTitle,
+        company: company || undefined,
+        experienceRequired: experienceRequired || undefined,
+       });
+      
+      form.setValue("jobDescription", result.jobDescription, { shouldValidate: true });
+      form.setValue("responsibilities", result.responsibilities, { shouldValidate: true });
+      form.setValue("qualifications", result.qualifications, { shouldValidate: true });
+      form.setValue("skills", result.skills || [], { shouldValidate: true });
+
+      toast({ title: "AI Generation Complete!", description: "Job details have been populated." });
+    } catch (error) {
+      console.error("AI Generation Error:", error);
+      toast({
+        variant: "destructive",
+        title: "AI Generation Failed",
+        description: "Could not generate job details. Please try again or fill them manually.",
+      });
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
+  const addSkill = () => {
+    if (skillsInput.trim() !== "") {
+      const currentSkills = form.getValues("skills") || [];
+      if (!currentSkills.includes(skillsInput.trim().toLowerCase())) { // Prevent duplicate, case-insensitive
+        form.setValue("skills", [...currentSkills, skillsInput.trim()], {shouldValidate: true});
+      }
+      setSkillsInput("");
+    }
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    const currentSkills = form.getValues("skills") || [];
+    form.setValue("skills", currentSkills.filter(skill => skill !== skillToRemove), {shouldValidate: true});
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-start">
@@ -79,7 +148,7 @@ export default function CreateNewJobPage() {
       <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center"><FileText className="mr-2 h-6 w-6 text-primary" /> Create New Job Posting</CardTitle>
-          <CardDescription>Fill in the details below to create a new job listing for approval.</CardDescription>
+          <CardDescription>Fill in the details below to create a new job listing for approval. Persona AI can help generate content!</CardDescription>
         </CardHeader>
       </Card>
 
@@ -92,9 +161,20 @@ export default function CreateNewJobPage() {
                 control={form.control}
                 name="jobTitle"
                 render={({ field }) => (
-                  <FormItem className="md:col-span-2">
+                  <FormItem>
                     <FormLabel>Job Title *</FormLabel>
                     <FormControl><Input placeholder="e.g., Senior Software Engineer" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="company"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Name *</FormLabel>
+                    <FormControl><Input placeholder="e.g., Persona AI Inc." {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -117,6 +197,17 @@ export default function CreateNewJobPage() {
                   <FormItem>
                     <FormLabel>Location *</FormLabel>
                     <FormControl><Input placeholder="e.g., San Francisco, CA or Remote" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="experienceRequired"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Experience Required *</FormLabel>
+                    <FormControl><Input placeholder="e.g., 5+ Years, Senior Level, Entry Level" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -144,7 +235,7 @@ export default function CreateNewJobPage() {
                 control={form.control}
                 name="salaryRange"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="md:col-span-2">
                     <FormLabel>Salary Range (Optional)</FormLabel>
                     <FormControl><Input placeholder="e.g., $100,000 - $120,000 per year" {...field} /></FormControl>
                     <FormDescription>Provide an estimated salary range for this role.</FormDescription>
@@ -156,7 +247,13 @@ export default function CreateNewJobPage() {
           </Card>
 
           <Card className="shadow-lg">
-            <CardHeader><CardTitle className="text-lg">Job Details</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row justify-between items-center">
+                <CardTitle className="text-lg">Job Details</CardTitle>
+                <Button type="button" variant="outline" onClick={handleGenerateWithAI} disabled={isAiGenerating}>
+                    {isAiGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <WandSparkles className="mr-2 h-4 w-4 text-accent"/>}
+                    Generate with AI
+                </Button>
+            </CardHeader>
             <CardContent className="space-y-6">
               <FormField
                 control={form.control}
@@ -164,7 +261,7 @@ export default function CreateNewJobPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Job Description *</FormLabel>
-                    <FormControl><Textarea placeholder="Provide a compelling overview of the role and company culture..." {...field} rows={6} /></FormControl>
+                    <FormControl><Textarea placeholder="A compelling overview of the role and company (4-5 lines recommended)... AI can help!" {...field} rows={5} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -175,7 +272,7 @@ export default function CreateNewJobPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Key Responsibilities *</FormLabel>
-                    <FormControl><Textarea placeholder="List the main duties and tasks. Start each with a hyphen (-) for a bullet point." {...field} rows={8} /></FormControl>
+                    <FormControl><Textarea placeholder="List main duties (7-15 bullet points recommended). Start each with a hyphen (-)... AI can help!" {...field} rows={10} /></FormControl>
                     <FormDescription>Clearly outline what the candidate will be doing.</FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -187,7 +284,7 @@ export default function CreateNewJobPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Required Qualifications & Experience *</FormLabel>
-                    <FormControl><Textarea placeholder="List essential skills, experience, and education. Start each with a hyphen (-)." {...field} rows={8} /></FormControl>
+                    <FormControl><Textarea placeholder="List essential skills, experience, and education (5-10 bullet points recommended). Start each with a hyphen (-)... AI can help!" {...field} rows={10} /></FormControl>
                     <FormDescription>Specify the must-have criteria for candidates.</FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -196,11 +293,31 @@ export default function CreateNewJobPage() {
               <FormField
                 control={form.control}
                 name="skills"
-                render={({ field }) => (
+                render={({ field }) => ( // Field here represents the array of skills
                   <FormItem>
-                    <FormLabel>Preferred Skills (Optional)</FormLabel>
-                    <FormControl><Textarea placeholder="e.g., Python, Agile Methodologies, Public Speaking..." {...field} rows={3} /></FormControl>
-                    <FormDescription>List any desirable but not essential skills.</FormDescription>
+                    <FormLabel>Preferred Skills (AI can help populate this)</FormLabel>
+                    <div className="flex gap-2 items-center mb-2">
+                      <Input 
+                        value={skillsInput} 
+                        onChange={(e) => setSkillsInput(e.target.value)} 
+                        placeholder="Type a skill and press Add"
+                        onKeyPress={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill();}}}
+                        className="flex-grow"
+                      />
+                      <Button type="button" variant="outline" onClick={addSkill}>Add Skill</Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {field.value?.map((skill) => (
+                        <Badge key={skill} variant="secondary" className="py-1 px-3 text-sm">
+                          {skill}
+                          <button type="button" onClick={() => removeSkill(skill)} className="ml-2 text-destructive hover:text-destructive/80">
+                            <Trash2 className="h-3 w-3"/>
+                          </button>
+                        </Badge>
+                      ))}
+                       {(!field.value || field.value.length === 0) && <p className="text-xs text-muted-foreground">No skills added yet.</p>}
+                    </div>
+                    <FormDescription>List any desirable but not essential skills. AI can suggest these.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -209,13 +326,13 @@ export default function CreateNewJobPage() {
           </Card>
           
           <CardFooter className="flex flex-col md:flex-row justify-end gap-3 pt-8 border-t">
-            <Button type="button" variant="outline" onClick={() => router.push("/dashboard/recruiter/job-listings")}>
+            <Button type="button" variant="outline" onClick={() => router.push("/dashboard/recruiter/job-listings")} disabled={isAiGenerating}>
               Cancel
             </Button>
-            <Button type="button" variant="secondary" onClick={form.handleSubmit(handleSaveAsDraft)}>
+            <Button type="button" variant="secondary" onClick={form.handleSubmit(handleSaveAsDraft)} disabled={isAiGenerating}>
               <Save className="mr-2 h-4 w-4" /> Save as Draft
             </Button>
-            <Button type="button" onClick={form.handleSubmit(handleSubmitForApproval)}>
+            <Button type="button" onClick={form.handleSubmit(handleSubmitForApproval)} disabled={isAiGenerating}>
               <Send className="mr-2 h-4 w-4" /> Submit for Approval
             </Button>
           </CardFooter>

@@ -7,4 +7,5 @@ import '@/ai/flows/ai-interview-simulation.ts';
 import '@/ai/flows/profile-enrichment.ts';
 import '@/ai/flows/job-recommendation.ts';
 import '@/ai/flows/initial-interview-message.ts';
-import '@/ai/flows/follow-up-question.ts'; // Added new flow
+import '@/ai/flows/follow-up-question.ts';
+import '@/ai/flows/generate-job-posting-flow.ts'; // Added new flow
