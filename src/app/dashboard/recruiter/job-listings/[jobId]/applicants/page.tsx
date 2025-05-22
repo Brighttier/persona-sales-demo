@@ -8,14 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // Added Table imports
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlus, UserX, Users, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // Removed DialogTrigger, DialogClose as they are part of DialogContent/DialogFooter
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // Added Table imports
 // AI Screening Flow
 import { aiCandidateScreening, type CandidateScreeningInput } from "@/ai/flows/ai-candidate-screening";
 
@@ -28,8 +28,8 @@ interface Applicant {
   status: "New" | "Screening" | "Interview" | "Offer" | "Hired" | "Rejected" | "Withdrawn";
   email: string;
   skills: string[];
-  resumeText?: string; 
-  jobTitleAppliedFor?: string; 
+  resumeText?: string;
+  jobTitleAppliedFor?: string;
   mockResumeDataUri?: string;
 }
 
@@ -76,7 +76,7 @@ export default function ViewApplicantsPage() {
       setNewStatus("");
     }
   };
-  
+
   const openRejectDialog = (applicant: Applicant) => {
     setApplicantToReject(applicant);
     setIsRejectConfirmOpen(true);
