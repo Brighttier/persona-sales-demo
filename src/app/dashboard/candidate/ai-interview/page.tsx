@@ -7,10 +7,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function AIInterviewSimulationPage() { 
   const jobContext = {
-    jobTitle: "Software Engineer", // Added for more direct use
-    jobDescription: "We are looking for a proactive Software Engineer with experience in React and Node.js to join our innovative team. The ideal candidate should be a problem-solver and a great team player.",
+    jobTitle: "Software Engineer",
+    jobDescription: "We are looking for a proactive Software Engineer with experience in React and Node.js to join our innovative team. The ideal candidate should be a problem-solver and a great team player. You will be asked to introduce yourself and perhaps answer one or two questions.",
     candidateResume: "Experienced Full Stack Developer with 5 years in web technologies including React, Angular, Node.js, Python. Proven ability to lead projects and mentor junior developers. BSc in Computer Science."
   };
+
+  // Corresponds to RECORDING_DURATION_MS in AIInterviewClient
+  const MAX_RECORDING_DURATION_MS = 60 * 1000; // 1 minute
 
   return (
     <div className="space-y-6">
@@ -18,7 +21,7 @@ export default function AIInterviewSimulationPage() {
         <CardHeader>
           <CardTitle className="text-2xl">AI Interview Simulation</CardTitle>
           <CardDescription>
-            Engage in a conversational interview with our AI, Mira. She'll ask you questions, and your video response will be recorded and analyzed to provide you with feedback.
+            Engage with our AI for a brief interview simulation. Record your video response (up to {MAX_RECORDING_DURATION_MS / 1000} seconds) to an initial prompt or introduce yourself. Your video will be analyzed to provide you with feedback.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -27,7 +30,7 @@ export default function AIInterviewSimulationPage() {
         <AlertCircle className="h-4 w-4 !text-primary" />
         <AlertTitle className="text-primary">Important Notice</AlertTitle>
         <AlertDescription className="text-primary/80">
-          This is an AI-driven interview simulation. For the best experience, ensure you have a working microphone and camera, and a quiet environment. The video recording will cover the entire interview session (max {MAX_SESSION_DURATION_MS / 60000} mins).
+          For the best experience, ensure you have a working microphone and camera, and a quiet environment. The video recording will last up to {MAX_RECORDING_DURATION_MS / 1000} seconds.
         </AlertDescription>
       </Alert>
 
@@ -36,4 +39,4 @@ export default function AIInterviewSimulationPage() {
   );
 }
 
-const MAX_SESSION_DURATION_MS = 3 * 60 * 1000; // Keep in sync with client
+    

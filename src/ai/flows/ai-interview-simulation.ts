@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview AI interview simulation flow with video recording and feedback from a conversational AI agent.
+ * @fileOverview AI interview simulation flow. This version focuses on video analysis.
  *
  * - aiInterviewSimulation - A function that initiates the AI interview simulation process.
  * - AiInterviewSimulationInput - The input type for the aiInterviewSimulation function.
@@ -18,17 +18,14 @@ const AiInterviewSimulationInputSchema = z.object({
   videoDataUri: z
     .string()
     .describe(
-      "A video recording of the candidate's entire interview session, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A video recording of the candidate's response, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
-  interviewTranscript: z
-    .string()
-    .optional()
-    .describe("The full transcript of the candidate's answers during the interview session. This includes responses to initial and follow-up questions."),
+  // interviewTranscript is removed as we are reverting to video-only analysis for simplicity
 });
 export type AiInterviewSimulationInput = z.infer<typeof AiInterviewSimulationInputSchema>;
 
 const AiInterviewSimulationOutputSchema = z.object({
-  feedback: z.string().describe("AI-generated feedback on the candidate's interview performance, considering the entire video session and full transcript."),
+  feedback: z.string().describe("AI-generated feedback on the candidate's interview performance, focusing on their video presentation and communication in relation to the job and resume."),
 });
 export type AiInterviewSimulationOutput = z.infer<typeof AiInterviewSimulationOutputSchema>;
 
@@ -37,29 +34,25 @@ export async function aiInterviewSimulation(input: AiInterviewSimulationInput): 
 }
 
 const prompt = ai.definePrompt({
-  name: 'aiInterviewSimulationPrompt',
+  name: 'aiInterviewSimulationPromptSimple', // Renamed to avoid conflict if old one is cached
   input: {schema: AiInterviewSimulationInputSchema},
   output: {schema: AiInterviewSimulationOutputSchema},
-  prompt: `You are an AI interview coach providing feedback to a candidate based on their full video interview session, resume, and the complete transcript of their answers, in relation to a specific job description.
+  prompt: `You are an AI interview coach.
+Analyze the candidate's video response, their resume, and the job description provided.
+Focus your feedback on the candidate's presentation, communication clarity, body language, and the relevance of their (assumed) spoken content to the job requirements and their resume, as inferred from their video performance.
 
 Job Description: {{{jobDescription}}}
 Candidate Resume: {{{candidateResume}}}
-{{#if videoDataUri}}Full Interview Video: {{media url=videoDataUri}}{{/if}}
-{{#if interviewTranscript}}
-Full Transcript of Candidate's Answers throughout the interview:
-{{{interviewTranscript}}}
-{{/if}}
+Candidate's Video Response: {{media url=videoDataUri}}
 
 Provide detailed, constructive, and actionable feedback to help the candidate improve their interviewing skills.
-Consider their communication style, clarity of responses, relevance to the job description, and overall presentation as observed throughout the entire interview video.
-Comment on the content and structure of their answers based on the full transcript.
-Be encouraging and professional.
+Be encouraging and professional. Structure your feedback clearly.
 `,
 });
 
 const aiInterviewSimulationFlow = ai.defineFlow(
   {
-    name: 'aiInterviewSimulationFlow',
+    name: 'aiInterviewSimulationFlowSimple', // Renamed
     inputSchema: AiInterviewSimulationInputSchema,
     outputSchema: AiInterviewSimulationOutputSchema,
   },
@@ -68,3 +61,5 @@ const aiInterviewSimulationFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
