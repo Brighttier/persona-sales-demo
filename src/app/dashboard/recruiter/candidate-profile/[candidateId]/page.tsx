@@ -53,7 +53,7 @@ interface ApplicantDetail {
   portfolio?: string;
   headline?: string;
   mockResumeDataUri?: string;
-  resumeText: string; // Added for quick screening
+  resumeText: string; 
   mockExperience?: ExperienceItem[];
   mockEducation?: EducationItem[];
   mockCertifications?: CertificationItem[];
@@ -90,7 +90,7 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
       { name: "Google Cloud Professional Data Engineer", issuingOrganization: "Google Cloud", date: "2023-01" }
     ]
   },
-  "app5": { // Assuming cand3, cand4 were placeholders or from candidate-pool, taking app5 for this mock
+  "app5": { 
     id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", email: "eve@example.com", headline: "Creative Vue.js Developer",
     mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=",
     resumeText: "Eve Brown - Creative Vue.js Developer. Expertise in Vue.js, Vuex, Vuetify, and Firebase. Designed and implemented UIs at Web Creations. BA Graphic Design.",
@@ -204,15 +204,14 @@ export default function CandidateProfilePage() {
     if (!file) return;
 
     setIsEnriching(true);
-    setQuickScreenResult(null); // Clear previous screening result
+    setQuickScreenResult(null); 
     toast({ title: "Processing New Resume...", description: "AI is analyzing the uploaded file." });
     try {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onloadend = async () => {
         const resumeDataUri = reader.result as string;
-        // Convert data URI to simple text for resumeText for quick screening (simplification for demo)
-        // In a real app, you'd parse PDF/DOCX to text properly.
+        
         let newResumeText = "Uploaded resume content." 
         if (resumeDataUri.startsWith('data:text/plain;base64,')){
             newResumeText = atob(resumeDataUri.split(',')[1]);
@@ -373,6 +372,16 @@ export default function CandidateProfilePage() {
         {/* Right Column */}
         <div className="space-y-6">
           <Card className="shadow-lg">
+            <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
+            <CardContent>
+              {(isEnriching || isLoading) && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
+              {!isEnriching && !isLoading && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted. Upload resume.</p>}
+              <div className="flex flex-wrap gap-2">
+                {skillsToDisplay.map(skill => <Badge key={skill} variant="default" className="text-sm py-1 px-2">{skill}</Badge>)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg">
             <CardHeader><CardTitle className="text-lg">Resume</CardTitle></CardHeader>
             <CardContent>
                 <p className="text-sm text-muted-foreground mb-2">
@@ -405,16 +414,6 @@ export default function CandidateProfilePage() {
                         </Button>
                     </form>
                 </Form>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg">
-            <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
-            <CardContent>
-              {(isEnriching || isLoading) && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
-              {!isEnriching && !isLoading && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted. Upload resume.</p>}
-              <div className="flex flex-wrap gap-2">
-                {skillsToDisplay.map(skill => <Badge key={skill} variant="default" className="text-sm py-1 px-2">{skill}</Badge>)}
-              </div>
             </CardContent>
           </Card>
            <Card className="shadow-lg">
@@ -458,3 +457,4 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
+
