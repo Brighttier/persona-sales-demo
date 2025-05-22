@@ -27,9 +27,9 @@ const jobPostingSchema = z.object({
   experienceRequired: z.string().min(1, "Experience level is required (e.g., 3+ Years, Senior Level)."),
   jobType: z.enum(["Full-time", "Part-time", "Contract", "Internship"], { required_error: "Job type is required."}),
   salaryRange: z.string().optional(),
-  jobDescription: z.string().min(10, "Job description should be at least 10 characters. AI can help generate more.").optional(), // Made optional for AI gen
-  responsibilities: z.string().min(10, "Responsibilities section should be at least 10 characters. AI can help generate more.").optional(), // Made optional for AI gen
-  qualifications: z.string().min(10, "Qualifications section should be at least 10 characters. AI can help generate more.").optional(), // Made optional for AI gen
+  jobDescription: z.string().min(10, "Job description should be at least 10 characters. AI can help generate more.").optional(),
+  responsibilities: z.string().min(10, "Responsibilities section should be at least 10 characters. AI can help generate more.").optional(),
+  qualifications: z.string().min(10, "Qualifications section should be at least 10 characters. AI can help generate more.").optional(),
   skills: z.array(z.string()).optional(),
 });
 
@@ -53,8 +53,8 @@ export default function CreateNewJobPage() {
       jobType: undefined,
       salaryRange: "",
       jobDescription: "",
-      responsibilities: "- ", 
-      qualifications: "- ", 
+      responsibilities: "• ", 
+      qualifications: "• ", 
       skills: [],
     },
   });
@@ -122,7 +122,7 @@ export default function CreateNewJobPage() {
   const addSkill = () => {
     if (skillsInput.trim() !== "") {
       const currentSkills = form.getValues("skills") || [];
-      if (!currentSkills.includes(skillsInput.trim().toLowerCase())) { // Prevent duplicate, case-insensitive
+      if (!currentSkills.includes(skillsInput.trim().toLowerCase())) { 
         form.setValue("skills", [...currentSkills, skillsInput.trim()], {shouldValidate: true});
       }
       setSkillsInput("");
@@ -134,6 +134,27 @@ export default function CreateNewJobPage() {
     form.setValue("skills", currentSkills.filter(skill => skill !== skillToRemove), {shouldValidate: true});
   };
 
+  const handleBulletTextareaKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>, 
+    field: any // react-hook-form field object
+  ) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const target = event.target as HTMLTextAreaElement;
+      const { selectionStart, selectionEnd, value } = target;
+      const textToInsert = value.substring(0, selectionStart).trim() === "" || value.substring(selectionStart-1, selectionStart) === "\n" ? "• " : "\n• ";
+      
+      const newValue = `${value.substring(0, selectionStart)}${textToInsert}${value.substring(selectionEnd)}`;
+      field.onChange(newValue);
+  
+      // Set cursor position after the bullet point
+      // Use a timeout to allow React to update the textarea value before manipulating selection range
+      setTimeout(() => {
+        target.selectionStart = selectionStart + textToInsert.length;
+        target.selectionEnd = selectionStart + textToInsert.length;
+      }, 0);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -272,8 +293,26 @@ export default function CreateNewJobPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Key Responsibilities *</FormLabel>
-                    <FormControl><Textarea placeholder="List main duties (7-15 bullet points recommended). Start each with a hyphen (-)... AI can help!" {...field} rows={10} /></FormControl>
-                    <FormDescription>Clearly outline what the candidate will be doing.</FormDescription>
+                    <FormControl><Textarea 
+                        placeholder="List main duties (7-15 bullet points recommended). Start each with '• '... AI can help!" 
+                        {...field} 
+                        rows={10} 
+                        onKeyDown={(e) => handleBulletTextareaKeyDown(e, field)}
+                        onChange={(e) => {
+                            // Ensure new lines always start with a bullet if the previous line had one or was empty
+                            const value = e.target.value;
+                            const lines = value.split('\n');
+                            if (lines.length > 1) {
+                                const lastLine = lines[lines.length - 1];
+                                const secondLastLine = lines[lines.length - 2];
+                                if (lastLine.trim() !== "" && !lastLine.startsWith("• ") && (secondLastLine.startsWith("• ") || secondLastLine.trim() === "")) {
+                                    // This logic is a bit complex for direct onChange, better handled by onKeyDown
+                                }
+                            }
+                            field.onChange(e);
+                        }}
+                    /></FormControl>
+                    <FormDescription>Clearly outline what the candidate will be doing. Press Enter for new bullet point.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -284,8 +323,13 @@ export default function CreateNewJobPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Required Qualifications & Experience *</FormLabel>
-                    <FormControl><Textarea placeholder="List essential skills, experience, and education (5-10 bullet points recommended). Start each with a hyphen (-)... AI can help!" {...field} rows={10} /></FormControl>
-                    <FormDescription>Specify the must-have criteria for candidates.</FormDescription>
+                    <FormControl><Textarea 
+                        placeholder="List essential skills, experience, and education (5-10 bullet points recommended). Start each with '• '... AI can help!" 
+                        {...field} 
+                        rows={10}
+                        onKeyDown={(e) => handleBulletTextareaKeyDown(e, field)}
+                    /></FormControl>
+                    <FormDescription>Specify the must-have criteria for candidates. Press Enter for new bullet point.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -293,7 +337,7 @@ export default function CreateNewJobPage() {
               <FormField
                 control={form.control}
                 name="skills"
-                render={({ field }) => ( // Field here represents the array of skills
+                render={({ field }) => ( 
                   <FormItem>
                     <FormLabel>Preferred Skills (AI can help populate this)</FormLabel>
                     <div className="flex gap-2 items-center mb-2">
@@ -308,9 +352,9 @@ export default function CreateNewJobPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {field.value?.map((skill) => (
-                        <Badge key={skill} variant="secondary" className="py-1 px-3 text-sm">
+                        <Badge key={skill} variant="default" className="py-1 px-3 text-sm">
                           {skill}
-                          <button type="button" onClick={() => removeSkill(skill)} className="ml-2 text-destructive hover:text-destructive/80">
+                          <button type="button" onClick={() => removeSkill(skill)} className="ml-2 hover:text-destructive-foreground/80">
                             <Trash2 className="h-3 w-3"/>
                           </button>
                         </Badge>
@@ -341,3 +385,4 @@ export default function CreateNewJobPage() {
     </div>
   );
 }
+

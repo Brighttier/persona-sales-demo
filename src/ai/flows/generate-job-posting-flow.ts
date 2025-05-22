@@ -19,9 +19,9 @@ const GenerateJobPostingInputSchema = z.object({
 export type GenerateJobPostingInput = z.infer<typeof GenerateJobPostingInputSchema>;
 
 const GenerateJobPostingOutputSchema = z.object({
-  jobDescription: z.string().describe('A concise and engaging job description, strictly between 4 and 5 lines long.'),
-  responsibilities: z.string().describe("A list of key responsibilities, formatted as newline-separated bullet points (each starting with '- '). Minimum 7, maximum 15 bullet points."),
-  qualifications: z.string().describe("A list of essential qualifications and experience, formatted as newline-separated bullet points (each starting with '- '). Minimum 5, maximum 10 bullet points."),
+  jobDescription: z.string().describe('A concise and engaging job description paragraph, strictly between 4 and 5 lines long. If company name is provided, weave in compelling details about the company.'),
+  responsibilities: z.string().describe("A list of key responsibilities, formatted as newline-separated bullet points (each starting with '• '). Minimum 7, maximum 15 bullet points."),
+  qualifications: z.string().describe("A list of essential qualifications and experience, formatted as newline-separated bullet points (each starting with '• '). Minimum 5, maximum 10 bullet points."),
   skills: z.array(z.string()).describe('A list of the top 5 to 10 most relevant skills for this job title. Return as an array of strings.'),
 });
 export type GenerateJobPostingOutput = z.infer<typeof GenerateJobPostingOutputSchema>;
@@ -43,9 +43,9 @@ Job Title: {{{jobTitle}}}
 
 Follow these specific constraints for each section:
 
-1.  **Job Description**: Generate a concise and engaging job description. It MUST be strictly between 4 and 5 lines long.
-2.  **Responsibilities**: List key responsibilities for this role. Provide a minimum of 7 and a maximum of 15 distinct responsibilities. Each responsibility MUST start with a hyphen and a space ('- ') on a new line.
-3.  **Qualifications**: List essential qualifications and experience for this role. Provide a minimum of 5 and a maximum of 10 distinct qualifications. Each qualification MUST start with a hyphen and a space ('- ') on a new line.
+1.  **Job Description**: Generate a concise and engaging job description as a single paragraph. It MUST be strictly between 4 and 5 lines long. If a company name ({{{company}}}) is provided, weave in compelling details about the company naturally within this paragraph. For example, mention its mission, culture, or recent achievements.
+2.  **Responsibilities**: List key responsibilities for this role. Provide a minimum of 7 and a maximum of 15 distinct responsibilities. Each responsibility MUST start with a bullet character and a space ('• ') on a new line.
+3.  **Qualifications**: List essential qualifications and experience for this role. Provide a minimum of 5 and a maximum of 10 distinct qualifications. Each qualification MUST start with a bullet character and a space ('• ') on a new line.
 4.  **Skills**: Identify the top 5 to 10 most relevant technical and soft skills for this job title and context. Return these as an array of skill strings.
 
 Ensure the generated content is professional, clear, and attractive to potential candidates.
@@ -65,8 +65,8 @@ const generateJobPostingFlow = ai.defineFlow(
         console.warn("AI failed to generate structured output for job posting. Using fallback.");
         return {
             jobDescription: "Failed to generate job description. Please write one manually.",
-            responsibilities: "- Responsibility 1\n- Responsibility 2\n- Responsibility 3\n- Responsibility 4\n- Responsibility 5\n- Responsibility 6\n- Responsibility 7",
-            qualifications: "- Qualification 1\n- Qualification 2\n- Qualification 3\n- Qualification 4\n- Qualification 5",
+            responsibilities: "• Responsibility 1\n• Responsibility 2\n• Responsibility 3\n• Responsibility 4\n• Responsibility 5\n• Responsibility 6\n• Responsibility 7",
+            qualifications: "• Qualification 1\n• Qualification 2\n• Qualification 3\n• Qualification 4\n• Qualification 5",
             skills: ["Skill A", "Skill B", "Skill C", "Skill D", "Skill E"],
         };
     }
@@ -77,3 +77,4 @@ const generateJobPostingFlow = ai.defineFlow(
     return output;
   }
 );
+
