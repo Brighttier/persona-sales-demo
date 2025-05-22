@@ -13,10 +13,11 @@ import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlu
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // Removed DialogTrigger, DialogClose as they are part of DialogContent/DialogFooter
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // Added Table imports
 // AI Screening Flow
-import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
+import { aiCandidateScreening, type CandidateScreeningInput } from "@/ai/flows/ai-candidate-screening";
 
 interface Applicant {
   id: string;
@@ -27,19 +28,19 @@ interface Applicant {
   status: "New" | "Screening" | "Interview" | "Offer" | "Hired" | "Rejected" | "Withdrawn";
   email: string;
   skills: string[];
-  resumeText?: string; // For AI screening placeholder
-  jobTitleAppliedFor?: string; // For AI screening placeholder
+  resumeText?: string; 
+  jobTitleAppliedFor?: string; 
+  mockResumeDataUri?: string;
 }
 
 const initialMockApplicants: Applicant[] = [
-  { id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", applicationDate: "2024-07-25", aiMatchScore: 92, status: "New", email: "alice@example.com", skills: ["React", "Node.js", "TypeScript"], resumeText: "Highly skilled React developer with 5 years of experience in Node.js and TypeScript.", jobTitleAppliedFor: "Software Engineer, Frontend"},
-  { id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", applicationDate: "2024-07-24", aiMatchScore: 85, status: "Screening", email: "bob@example.com", skills: ["Python", "Django", "SQL"], resumeText: "Data-driven Python developer, proficient in Django and SQL databases.", jobTitleAppliedFor: "Software Engineer, Frontend" },
-  { id: "app3", name: "Carol Davis", avatar: "https://placehold.co/100x100.png?text=CD", applicationDate: "2024-07-23", aiMatchScore: 78, status: "Interview", email: "carol@example.com", skills: ["Java", "Spring Boot", "Microservices"], resumeText: "Experienced Java engineer specializing in Spring Boot and microservice architectures.", jobTitleAppliedFor: "Software Engineer, Frontend" },
+  { id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", applicationDate: "2024-07-25", aiMatchScore: 92, status: "New", email: "alice@example.com", skills: ["React", "Node.js", "TypeScript"], resumeText: "Highly skilled React developer with 5 years of experience in Node.js and TypeScript.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu"},
+  { id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", applicationDate: "2024-07-24", aiMatchScore: 85, status: "Screening", email: "bob@example.com", skills: ["Python", "Django", "SQL"], resumeText: "Data-driven Python developer, proficient in Django and SQL databases.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==" },
+  { id: "app3", name: "Carol Davis", avatar: "https://placehold.co/100x100.png?text=CD", applicationDate: "2024-07-23", aiMatchScore: 78, status: "Interview", email: "carol@example.com", skills: ["Java", "Spring Boot", "Microservices"], resumeText: "Experienced Java engineer specializing in Spring Boot and microservice architectures.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Q2Fyb2wgRGF2aXMnIFJlc3VtZS4gRXhwZXJ0IGphdmEgZW5naW5lZXIgV2l0aCBKYXZhLCBTcHJpbmcgQm9vdCwgYW5kIE1pY3Jvc2VydmljZXMu" },
   { id: "app4", name: "David Miller", avatar: "https://placehold.co/100x100.png?text=DM", applicationDate: "2024-07-22", status: "Rejected", email: "david@example.com", skills: ["PHP", "Laravel"], resumeText: "Full-stack PHP developer with Laravel expertise.", jobTitleAppliedFor: "Software Engineer, Frontend" },
-  { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", applicationDate: "2024-07-26", aiMatchScore: 95, status: "New", email: "eve@example.com", skills: ["JavaScript", "Vue.js", "Firebase"], resumeText: "Creative Vue.js developer with Firebase backend knowledge.", jobTitleAppliedFor: "Software Engineer, Frontend" },
+  { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", applicationDate: "2024-07-26", aiMatchScore: 95, status: "New", email: "eve@example.com", skills: ["JavaScript", "Vue.js", "Firebase"], resumeText: "Creative Vue.js developer with Firebase backend knowledge.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=" },
 ];
 
-// Mock job titles - in a real app, you'd fetch this based on jobId
 const mockJobTitles: { [key: string]: { title: string, description: string } } = {
   "job1": { title: "Software Engineer, Frontend", description: "Develop user-facing features for our web applications using React and Next.js."},
   "job2": { title: "Product Manager", description: "Lead product strategy and development for innovative new features."},
@@ -59,7 +60,8 @@ export default function ViewApplicantsPage() {
   const [newStatus, setNewStatus] = useState<Applicant["status"] | "">("");
   const [isScreeningLoading, setIsScreeningLoading] = useState(false);
   const [selectedApplicantForScreening, setSelectedApplicantForScreening] = useState<Applicant | null>(null);
-
+  const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false);
+  const [applicantToReject, setApplicantToReject] = useState<Applicant | null>(null);
 
   const jobData = mockJobTitles[jobId] || { title: `Job ID: ${jobId}`, description: "Details for this job are not available."};
 
@@ -74,26 +76,34 @@ export default function ViewApplicantsPage() {
       setNewStatus("");
     }
   };
+  
+  const openRejectDialog = (applicant: Applicant) => {
+    setApplicantToReject(applicant);
+    setIsRejectConfirmOpen(true);
+  };
 
-  const handleRejectCandidate = (applicant: Applicant) => {
-     setApplicants(prev => prev.map(app => app.id === applicant.id ? {...app, status: "Rejected"} : app));
+  const confirmRejectCandidate = () => {
+     if (!applicantToReject) return;
+     setApplicants(prev => prev.map(app => app.id === applicantToReject.id ? {...app, status: "Rejected"} : app));
      toast({
         title: "Candidate Rejected",
-        description: `${applicant.name} has been marked as rejected.`,
+        description: `${applicantToReject.name} has been marked as rejected.`,
         variant: "destructive"
       });
+      setIsRejectConfirmOpen(false);
+      setApplicantToReject(null);
   };
 
   const handleAIScreen = async (applicant: Applicant) => {
-    if (!applicant.resumeText || !applicant.jobTitleAppliedFor) {
-        toast({ variant: "destructive", title: "Missing Data", description: "Cannot perform AI screening without resume text and job title." });
+    if (!applicant.resumeText || !jobData.description) {
+        toast({ variant: "destructive", title: "Missing Data", description: "Cannot perform AI screening without resume text and job description." });
         return;
     }
     setSelectedApplicantForScreening(applicant);
     setIsScreeningLoading(true);
     try {
         const screeningInput: CandidateScreeningInput = {
-            jobDetails: jobData.description, // Using the current job's description
+            jobDetails: jobData.description,
             resume: applicant.resumeText,
             candidateProfile: `Name: ${applicant.name}, Email: ${applicant.email}, Skills: ${applicant.skills.join(', ')}`,
         };
@@ -107,7 +117,7 @@ export default function ViewApplicantsPage() {
                     <p>Recommendation: {result.recommendation}</p>
                 </div>
             ),
-            duration: 8000,
+            duration: 10000,
         });
     } catch (error) {
         console.error("AI Screening Error:", error);
@@ -119,7 +129,6 @@ export default function ViewApplicantsPage() {
   };
 
   const getStatusPill = (status: Applicant["status"]) => {
-    // (getStatusPill implementation from previous step, unchanged)
     switch (status) {
       case "New": return <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-300">{status}</Badge>;
       case "Screening": return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-300">{status}</Badge>;
@@ -234,7 +243,7 @@ export default function ViewApplicantsPage() {
                         <DropdownMenuItem onClick={() => toast({title: "Schedule Interview (Placeholder)", description: `Scheduling interview for ${applicant.name}.`})}>
                           <CalendarPlus className="mr-2 h-4 w-4" />Schedule Interview
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleRejectCandidate(applicant)}>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => openRejectDialog(applicant)}>
                           <UserX className="mr-2 h-4 w-4" />Reject Candidate
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -255,7 +264,7 @@ export default function ViewApplicantsPage() {
       </Card>
 
       {/* Dialog for Update Status */}
-      <Dialog open={!!selectedApplicantForStatus} onOpenChange={() => setSelectedApplicantForStatus(null)}>
+      <Dialog open={!!selectedApplicantForStatus} onOpenChange={(open) => !open && setSelectedApplicantForStatus(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Update Status for {selectedApplicantForStatus?.name}</DialogTitle>
@@ -282,6 +291,22 @@ export default function ViewApplicantsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog for Reject Confirmation */}
+        <Dialog open={isRejectConfirmOpen} onOpenChange={setIsRejectConfirmOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Confirm Rejection</DialogTitle>
+                    <DialogDescription>
+                        Are you sure you want to reject {applicantToReject?.name}? This action cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => { setIsRejectConfirmOpen(false); setApplicantToReject(null); }}>Cancel</Button>
+                    <Button variant="destructive" onClick={confirmRejectCandidate}>Confirm Rejection</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
