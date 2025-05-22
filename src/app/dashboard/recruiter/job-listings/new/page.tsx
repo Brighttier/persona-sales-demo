@@ -83,6 +83,7 @@ export default function CreateNewJobPage() {
     const jobTitle = form.getValues("jobTitle");
     const company = form.getValues("company");
     const experienceRequired = form.getValues("experienceRequired");
+    const location = form.getValues("location");
 
     if (!jobTitle) {
       toast({
@@ -101,6 +102,7 @@ export default function CreateNewJobPage() {
         jobTitle,
         company: company || undefined,
         experienceRequired: experienceRequired || undefined,
+        location: location || undefined,
        });
       
       form.setValue("jobDescription", result.jobDescription, { shouldValidate: true });
@@ -393,4 +395,3 @@ export default function CreateNewJobPage() {
     </div>
   );
 }
-

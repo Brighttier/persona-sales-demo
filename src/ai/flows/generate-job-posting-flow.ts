@@ -15,6 +15,7 @@ const GenerateJobPostingInputSchema = z.object({
   jobTitle: z.string().describe('The job title for which to generate details.'),
   company: z.string().optional().describe('The name of the company (optional context).'),
   experienceRequired: z.string().optional().describe('The experience level required (e.g., "3+ Years", "Senior Level", optional context).'),
+  location: z.string().optional().describe('The location of the job (e.g., "City, State", "Remote"). This can influence suggested benefits and job description nuances.'),
 });
 export type GenerateJobPostingInput = z.infer<typeof GenerateJobPostingInputSchema>;
 
@@ -23,7 +24,7 @@ const GenerateJobPostingOutputSchema = z.object({
   responsibilities: z.string().describe("A list of key responsibilities, formatted as newline-separated bullet points (each starting with '• '). Minimum 7, maximum 15 bullet points."),
   qualifications: z.string().describe("A list of essential qualifications and experience, formatted as newline-separated bullet points (each starting with '• '). Minimum 5, maximum 10 bullet points."),
   skills: z.array(z.string()).describe('A list of the top 5 to 10 most relevant skills for this job title. Return as an array of strings.'),
-  companyBenefits: z.string().describe("A list of typical company benefits formatted as newline-separated bullet points (each starting with '• '). Suggest 3-5 common benefits."),
+  companyBenefits: z.string().describe("A list of typical company benefits formatted as newline-separated bullet points (each starting with '• '). Suggest 3-5 common benefits, considering location if provided."),
 });
 export type GenerateJobPostingOutput = z.infer<typeof GenerateJobPostingOutputSchema>;
 
@@ -36,21 +37,23 @@ const prompt = ai.definePrompt({
   input: {schema: GenerateJobPostingInputSchema},
   output: {schema: GenerateJobPostingOutputSchema},
   prompt: `You are an expert HR content writer specializing in crafting compelling job postings.
-Given the following job title and optional context, generate the requested sections.
+Given the following job title and optional context (company, experience, location), generate the requested sections.
+Consider all provided context (job title: {{{jobTitle}}}, company: {{#if company}}{{{company}}}{{else}}N/A{{/if}}, experience: {{#if experienceRequired}}{{{experienceRequired}}}{{else}}N/A{{/if}}, location: {{#if location}}{{{location}}}{{else}}N/A{{/if}}) to make the generated content as relevant and appealing as possible.
 
 Job Title: {{{jobTitle}}}
 {{#if company}}Company: {{{company}}}{{/if}}
 {{#if experienceRequired}}Experience Required: {{{experienceRequired}}}{{/if}}
+{{#if location}}Location: {{{location}}}{{/if}}
 
 Follow these specific constraints for each section:
 
-1.  **Job Description**: Generate a concise and engaging job description as a single paragraph. It MUST be strictly between 4 and 5 lines long. If a company name ({{{company}}}) is provided, weave in compelling details about the company naturally within this paragraph. For example, mention its mission, culture, or recent achievements.
+1.  **Job Description**: Generate a concise and engaging job description as a single paragraph. It MUST be strictly between 4 and 5 lines long. If a company name ({{{company}}}) is provided, weave in compelling details about the company naturally within this paragraph. If location ({{{location}}}) is specified as 'Remote', emphasize remote work aspects if appropriate for the role.
 2.  **Responsibilities**: List key responsibilities for this role. Provide a minimum of 7 and a maximum of 15 distinct responsibilities. Each responsibility MUST start with a bullet character and a space ('• ') on a new line.
 3.  **Qualifications**: List essential qualifications and experience for this role. Provide a minimum of 5 and a maximum of 10 distinct qualifications. Each qualification MUST start with a bullet character and a space ('• ') on a new line.
 4.  **Skills**: Identify the top 5 to 10 most relevant technical and soft skills for this job title and context. Return these as an array of skill strings.
-5.  **Company Benefits**: List 3 to 5 common company benefits relevant to a professional role, formatted as newline-separated bullet points (each starting with '• '). Examples: Health Insurance, Paid Time Off, 401(k) Plan, Professional Development, Flexible Work Hours.
+5.  **Company Benefits**: List 3 to 5 common company benefits relevant to a professional role, formatted as newline-separated bullet points (each starting with '• '). If a location ({{{location}}}) is provided, try to suggest benefits that are commonly valued or offered in that region or for remote roles, while still keeping them generally professional. Examples: Health Insurance, Paid Time Off, 401(k) Plan, Professional Development, Flexible Work Hours, Home Office Stipend (for remote).
 
-Ensure the generated content is professional, clear, and attractive to potential candidates.
+Ensure the generated content is professional, clear, and attractive to potential candidates. The recruiter will review and customize these suggestions.
 `,
 });
 
@@ -78,9 +81,8 @@ const generateJobPostingFlow = ai.defineFlow(
         output.skills = typeof output.skills === 'string' ? [output.skills] : [];
     }
     if (!output.companyBenefits) {
-        output.companyBenefits = "• Example Benefit 1\n• Example Benefit 2";
+        output.companyBenefits = "• Example Benefit 1\n• Example Benefit 2\n• Example Benefit 3";
     }
     return output;
   }
 );
-
