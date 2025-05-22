@@ -36,27 +36,27 @@ declare global {
   }
 }
 
-const MAX_INTERVIEW_TURNS = 1; 
-const MAX_SESSION_DURATION_MS = 3 * 60 * 1000; 
+const MAX_INTERVIEW_TURNS = 1;
+const MAX_SESSION_DURATION_MS = 3 * 60 * 1000;
 
 export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const { toast } = useToast();
   const [mainStage, setMainStage] = useState<InterviewMainStage>("consent");
   const [conversationSubStage, setConversationSubStage] = useState<ConversationSubStage>("preparingStream");
-  
+
   const [consentGiven, setConsentGiven] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [isSessionRecordingActive, setIsSessionRecordingActive] = useState(false); 
+  const [isSessionRecordingActive, setIsSessionRecordingActive] = useState(false);
   const [sessionVideoBlob, setSessionVideoBlob] = useState<Blob | null>(null);
   const [feedbackResult, setFeedbackResult] = useState<AiInterviewSimulationOutput | null>(null);
-  
+
   const [aiGreeting, setAiGreeting] = useState<string | null>(null);
   const [currentAiQuestion, setCurrentAiQuestion] = useState<string | null>(null);
-  
+
   const [isMiraCurrentlySpeaking, setIsMiraCurrentlySpeaking] = useState(false);
   const [currentAnswerTranscript, setCurrentAnswerTranscript] = useState("");
   const [accumulatedInterviewTranscript, setAccumulatedInterviewTranscript] = useState("");
-  const [isCandidateListeningActive, setIsCandidateListeningActive] = useState(false); 
+  const [isCandidateListeningActive, setIsCandidateListeningActive] = useState(false);
   const [speechApiError, setSpeechApiError] = useState<string | null>(null);
 
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -86,20 +86,20 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         if (!preferredVoice) preferredVoice = voices.find(v => v.lang.startsWith('en-'));
         setSelectedVoice(preferredVoice || voices[0] || null);
       } else {
-        setSelectedVoice(null); 
+        setSelectedVoice(null);
       }
     };
-    
+
     if ('speechSynthesis' in window) {
         speechSynthesis.onvoiceschanged = loadVoices;
-        loadVoices(); 
+        loadVoices();
     } else {
         setSpeechApiError("Your browser does not support Text-to-Speech. Mira will not be able to speak.");
     }
 
-    return () => { 
+    return () => {
         if ('speechSynthesis' in window) {
-            speechSynthesis.onvoiceschanged = null; 
+            speechSynthesis.onvoiceschanged = null;
         }
     };
   }, []);
@@ -114,24 +114,38 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     if (!('speechSynthesis' in window)) {
       setSpeechApiError("Your browser does not support Text-to-Speech.");
       toast({ variant: "destructive", title: "TTS Not Supported", description: "Mira cannot speak in this browser."});
-      onEndCallback?.(); 
+      onEndCallback?.();
       return;
     }
-
-    if (availableVoices.length === 0 && !selectedVoice) {
-      const noVoiceMessage = "No TTS voices available in your browser. Mira cannot speak.";
-      setSpeechApiError(noVoiceMessage);
-      toast({ variant: "destructive", title: "TTS Voices Unavailable", description: noVoiceMessage });
-      onEndCallback?.(); 
-      return;
+    
+    const currentVoices = speechSynthesis.getVoices();
+    if (currentVoices.length === 0 && !selectedVoice) { // Check current voices if state selectedVoice is also null
+        const noVoiceMessage = "No TTS voices available in your browser. Mira cannot speak.";
+        setSpeechApiError(noVoiceMessage);
+        toast({ variant: "destructive", title: "TTS Voices Unavailable", description: noVoiceMessage });
+        onEndCallback?.();
+        return;
     }
 
-    if (speechSynthesis.speaking) speechSynthesis.cancel();
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel(); // Cancel any ongoing speech before starting new
+    }
 
     const utterance = new SpeechSynthesisUtterance(text);
     utteranceRef.current = utterance;
-    if (selectedVoice) utterance.voice = selectedVoice;
-    utterance.pitch = 1.0; utterance.rate = 0.95;
+
+    if (selectedVoice) { // Use voice from state if available
+      utterance.voice = selectedVoice;
+    } else if (currentVoices.length > 0) { // Fallback to a voice found now
+        let fallbackVoice = currentVoices.find(v => v.lang === 'en-US' && (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Susan')));
+        if (!fallbackVoice) fallbackVoice = currentVoices.find(v => v.lang.startsWith('en-')); // Any English voice
+        if (!fallbackVoice) fallbackVoice = currentVoices[0]; // Absolute first voice
+        if (fallbackVoice) utterance.voice = fallbackVoice;
+    }
+    // If no voice is explicitly set, the browser uses its default.
+
+    utterance.pitch = 1.0;
+    utterance.rate = 0.95;
 
     utterance.onstart = () => setIsMiraCurrentlySpeaking(true);
     utterance.onend = () => {
@@ -141,21 +155,31 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     };
     utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
       console.error("SpeechSynthesis Error Event (see details in browser console):", event);
-      const errorCode = event.error; 
+      const errorCode = event.error;
       let detailedMessage = "Mira could not speak. Please check your browser console for 'SpeechSynthesis Error Event' details.";
       if (errorCode) {
         detailedMessage = `Mira could not speak (Error code: ${errorCode}). Check console for details.`;
       }
-      
+
       setSpeechApiError(detailedMessage);
       toast({ variant: "destructive", title: "Text-to-Speech Error", description: detailedMessage});
-      
+
       setIsMiraCurrentlySpeaking(false);
       utteranceRef.current = null;
       onEndCallback?.();
     };
-    speechSynthesis.speak(utterance);
-  }, [toast, selectedVoice, availableVoices]);
+    
+    try {
+        speechSynthesis.speak(utterance);
+    } catch (e) {
+        console.error("Error directly calling speechSynthesis.speak:", e);
+        setSpeechApiError("An unexpected error occurred when trying to speak. Check console.");
+        toast({ variant: "destructive", title: "TTS Critical Error", description: "Failed to initiate speech. See console."});
+        setIsMiraCurrentlySpeaking(false);
+        utteranceRef.current = null;
+        onEndCallback?.();
+    }
+  }, [toast, selectedVoice]);
 
   const cleanupStreamAndRecorders = useCallback(() => {
     if (streamRef.current) {
@@ -163,15 +187,15 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       streamRef.current = null;
     }
     if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
-    
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.stop(); 
+      mediaRecorderRef.current.stop();
     }
     mediaRecorderRef.current = null;
     setIsSessionRecordingActive(false);
 
     if (speechRecognitionRef.current && isCandidateListeningActive) {
-      speechRecognitionRef.current.abort(); // Use abort for immediate stop
+      speechRecognitionRef.current.abort();
     }
     speechRecognitionRef.current = null;
     setIsCandidateListeningActive(false);
@@ -181,20 +205,20 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       overallSessionTimerIdRef.current = null;
     }
   }, [isCandidateListeningActive]);
-  
+
   const initializeSpeechRecognition = useCallback(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
       setSpeechApiError("Your browser does not support Speech-to-Text.");
       toast({ variant: "destructive", title: "STT Not Supported", description: "Speech-to-Text is not available in this browser." }); return null;
     }
-    
+
     const recognition = new SpeechRecognitionAPI();
     recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US';
-    
+
     recognition.onstart = () => setIsCandidateListeningActive(true);
-    recognition.onend = () => setIsCandidateListeningActive(false); 
-    
+    recognition.onend = () => setIsCandidateListeningActive(false);
+
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error('SpeechRecognition Error Full Event:', event);
       const errorCode = event.error;
@@ -210,7 +234,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       } else if (errorCode === 'not-allowed') {
         toastMessage = { variant: "destructive", title: "Permission Denied", description: "Microphone access was denied. Please enable it in your browser settings." };
         persistentErrorMsg = "Microphone access was denied. Please enable it in your browser settings to use speech-to-text.";
-      } else if (errorCode !== 'aborted') { 
+      } else if (errorCode !== 'aborted') {
         toastMessage = { variant: "destructive", title: "Speech Recognition Error", description: `An unexpected error occurred: ${errorCode}.` };
         persistentErrorMsg = `An unexpected speech recognition error occurred: ${errorCode}. You might need to check browser permissions or try again.`;
       }
@@ -221,7 +245,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       if (persistentErrorMsg) {
         setSpeechApiError(persistentErrorMsg);
       }
-      setIsCandidateListeningActive(false); 
+      setIsCandidateListeningActive(false);
     };
     recognition.onresult = (event) => {
       let finalTranscriptForCurrentAnswer = "";
@@ -238,12 +262,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const submitForFinalFeedback = useCallback(async (videoForSubmission: Blob, finalTranscript: string) => {
     if (!videoForSubmission) {
       toast({ variant: "destructive", title: "No Video Recorded", description: "Cannot submit feedback without a video." });
-      setMainStage("conversation"); 
-      setConversationSubStage("preparingStream"); 
+      setMainStage("conversation");
+      setConversationSubStage("preparingStream");
       setSpeechApiError("Submission failed: No video was recorded.");
       return;
     }
-    
+
     try {
       const reader = new FileReader();
       reader.readAsDataURL(videoForSubmission);
@@ -259,7 +283,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         setFeedbackResult(result);
         setMainStage("feedback");
         toast({ title: "Feedback Received!", description: "Mira has analyzed your responses." });
-        cleanupStreamAndRecorders(); 
+        cleanupStreamAndRecorders();
       };
       reader.onerror = () => {
         toast({ variant: "destructive", title: "File Read Error", description: "Could not process video for submission." });
@@ -269,16 +293,16 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     } catch (error) {
       console.error("Error getting feedback:", error);
       toast({ variant: "destructive", title: "Feedback Error", description: "Could not get AI feedback." });
-      setMainStage("conversation"); 
-      setConversationSubStage("preparingStream"); 
+      setMainStage("conversation");
+      setConversationSubStage("preparingStream");
       setSpeechApiError("Failed to get feedback from AI.");
     }
   }, [jobContext, toast, cleanupStreamAndRecorders]);
-  
+
   const resetFullInterview = useCallback(() => {
     cleanupStreamAndRecorders();
     if ('speechSynthesis' in window && speechSynthesis.speaking) speechSynthesis.cancel();
-    
+
     setAiGreeting(null); setCurrentAiQuestion(null);
     setCurrentAnswerTranscript(""); setAccumulatedInterviewTranscript("");
     setFeedbackResult(null);
@@ -286,8 +310,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     setCurrentInterviewTurn(0);
     setCountdown(null);
     setSpeechApiError(null);
-    setConsentGiven(false); 
-    setMainStage("consent"); 
+    setConsentGiven(false);
+    setMainStage("consent");
     setConversationSubStage("preparingStream");
   }, [cleanupStreamAndRecorders]);
 
@@ -300,27 +324,27 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     if (speechRecognitionRef.current && isCandidateListeningActive) {
         speechRecognitionRef.current.stop();
     }
-        
-    setMainStage("loadingFeedback"); 
+
+    setMainStage("loadingFeedback");
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-        mediaRecorderRef.current.onstop = async () => { 
+        mediaRecorderRef.current.onstop = async () => {
             const finalBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-            setSessionVideoBlob(finalBlob); 
+            setSessionVideoBlob(finalBlob);
             let finalTranscript = accumulatedInterviewTranscript;
             if (currentAnswerTranscript.trim() && !finalTranscript.endsWith(`${currentAnswerTranscript.trim()}\n\n`)) {
                  finalTranscript += `Candidate: ${currentAnswerTranscript.trim() || "(No audible answer provided for last question)"}\n\n`;
-                 setAccumulatedInterviewTranscript(finalTranscript); 
+                 setAccumulatedInterviewTranscript(finalTranscript);
             }
             await submitForFinalFeedback(finalBlob, finalTranscript);
         };
         mediaRecorderRef.current.stop();
-    } else if (sessionVideoBlob) { 
+    } else if (sessionVideoBlob) {
         await submitForFinalFeedback(sessionVideoBlob, accumulatedInterviewTranscript);
     } else {
         toast({variant: "destructive", title: "Recording Error", description: "No video to submit. Please try again."});
         setSpeechApiError("No video recording was available to submit for feedback.");
-        resetFullInterview(); 
+        resetFullInterview();
         return;
     }
     setIsSessionRecordingActive(false);
@@ -336,18 +360,18 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         if (videoPreviewRef.current) {
             videoPreviewRef.current.srcObject = streamRef.current;
-            videoPreviewRef.current.muted = true; 
+            videoPreviewRef.current.muted = true;
             videoPreviewRef.current.play().catch(e => console.error("Preview play error", e));
         }
-        
+
         mediaRecorderRef.current = new MediaRecorder(streamRef.current);
         recordedChunksRef.current = [];
         mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
-        mediaRecorderRef.current.onstop = () => { 
+        mediaRecorderRef.current.onstop = () => {
           const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
           setSessionVideoBlob(blob);
         };
-        
+
         speechRecognitionRef.current = initializeSpeechRecognition();
 
         setConversationSubStage("countdown"); setCountdown(5);
@@ -357,21 +381,27 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
               clearInterval(countdownInterval);
               setConversationSubStage("miraSpeaking");
               const textToSpeak = currentInterviewTurn === 0 ? `${aiGreeting} ${currentAiQuestion}` : currentAiQuestion;
-              
+
               if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "recording") {
-                 mediaRecorderRef.current.start(1000); 
+                 mediaRecorderRef.current.start(1000);
                  setIsSessionRecordingActive(true);
               }
-              
-              speak(textToSpeak || "Error: No question to speak.", () => { 
+
+              speak(textToSpeak || "Error: No question to speak.", () => {
                 if (speechRecognitionRef.current && !isCandidateListeningActive) {
-                   speechRecognitionRef.current.start(); 
+                   try {
+                     speechRecognitionRef.current.start();
+                   } catch (sttError) {
+                     console.error("Error starting STT after Mira speaks:", sttError);
+                     setSpeechApiError("Could not start voice recognition. Please check permissions.");
+                     toast({variant: "destructive", title: "STT Start Error", description: "Could not start voice recognition."})
+                   }
                 }
                 setConversationSubStage("sessionRecording");
-                if (currentInterviewTurn === 0) { 
-                    overallSessionTimerIdRef.current = setTimeout(() => { 
+                if (currentInterviewTurn === 0) {
+                    overallSessionTimerIdRef.current = setTimeout(() => {
                         toast({ title: "Session Time Limit Reached", description: "Interview session ended automatically." });
-                        handleFinishInterview(); 
+                        handleFinishInterview();
                     }, MAX_SESSION_DURATION_MS);
                 }
               });
@@ -383,7 +413,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       } catch (err) {
         console.error("Error accessing media devices.", err);
         toast({ variant: "destructive", title: "Camera/Mic Error", description: "Please check permissions and ensure no other app is using them." });
-        setConversationSubStage("preparingStream"); 
+        setConversationSubStage("preparingStream");
         setSpeechApiError("Failed to access camera/microphone. Please check permissions.");
       }
     } else {
@@ -392,6 +422,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       setSpeechApiError("Media recording (camera/microphone) is not supported in this browser.");
     }
   }, [toast, initializeSpeechRecognition, mainStage, conversationSubStage, currentInterviewTurn, aiGreeting, currentAiQuestion, speak, isCandidateListeningActive, handleFinishInterview]);
+
 
   useEffect(() => {
     if (consentGiven && mainStage === "consent") {
@@ -410,7 +441,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           setCurrentAiQuestion(result.firstQuestion);
           setAccumulatedInterviewTranscript(prev => `${prev}Mira: ${result.aiGreeting} ${result.firstQuestion}\n\n`);
           setMainStage("conversation");
-          setConversationSubStage("preparingStream"); 
+          setConversationSubStage("preparingStream");
           toast({ title: "Mira is ready!", description: "Your AI interviewer has joined." });
         } catch (error) {
           console.error("Error fetching initial AI message:", error);
@@ -437,17 +468,17 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const handleProceedToNextStep = async () => {
     if (!currentAnswerTranscript.trim() && currentInterviewTurn < MAX_INTERVIEW_TURNS +1 && conversationSubStage === "sessionRecording") {
         toast({variant: "destructive", title: "Empty Answer", description: "Please provide an answer before proceeding."});
-        if (!speechApiError?.includes("No speech was detected")) { 
+        if (!speechApiError?.includes("No speech was detected")) {
           return;
         }
     }
-    
+
     if (speechRecognitionRef.current && isCandidateListeningActive) {
-      speechRecognitionRef.current.stop(); 
+      speechRecognitionRef.current.stop();
     }
     setAccumulatedInterviewTranscript(prev => `${prev}Candidate: ${currentAnswerTranscript || "(No audible answer provided)"}\n\n`);
-    setCurrentAnswerTranscript(""); 
-    setSpeechApiError(null); 
+    setCurrentAnswerTranscript("");
+    setSpeechApiError(null);
 
 
     if (currentInterviewTurn < MAX_INTERVIEW_TURNS) {
@@ -457,17 +488,23 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           jobDescription: jobContext.jobDescription,
           candidateResume: jobContext.candidateResume,
           previousQuestion: currentAiQuestion || "",
-          candidateAnswer: accumulatedInterviewTranscript.split("Candidate:").pop()?.trim() || "", 
+          candidateAnswer: accumulatedInterviewTranscript.split("Candidate:").pop()?.trim() || "",
         };
         const result = await getFollowUpQuestion(input);
         setCurrentAiQuestion(result.nextQuestion);
         setAccumulatedInterviewTranscript(prev => `${prev}Mira: ${result.nextQuestion}\n\n`);
         setCurrentInterviewTurn(prev => prev + 1);
-        
+
         setConversationSubStage("miraSpeaking");
-        speak(result.nextQuestion, () => { 
+        speak(result.nextQuestion, () => {
             if (speechRecognitionRef.current && !isCandidateListeningActive) {
-                speechRecognitionRef.current.start(); 
+                try {
+                    speechRecognitionRef.current.start();
+                } catch (sttError) {
+                    console.error("Error starting STT after Mira speaks (follow-up):", sttError);
+                    setSpeechApiError("Could not start voice recognition for follow-up. Please check permissions.");
+                    toast({variant: "destructive", title: "STT Start Error", description: "Could not start voice recognition for follow-up."})
+                }
             }
             setConversationSubStage("sessionRecording");
         });
@@ -481,9 +518,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       handleFinishInterview();
     }
   };
-  
+
   useEffect(() => {
-    return () => { 
+    return () => {
       cleanupStreamAndRecorders();
       if ('speechSynthesis' in window && speechSynthesis.speaking) speechSynthesis.cancel();
     };
@@ -503,7 +540,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           <Label htmlFor="consent-checkbox">I consent to video/audio recording and speech functionalities.</Label>
         </div>
         <DialogFooter>
-          <Button type="button" onClick={() => { 
+          <Button type="button" onClick={() => {
               if(consentGiven) setMainStage("loadingInitialMessage");
               else toast({variant: "destructive", title: "Consent Required"})
           }} disabled={!consentGiven}>Continue</Button>
@@ -520,7 +557,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
-            <Bot /> Mira - AI Interviewer 
+            <Bot /> Mira - AI Interviewer
             {(isMiraCurrentlySpeaking || conversationSubStage === "miraSpeaking") && <Volume2 className="h-5 w-5 text-primary animate-pulse" />}
           </CardTitle>
           {isLoadingInitial || (conversationSubStage === "preparingStream" && mainStage === "conversation") ? (
@@ -551,7 +588,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
               </div>
             )}
           </div>
-          
+
           {currentAnswerTranscript && (conversationSubStage === "sessionRecording" || isLoadingNextQuestion || conversationSubStage === "miraSpeaking") && (
             <Card className="bg-secondary/50 p-3 shadow-sm">
               <CardHeader className="p-1 pb-2"><CardTitle className="text-sm flex items-center"><UserCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Your Current Response (Live Transcript):</CardTitle></CardHeader>
@@ -603,7 +640,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     <>
       {renderConsentDialog()}
       {speechApiError && <Alert variant="destructive" className="mb-4 shadow-lg"><AlertDescription>{speechApiError}</AlertDescription></Alert>}
-      
+
       {(mainStage === "loadingInitialMessage" || mainStage === "conversation" || mainStage === "loadingFeedback") && renderInterviewContent()}
       {mainStage === "loadingFeedback" && !feedbackResult && (
           <div className="text-center p-8 space-y-2">
