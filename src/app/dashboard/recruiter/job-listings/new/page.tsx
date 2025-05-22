@@ -31,6 +31,7 @@ const jobPostingSchema = z.object({
   responsibilities: z.string().min(10, "Responsibilities section should be at least 10 characters. AI can help generate more.").optional(),
   qualifications: z.string().min(10, "Qualifications section should be at least 10 characters. AI can help generate more.").optional(),
   skills: z.array(z.string()).optional(),
+  companyBenefits: z.string().min(10, "Company benefits section should be at least 10 characters. AI can help generate more.").optional(),
 });
 
 type JobPostingFormValues = z.infer<typeof jobPostingSchema>;
@@ -56,6 +57,7 @@ export default function CreateNewJobPage() {
       responsibilities: "• ", 
       qualifications: "• ", 
       skills: [],
+      companyBenefits: "• ",
     },
   });
 
@@ -105,6 +107,8 @@ export default function CreateNewJobPage() {
       form.setValue("responsibilities", result.responsibilities, { shouldValidate: true });
       form.setValue("qualifications", result.qualifications, { shouldValidate: true });
       form.setValue("skills", result.skills || [], { shouldValidate: true });
+      form.setValue("companyBenefits", result.companyBenefits || "• ", { shouldValidate: true });
+
 
       toast({ title: "AI Generation Complete!", description: "Job details have been populated." });
     } catch (error) {
@@ -298,19 +302,6 @@ export default function CreateNewJobPage() {
                         {...field} 
                         rows={10} 
                         onKeyDown={(e) => handleBulletTextareaKeyDown(e, field)}
-                        onChange={(e) => {
-                            // Ensure new lines always start with a bullet if the previous line had one or was empty
-                            const value = e.target.value;
-                            const lines = value.split('\n');
-                            if (lines.length > 1) {
-                                const lastLine = lines[lines.length - 1];
-                                const secondLastLine = lines[lines.length - 2];
-                                if (lastLine.trim() !== "" && !lastLine.startsWith("• ") && (secondLastLine.startsWith("• ") || secondLastLine.trim() === "")) {
-                                    // This logic is a bit complex for direct onChange, better handled by onKeyDown
-                                }
-                            }
-                            field.onChange(e);
-                        }}
                     /></FormControl>
                     <FormDescription>Clearly outline what the candidate will be doing. Press Enter for new bullet point.</FormDescription>
                     <FormMessage />
@@ -362,6 +353,23 @@ export default function CreateNewJobPage() {
                        {(!field.value || field.value.length === 0) && <p className="text-xs text-muted-foreground">No skills added yet.</p>}
                     </div>
                     <FormDescription>List any desirable but not essential skills. AI can suggest these.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="companyBenefits"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Benefits (AI can help generate some)</FormLabel>
+                    <FormControl><Textarea 
+                        placeholder="List company benefits (e.g., Health Insurance, 401k, Paid Time Off). Start each with '• '... AI can help!" 
+                        {...field} 
+                        rows={7} 
+                        onKeyDown={(e) => handleBulletTextareaKeyDown(e, field)}
+                    /></FormControl>
+                    <FormDescription>Outline the benefits provided by the company. Press Enter for new bullet point.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

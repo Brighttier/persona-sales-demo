@@ -3,7 +3,7 @@
 /**
  * @fileOverview AI flow to generate job posting details.
  *
- * - generateJobPostingDetails - A function that uses AI to generate job description, responsibilities, qualifications, and skills.
+ * - generateJobPostingDetails - A function that uses AI to generate job description, responsibilities, qualifications, skills, and benefits.
  * - GenerateJobPostingInput - The input type for the flow.
  * - GenerateJobPostingOutput - The return type for the flow.
  */
@@ -23,6 +23,7 @@ const GenerateJobPostingOutputSchema = z.object({
   responsibilities: z.string().describe("A list of key responsibilities, formatted as newline-separated bullet points (each starting with '• '). Minimum 7, maximum 15 bullet points."),
   qualifications: z.string().describe("A list of essential qualifications and experience, formatted as newline-separated bullet points (each starting with '• '). Minimum 5, maximum 10 bullet points."),
   skills: z.array(z.string()).describe('A list of the top 5 to 10 most relevant skills for this job title. Return as an array of strings.'),
+  companyBenefits: z.string().describe("A list of typical company benefits formatted as newline-separated bullet points (each starting with '• '). Suggest 3-5 common benefits."),
 });
 export type GenerateJobPostingOutput = z.infer<typeof GenerateJobPostingOutputSchema>;
 
@@ -47,6 +48,7 @@ Follow these specific constraints for each section:
 2.  **Responsibilities**: List key responsibilities for this role. Provide a minimum of 7 and a maximum of 15 distinct responsibilities. Each responsibility MUST start with a bullet character and a space ('• ') on a new line.
 3.  **Qualifications**: List essential qualifications and experience for this role. Provide a minimum of 5 and a maximum of 10 distinct qualifications. Each qualification MUST start with a bullet character and a space ('• ') on a new line.
 4.  **Skills**: Identify the top 5 to 10 most relevant technical and soft skills for this job title and context. Return these as an array of skill strings.
+5.  **Company Benefits**: List 3 to 5 common company benefits relevant to a professional role, formatted as newline-separated bullet points (each starting with '• '). Examples: Health Insurance, Paid Time Off, 401(k) Plan, Professional Development, Flexible Work Hours.
 
 Ensure the generated content is professional, clear, and attractive to potential candidates.
 `,
@@ -68,11 +70,15 @@ const generateJobPostingFlow = ai.defineFlow(
             responsibilities: "• Responsibility 1\n• Responsibility 2\n• Responsibility 3\n• Responsibility 4\n• Responsibility 5\n• Responsibility 6\n• Responsibility 7",
             qualifications: "• Qualification 1\n• Qualification 2\n• Qualification 3\n• Qualification 4\n• Qualification 5",
             skills: ["Skill A", "Skill B", "Skill C", "Skill D", "Skill E"],
+            companyBenefits: "• Benefit A\n• Benefit B\n• Benefit C",
         };
     }
     // Ensure skills is an array even if AI messes up (though Zod schema should handle it)
     if (!Array.isArray(output.skills)) {
         output.skills = typeof output.skills === 'string' ? [output.skills] : [];
+    }
+    if (!output.companyBenefits) {
+        output.companyBenefits = "• Example Benefit 1\n• Example Benefit 2";
     }
     return output;
   }
