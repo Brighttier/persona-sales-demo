@@ -14,6 +14,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod"; // Added import
 import { enrichProfile, type EnrichProfileInput, type EnrichProfileOutput } from "@/ai/flows/profile-enrichment";
 
 // Mock data structure for an applicant from the list, including a mock resume URI
@@ -35,7 +36,7 @@ interface ApplicantDetail {
 const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
   "app1": { id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", email: "alice@example.com", phone: "555-0101", linkedin: "https://linkedin.com/in/alicejohnson", headline: "Senior React Developer", mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu", mockExperience: [{ title: "Lead Frontend Developer", company: "Innovatech", duration: "2021-Present", description: "Led frontend team, developed key features using React." }], mockEducation: [{ institution: "State University", degree: "BSc Computer Science", field: "CS", year: "2019" }] },
   "app2": { id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", email: "bob@example.com", headline: "Full Stack Python Developer", mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==", mockExperience: [{title: "Backend Developer", company: "Data Corp", duration: "2020-2023", description: "Built scalable APIs with Django."}], mockEducation: [{institution: "Tech Institute", degree: "MSc Data Science", field: "Data", year: "2020"}]},
-  // Add more mock candidates if needed, matching IDs from applicants page
+  "app5": { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", email: "eve@example.com", headline: "Creative Vue.js Developer", mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=", mockExperience: [{title: "UI Developer", company: "Web Creations", duration: "2022-Present", description: "Designed and implemented user interfaces with Vue.js."}], mockEducation: [{institution: "Design School", degree: "BA Graphic Design", field: "Design", year: "2021"}]},
 };
 
 
@@ -76,6 +77,9 @@ export default function CandidateProfilePage() {
       } finally {
         setIsEnriching(false);
       }
+    } else if (foundCandidate) {
+        // Candidate found but no mock resume, set enriched data to null or default state
+        setEnrichedData(null);
     }
     setIsLoading(false);
   }, [toast]);
@@ -192,9 +196,11 @@ export default function CandidateProfilePage() {
             <CardContent>
                 <p className="text-sm text-muted-foreground mb-2">
                     {candidate.mockResumeDataUri === "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu" 
-                    ? "Original Mock Resume on file." 
+                    ? "Original Mock Resume on file for Alice." 
                     : candidate.mockResumeDataUri === "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg=="
-                    ? "Original Mock Resume on file."
+                    ? "Original Mock Resume on file for Bob."
+                    : candidate.mockResumeDataUri === "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4="
+                    ? "Original Mock Resume on file for Eve."
                     : candidate.mockResumeDataUri ? "New resume processed." : "No resume on file."}
                 </p>
                 <Form {...resumeForm}>
