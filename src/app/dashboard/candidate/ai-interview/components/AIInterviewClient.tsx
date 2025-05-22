@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, CheckCircle, Loader2, MicOff, Video, Timer, AlertCircle, BotMessageSquare, User, Film } from "lucide-react";
+import { Camera, CheckCircle, Loader2, MicOff, Video, Timer, AlertCircle, BotMessageSquare, User, Film, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { AiInterviewSimulationInput, AiInterviewSimulationOutput } from "@/ai/flows/ai-interview-simulation";
 import { aiInterviewSimulation } from "@/ai/flows/ai-interview-simulation";
@@ -33,43 +33,33 @@ const formatFeedbackText = (text: string | undefined): React.ReactNode => {
   let listItems: JSX.Element[] = [];
 
   const renderTextWithBold = (line: string, keyPrefix: string): React.ReactNode[] => {
-    // Regex to split by **bolded text** while keeping the bolded text as a separate part
     const parts = line.split(/(\*\*.*?\*\*)/g); 
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        // Return <strong> for bolded parts
         return <strong key={`${keyPrefix}-bold-${index}`}>{part.substring(2, part.length - 2)}</strong>;
       }
-      // Return regular text
       return part; 
     });
   };
 
   lines.forEach((line, index) => {
     const trimmedLine = line.trim();
-    // Check for bullet points (*, •, -) followed by a space
     const bulletMatch = trimmedLine.match(/^([*•-])\s(.*)/);
 
     if (bulletMatch) {
-      const itemText = bulletMatch[2]; // Text after the bullet point and space
+      const itemText = bulletMatch[2];
       listItems.push(<li key={`li-${index}`}>{renderTextWithBold(itemText, `li-${index}`)}</li>);
     } else {
-      // If there were pending list items, render them as a <ul>
       if (listItems.length > 0) {
         output.push(<ul key={`ul-${output.length}`} className="list-disc pl-6 space-y-1 my-3">{listItems}</ul>);
-        listItems = []; // Reset for next potential list
+        listItems = []; 
       }
-      // Render non-list lines as <p>, but only if they are not empty
       if (trimmedLine) {
         output.push(<p key={`p-${index}`} className="my-3">{renderTextWithBold(trimmedLine, `p-${index}`)}</p>);
-      } else if (output.length > 0 && (output[output.length - 1] as any)?.type === 'p') {
-        // Add a line break for intentional empty lines between paragraphs, if desired
-        // output.push(<br key={`br-${index}`} />); 
       }
     }
   });
 
-  // If the text ends with list items, render them
   if (listItems.length > 0) {
     output.push(<ul key={`ul-${output.length}`} className="list-disc pl-6 space-y-1 my-3">{listItems}</ul>);
   }
@@ -88,6 +78,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const [feedbackResult, setFeedbackResult] = useState<AiInterviewSimulationOutput | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
+  const [speechApiError, setSpeechApiError] = useState<string | null>(null);
+  const [isMiraSpeaking, setIsMiraSpeaking] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -95,6 +89,102 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const recordedChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const recordingTimerIdRef = useRef<NodeJS.Timeout | null>(null);
+
+  const loadVoices = useCallback(() => {
+    const voices = speechSynthesis.getVoices();
+    setAvailableVoices(voices);
+    if (voices.length > 0) {
+        let preferredVoice = voices.find(voice => voice.name === 'Google US English Female' && voice.lang.startsWith('en-US'));
+        if (!preferredVoice) preferredVoice = voices.find(voice => voice.name === 'Microsoft Zira - English (United States)' && voice.lang.startsWith('en-US'));
+        if (!preferredVoice) preferredVoice = voices.find(voice => voice.lang.startsWith('en-US') && voice.gender === 'female');
+        if (!preferredVoice) preferredVoice = voices.find(voice => voice.lang.startsWith('en-US'));
+        if (!preferredVoice) preferredVoice = voices.find(voice => voice.lang.startsWith('en'));
+        setSelectedVoice(preferredVoice || voices[0]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+    return () => {
+        speechSynthesis.onvoiceschanged = null;
+    };
+  }, [loadVoices]);
+  
+  const speak = useCallback((text: string | null | undefined, onEndCallback?: () => void) => {
+    if (speechSynthesis.speaking) {
+        speechSynthesis.cancel(); // Cancel any ongoing speech
+    }
+
+    if (!text || text.trim() === "") {
+        console.warn("Speak function called with empty text.");
+        setSpeechApiError(null);
+        setIsMiraSpeaking(false);
+        onEndCallback?.();
+        return;
+    }
+
+    setSpeechApiError(null);
+    setIsMiraSpeaking(true);
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    let currentSelectedVoice = selectedVoice;
+
+    if (!currentSelectedVoice && availableVoices.length > 0) {
+        let preferredVoice = availableVoices.find(voice => voice.name === 'Google US English Female' && voice.lang.startsWith('en-US'));
+        if (!preferredVoice) preferredVoice = availableVoices.find(voice => voice.name === 'Microsoft Zira - English (United States)' && voice.lang.startsWith('en-US'));
+        if (!preferredVoice) preferredVoice = availableVoices.find(voice => voice.lang.startsWith('en-US') && voice.gender === 'female');
+        if (!preferredVoice) preferredVoice = availableVoices.find(voice => voice.lang.startsWith('en-US'));
+        if (!preferredVoice) preferredVoice = availableVoices.find(voice => voice.lang.startsWith('en'));
+        currentSelectedVoice = preferredVoice || availableVoices[0];
+    }
+    
+    if (currentSelectedVoice) {
+        utterance.voice = currentSelectedVoice;
+    } else if (availableVoices.length > 0) {
+        utterance.voice = availableVoices[0]; // Fallback to the first available voice
+    } else {
+        console.warn("No TTS voices available.");
+        setSpeechApiError("No Text-to-Speech voices are available in your browser.");
+        setIsMiraSpeaking(false);
+        onEndCallback?.();
+        return;
+    }
+    
+    utterance.pitch = 1;
+    utterance.rate = 0.9; 
+    utterance.volume = 1;
+
+    utterance.onend = () => {
+      setIsMiraSpeaking(false);
+      onEndCallback?.();
+    };
+
+    utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+      console.error("SpeechSynthesis Error Event (see details in browser console):", event);
+      let errorCode = typeof event.error === 'string' ? event.error : "Unknown TTS Error";
+      if (typeof event.error === 'object' && event.error !== null) {
+        errorCode = JSON.stringify(event.error);
+      }
+      const fullErrorMessage = `SpeechSynthesis Error: ${errorCode}. Check browser console for details.`;
+      setSpeechApiError(fullErrorMessage);
+      toast({ variant: "destructive", title: "Speech Error", description: fullErrorMessage });
+      setIsMiraSpeaking(false);
+      onEndCallback?.(); 
+    };
+    
+    try {
+        speechSynthesis.speak(utterance);
+    } catch (e) {
+        console.error("Error calling speechSynthesis.speak():", e);
+        setSpeechApiError("Failed to initiate speech synthesis. Ensure your browser supports it and permissions are granted.");
+        setIsMiraSpeaking(false);
+        onEndCallback?.();
+    }
+
+  }, [selectedVoice, availableVoices, toast]);
 
   const cleanupStreamAndRecorders = useCallback(() => {
     if (recordingTimerIdRef.current) {
@@ -142,7 +232,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         setFeedbackResult(result);
         setStage("feedback");
         toast({ title: "Feedback Received!", description: "AI has analyzed your response." });
-        // Cleanup is now more general, called in resetFullInterview or on unmount
       };
       reader.onerror = () => {
         toast({ variant: "destructive", title: "File Read Error", description: "Could not process video for submission." });
@@ -196,18 +285,20 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           setCountdown(prev => {
             if (prev === null || prev <= 1) {
               clearInterval(countdownInterval);
-              setStage("recording");
-              setIsRecordingActive(true);
-              if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "recording") {
-                mediaRecorderRef.current.start();
-              }
-              recordingTimerIdRef.current = setTimeout(() => {
-                if (mediaRecorderRef.current?.state === "recording") {
-                  toast({ title: "Time's Up!", description: "Recording automatically stopped."});
-                  mediaRecorderRef.current.stop(); 
-                  setIsRecordingActive(false); 
-                }
-              }, RECORDING_DURATION_MS);
+               speak(`Hello! Please introduce yourself. Tell us about your experience and why you're interested in the ${jobContext.jobTitle} role. Speak clearly and naturally. You have up to ${RECORDING_DURATION_MS / 1000} seconds. Good luck!`, () => {
+                 setStage("recording");
+                 setIsRecordingActive(true);
+                 if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "recording") {
+                    mediaRecorderRef.current.start();
+                  }
+                  recordingTimerIdRef.current = setTimeout(() => {
+                    if (mediaRecorderRef.current?.state === "recording") {
+                      toast({ title: "Time's Up!", description: "Recording automatically stopped."});
+                      mediaRecorderRef.current.stop(); 
+                      setIsRecordingActive(false); 
+                    }
+                  }, RECORDING_DURATION_MS);
+               });
               return null;
             }
             return prev - 1;
@@ -227,7 +318,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         toast({ variant: "destructive", title: "Media Device Error", description: desc });
         setStage("preparingStream"); 
       }
-  }, [stage, toast, submitForFinalFeedback]);
+  }, [stage, toast, submitForFinalFeedback, speak, jobContext.jobTitle]);
   
 
   const handleFinishRecording = () => {
@@ -238,7 +329,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         clearTimeout(recordingTimerIdRef.current);
         recordingTimerIdRef.current = null;
       }
-      // Submission is now handled by onstop handler when blob is ready.
     }
   };
 
@@ -255,9 +345,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     setRecordedVideoBlob(null);
     setCountdown(null);
     setMediaError(null);
+    setSpeechApiError(null);
     setConsentGiven(false); 
     setStage("consent");
     setCameraPermission(null);
+    setIsMiraSpeaking(false);
+    if (speechSynthesis.speaking) speechSynthesis.cancel();
   }, [cleanupStreamAndRecorders]);
 
   useEffect(() => {
@@ -275,6 +368,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   useEffect(() => {
     return () => { 
       cleanupStreamAndRecorders();
+      if (speechSynthesis.speaking) speechSynthesis.cancel();
     };
   }, [cleanupStreamAndRecorders]);
 
@@ -284,7 +378,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         <DialogHeader>
           <DialogTitle>Consent for Recording</DialogTitle>
           <DialogDescription>
-            This AI Interview Simulation requires access to your camera and microphone to record your video response. The recording will start after a brief countdown and will last up to {RECORDING_DURATION_MS / 1000} seconds. Your recording will be used solely for AI-generated feedback.
+            This AI Interview Simulation requires access to your camera and microphone to record your video response. The recording will start after a brief countdown and Mira's introduction, and will last up to {RECORDING_DURATION_MS / 1000} seconds. Your recording will be used solely for AI-generated feedback.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center space-x-2 py-4">
@@ -307,7 +401,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         {/* AI Interviewer Panel */}
         <Card className="shadow-lg md:sticky md:top-20">
           <CardHeader className="text-center">
-            <BotMessageSquare className="h-16 w-16 mx-auto text-primary mb-2" />
+            <div className="relative inline-block mx-auto">
+                <BotMessageSquare className="h-16 w-16 text-primary mb-2" />
+                {isMiraSpeaking && <Volume2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-accent animate-pulse" />}
+            </div>
             <CardTitle className="text-xl">Mira - Your AI Interviewer</CardTitle>
             <CardDescription>Job: {jobContext.jobTitle}</CardDescription>
           </CardHeader>
@@ -316,10 +413,16 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                 <User className="h-4 w-4 !text-primary"/>
                 <AlertTitle className="text-primary">Your Prompt</AlertTitle>
                 <AlertDescription className="text-sm">
-                    Hello! Please introduce yourself. Tell us about your experience and why you're interested in the {jobContext.jobTitle} role. 
-                    Speak clearly and naturally. You have up to {RECORDING_DURATION_MS / 1000} seconds. Good luck!
+                    {`Hello! Please introduce yourself. Tell us about your experience and why you're interested in the ${jobContext.jobTitle} role. Speak clearly and naturally. You have up to ${RECORDING_DURATION_MS / 1000} seconds. Good luck!`}
                 </AlertDescription>
             </Alert>
+             {speechApiError && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Speech Synthesis Error</AlertTitle>
+                <AlertDescription>{speechApiError}</AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
@@ -330,11 +433,14 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
               <Film className="text-primary"/> Your Video Response
             </CardTitle>
             <CardDescription>
-              The recording will start after the countdown.
+              {stage === 'countdown' && "Recording will start after Mira speaks."}
+              {stage === 'recording' && isRecordingActive && "Recording in progress..."}
+              {stage === 'recording' && !isRecordingActive && "Processing..."}
+              {stage !== 'countdown' && stage !== 'recording' && "The recording will start after the countdown and Mira's prompt."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="aspect-video w-full bg-muted rounded-md flex items-center justify-center overflow-hidden relative shadow-inner">
+            <div className="aspect-video w-full max-w-lg mx-auto bg-muted rounded-md flex items-center justify-center overflow-hidden relative shadow-inner border border-border">
               <video ref={videoPreviewRef} className="w-full h-full object-cover transform scale-x-[-1]" playsInline autoPlay muted />
               {stage === "preparingStream" && !streamRef.current && !mediaError && cameraPermission === null && <Loader2 className="absolute h-16 w-16 text-primary animate-spin" />}
               {stage === "countdown" && countdown !== null && (
@@ -347,7 +453,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                   <Timer className="h-4 w-4 mr-1" /> REC
                 </div>
               )}
-               {/* Show camera icon if permission not granted or no stream and not preparing */}
                {((cameraPermission === false || (!streamRef.current && videoPreviewRef.current?.srcObject === null)) &&
                  stage !== "preparingStream" && stage !== "countdown" && !isRecordingActive && !mediaError) && (
                    <Camera className="absolute h-24 w-24 text-muted-foreground" />
@@ -390,7 +495,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         <Alert variant="default" className="bg-primary/5 border-primary/20">
             <User className="h-4 w-4 !text-primary" />
             <AlertTitle className="text-primary font-semibold">Key Feedback Points</AlertTitle>
-            <AlertDescription className="text-sm">
+            <AlertDescription className="text-sm prose prose-sm max-w-none prose-strong:font-semibold">
                 {formatFeedbackText(feedbackResult?.feedback)}
             </AlertDescription>
         </Alert>
@@ -423,4 +528,3 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     </>
   );
 }
-
