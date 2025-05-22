@@ -8,16 +8,37 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Edit3, FileUp, Loader2, Save, VenetianMask, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, UserCircle, BrainCircuit, Star } from "lucide-react";
+import { ArrowLeft, Edit3, FileUp, Loader2, Save, VenetianMask, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, UserCircle, BrainCircuit, Star, Award, Building } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod"; // Added import
-import { enrichProfile, type EnrichProfileInput, type EnrichProfileOutput } from "@/ai/flows/profile-enrichment";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { enrichProfile, type EnrichProfileOutput } from "@/ai/flows/profile-enrichment";
 
-// Mock data structure for an applicant from the list, including a mock resume URI
+// Data structures for profile sections
+interface ExperienceItem {
+  title: string;
+  company: string;
+  duration: string;
+  description: string;
+}
+
+interface EducationItem {
+  institution: string;
+  degree: string;
+  field: string;
+  year: string;
+}
+
+interface CertificationItem {
+  name: string;
+  issuingOrganization: string;
+  date: string; // e.g., "2023-03" or "March 2023"
+  credentialID?: string;
+}
+
 interface ApplicantDetail {
   id: string;
   name: string;
@@ -27,16 +48,54 @@ interface ApplicantDetail {
   linkedin?: string;
   portfolio?: string;
   headline?: string;
-  mockResumeDataUri?: string; // For auto-enrichment demo
-  mockExperience?: Array<{ title: string; company: string; duration: string; description: string }>;
-  mockEducation?: Array<{ institution: string; degree: string; field: string; year: string }>;
+  mockResumeDataUri?: string;
+  mockExperience?: ExperienceItem[];
+  mockEducation?: EducationItem[];
+  mockCertifications?: CertificationItem[];
 }
 
-// Simulate fetching this from your mockApplicants list on the previous page, or a DB
 const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
-  "app1": { id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", email: "alice@example.com", phone: "555-0101", linkedin: "https://linkedin.com/in/alicejohnson", headline: "Senior React Developer", mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu", mockExperience: [{ title: "Lead Frontend Developer", company: "Innovatech", duration: "2021-Present", description: "Led frontend team, developed key features using React." }], mockEducation: [{ institution: "State University", degree: "BSc Computer Science", field: "CS", year: "2019" }] },
-  "app2": { id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", email: "bob@example.com", headline: "Full Stack Python Developer", mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==", mockExperience: [{title: "Backend Developer", company: "Data Corp", duration: "2020-2023", description: "Built scalable APIs with Django."}], mockEducation: [{institution: "Tech Institute", degree: "MSc Data Science", field: "Data", year: "2020"}]},
-  "app5": { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", email: "eve@example.com", headline: "Creative Vue.js Developer", mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=", mockExperience: [{title: "UI Developer", company: "Web Creations", duration: "2022-Present", description: "Designed and implemented user interfaces with Vue.js."}], mockEducation: [{institution: "Design School", degree: "BA Graphic Design", field: "Design", year: "2021"}]},
+  "app1": {
+    id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", email: "alice@example.com", phone: "555-0101", linkedin: "https://linkedin.com/in/alicejohnson", headline: "Senior React Developer",
+    mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu",
+    mockExperience: [
+      { title: "Lead Frontend Developer", company: "Innovatech Solutions", duration: "2021 - Present", description: "Led a team of 5 frontend developers in agile environment. Architected and implemented new user-facing features using React, Redux, and TypeScript. Improved application performance by 20%." },
+      { title: "Software Engineer", company: "Web Wizards Inc.", duration: "2019 - 2021", description: "Developed and maintained responsive web applications. Collaborated with UX/UI designers to translate mockups into functional components." }
+    ],
+    mockEducation: [
+      { institution: "State University", degree: "BSc Computer Science", field: "Computer Science", year: "2019" }
+    ],
+    mockCertifications: [
+      { name: "AWS Certified Developer - Associate", issuingOrganization: "Amazon Web Services", date: "2022-03" },
+      { name: "Professional Scrum Master I", issuingOrganization: "Scrum.org", date: "2021-07" }
+    ]
+  },
+  "app2": {
+    id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", email: "bob@example.com", headline: "Full Stack Python Developer",
+    mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==",
+    mockExperience: [
+      { title: "Backend Developer", company: "Data Corp", duration: "2020 - 2023", description: "Built scalable APIs with Django and Flask. Managed PostgreSQL databases and integrated third-party services." }
+    ],
+    mockEducation: [
+      { institution: "Tech Institute", degree: "MSc Data Science", field: "Data Science", year: "2020" }
+    ],
+    mockCertifications: [
+      { name: "Google Cloud Professional Data Engineer", issuingOrganization: "Google Cloud", date: "2023-01" }
+    ]
+  },
+  "app5": {
+    id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", email: "eve@example.com", headline: "Creative Vue.js Developer",
+    mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=",
+    mockExperience: [
+      { title: "UI Developer", company: "Web Creations", duration: "2022 - Present", description: "Designed and implemented user interfaces with Vue.js, Vuex, and Vuetify. Focused on accessibility and responsive design." }
+    ],
+    mockEducation: [
+      { institution: "Design School of Fine Arts", degree: "BA Graphic Design", field: "Graphic Design", year: "2021" }
+    ],
+     mockCertifications: [
+      { name: "Certified Vue.js Developer", issuingOrganization: "Vue School", date: "2022-08" }
+    ]
+  },
 };
 
 
@@ -78,7 +137,6 @@ export default function CandidateProfilePage() {
         setIsEnriching(false);
       }
     } else if (foundCandidate) {
-        // Candidate found but no mock resume, set enriched data to null or default state
         setEnrichedData(null);
     }
     setIsLoading(false);
@@ -103,8 +161,7 @@ export default function CandidateProfilePage() {
         const resumeDataUri = reader.result as string;
         const result = await enrichProfile({ resumeDataUri });
         setEnrichedData(result);
-        // Optionally update candidate's mockResumeDataUri or file name display
-        if (candidate) setCandidate({...candidate, mockResumeDataUri: "New resume uploaded"}); 
+        if (candidate) setCandidate({...candidate, mockResumeDataUri: "New resume uploaded"});
         toast({ title: "New Resume Enriched!", description: "Profile updated with new resume data." });
         resumeForm.reset();
       };
@@ -167,6 +224,7 @@ export default function CandidateProfilePage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row justify-between items-center">
@@ -179,24 +237,67 @@ export default function CandidateProfilePage() {
           </Card>
 
           <Card className="shadow-lg">
-            <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
-            <CardContent>
-              {isEnriching && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
-              {!isEnriching && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted by AI. Upload resume.</p>}
-              <div className="flex flex-wrap gap-2">
-                {skillsToDisplay.map(skill => <Badge key={skill} variant="default">{skill}</Badge>)}
-              </div>
+            <CardHeader><CardTitle className="text-lg flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/> Work Experience</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {candidate.mockExperience?.length ? candidate.mockExperience.map((exp, index) => (
+                <div key={index} className="pb-4 mb-4 border-b border-border last:border-b-0 last:pb-0 last:mb-0">
+                  <h4 className="font-semibold text-md">{exp.title}</h4>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Building className="mr-1.5 h-3.5 w-3.5"/>{exp.company} 
+                    <span className="mx-2">|</span> 
+                    {exp.duration}
+                  </div>
+                  <p className="text-sm mt-1 text-foreground/80 whitespace-pre-line">{exp.description}</p>
+                </div>
+              )) : <p className="text-sm text-muted-foreground">No work experience provided.</p>}
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg">
+            <CardHeader><CardTitle className="text-lg flex items-center"><GraduationCap className="mr-2 h-5 w-5 text-primary"/> Education</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {candidate.mockEducation?.length ? candidate.mockEducation.map((edu, index) => (
+                <div key={index} className="pb-4 mb-4 border-b border-border last:border-b-0 last:pb-0 last:mb-0">
+                  <h4 className="font-semibold text-md">{edu.institution}</h4>
+                  <p className="text-sm text-muted-foreground">{edu.degree} in {edu.field}</p>
+                  <p className="text-xs mt-0.5 text-muted-foreground">Graduated: {edu.year}</p>
+                </div>
+              )) : <p className="text-sm text-muted-foreground">No education details provided.</p>}
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg">
+            <CardHeader><CardTitle className="text-lg flex items-center"><Award className="mr-2 h-5 w-5 text-primary"/> Certifications</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {candidate.mockCertifications?.length ? candidate.mockCertifications.map((cert, index) => (
+                <div key={index} className="pb-4 mb-4 border-b border-border last:border-b-0 last:pb-0 last:mb-0">
+                  <h4 className="font-semibold text-md">{cert.name}</h4>
+                  <p className="text-sm text-muted-foreground">Issued by: {cert.issuingOrganization}</p>
+                  <p className="text-xs mt-0.5 text-muted-foreground">Date: {cert.date} {cert.credentialID && `| ID: ${cert.credentialID}`}</p>
+                </div>
+              )) : <p className="text-sm text-muted-foreground">No certifications listed.</p>}
             </CardContent>
           </Card>
         </div>
 
+        {/* Right Column */}
         <div className="space-y-6">
+          <Card className="shadow-lg">
+            <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
+            <CardContent>
+              {isEnriching && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
+              {!isEnriching && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted. Upload resume.</p>}
+              <div className="flex flex-col gap-2">
+                {skillsToDisplay.map(skill => <Badge key={skill} variant="default" className="text-sm py-1 px-2">{skill}</Badge>)}
+              </div>
+            </CardContent>
+          </Card>
           <Card className="shadow-lg">
             <CardHeader><CardTitle className="text-lg">Resume</CardTitle></CardHeader>
             <CardContent>
                 <p className="text-sm text-muted-foreground mb-2">
-                    {candidate.mockResumeDataUri === "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu" 
-                    ? "Original Mock Resume on file for Alice." 
+                    {candidate.mockResumeDataUri === "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu"
+                    ? "Original Mock Resume on file for Alice."
                     : candidate.mockResumeDataUri === "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg=="
                     ? "Original Mock Resume on file for Bob."
                     : candidate.mockResumeDataUri === "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4="
@@ -224,34 +325,6 @@ export default function CandidateProfilePage() {
                         </Button>
                     </form>
                 </Form>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg">
-            <CardHeader><CardTitle className="text-lg flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/> Work Experience (Mock)</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {candidate.mockExperience?.map((exp, index) => (
-                <div key={index} className="text-sm">
-                  <h4 className="font-semibold">{exp.title}</h4>
-                  <p className="text-muted-foreground">{exp.company} ({exp.duration})</p>
-                  <p className="text-xs mt-1">{exp.description}</p>
-                </div>
-              ))}
-              {!candidate.mockExperience?.length && <p className="text-sm text-muted-foreground">No work experience provided.</p>}
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg">
-            <CardHeader><CardTitle className="text-lg flex items-center"><GraduationCap className="mr-2 h-5 w-5 text-primary"/> Education (Mock)</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              {candidate.mockEducation?.map((edu, index) => (
-                <div key={index} className="text-sm">
-                  <h4 className="font-semibold">{edu.institution}</h4>
-                  <p className="text-muted-foreground">{edu.degree} in {edu.field}</p>
-                  <p className="text-xs mt-0.5">Graduated: {edu.year}</p>
-                </div>
-              ))}
-              {!candidate.mockEducation?.length && <p className="text-sm text-muted-foreground">No education details provided.</p>}
             </CardContent>
           </Card>
         </div>
