@@ -287,7 +287,7 @@ export default function CandidateProfilePage() {
             <CardContent>
               {isEnriching && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
               {!isEnriching && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted. Upload resume.</p>}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap gap-2"> {/* Changed from flex-col to flex-wrap */}
                 {skillsToDisplay.map(skill => <Badge key={skill} variant="default" className="text-sm py-1 px-2">{skill}</Badge>)}
               </div>
             </CardContent>
