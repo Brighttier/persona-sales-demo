@@ -104,7 +104,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   }, []);
 
   useEffect(() => {
-    loadVoices();
+    loadVoices(); // Call once immediately
     if (speechSynthesis.onvoiceschanged !== undefined) {
         speechSynthesis.onvoiceschanged = loadVoices;
     }
@@ -115,7 +115,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   
   const speak = useCallback((text: string | null | undefined, onEndCallback?: () => void) => {
     if (speechSynthesis.speaking) {
-        speechSynthesis.cancel(); // Cancel any ongoing speech
+        speechSynthesis.cancel(); 
     }
 
     if (!text || text.trim() === "") {
@@ -130,24 +130,28 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     setIsMiraSpeaking(true);
 
     const utterance = new SpeechSynthesisUtterance(text);
-    let currentSelectedVoice = selectedVoice;
+    let currentSelectedVoice = selectedVoice; // From state
 
-    if (!currentSelectedVoice && availableVoices.length > 0) {
-        let preferredVoice = availableVoices.find(voice => voice.name === 'Google US English Female' && voice.lang.startsWith('en-US'));
-        if (!preferredVoice) preferredVoice = availableVoices.find(voice => voice.name === 'Microsoft Zira - English (United States)' && voice.lang.startsWith('en-US'));
-        if (!preferredVoice) preferredVoice = availableVoices.find(voice => voice.lang.startsWith('en-US') && voice.gender === 'female');
-        if (!preferredVoice) preferredVoice = availableVoices.find(voice => voice.lang.startsWith('en-US'));
-        if (!preferredVoice) preferredVoice = availableVoices.find(voice => voice.lang.startsWith('en'));
-        currentSelectedVoice = preferredVoice || availableVoices[0];
+    // Attempt to ensure a voice is selected if the state-based one is null
+    if (!currentSelectedVoice) {
+        const currentVoices = speechSynthesis.getVoices();
+        if (currentVoices.length > 0) {
+            let preferredVoice = currentVoices.find(voice => voice.name === 'Google US English Female' && voice.lang.startsWith('en-US'));
+            if (!preferredVoice) preferredVoice = currentVoices.find(voice => voice.name === 'Microsoft Zira - English (United States)' && voice.lang.startsWith('en-US'));
+            if (!preferredVoice) preferredVoice = currentVoices.find(voice => voice.lang.startsWith('en-US') && voice.gender === 'female');
+            if (!preferredVoice) preferredVoice = currentVoices.find(voice => voice.lang.startsWith('en-US'));
+            if (!preferredVoice) preferredVoice = currentVoices.find(voice => voice.lang.startsWith('en'));
+            currentSelectedVoice = preferredVoice || currentVoices[0];
+        }
     }
     
     if (currentSelectedVoice) {
         utterance.voice = currentSelectedVoice;
-    } else if (availableVoices.length > 0) {
-        utterance.voice = availableVoices[0]; // Fallback to the first available voice
     } else {
-        console.warn("No TTS voices available.");
-        setSpeechApiError("No Text-to-Speech voices are available in your browser.");
+        // If still no voice after direct check, it means no voices are available at all.
+        const noVoiceError = "No Text-to-Speech voices are available in your browser.";
+        console.warn(noVoiceError);
+        setSpeechApiError(noVoiceError);
         setIsMiraSpeaking(false);
         onEndCallback?.();
         return;
@@ -164,9 +168,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
     utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
       console.error("SpeechSynthesis Error Event (see details in browser console):", event);
-      let errorCode = typeof event.error === 'string' ? event.error : "Unknown TTS Error";
-      if (typeof event.error === 'object' && event.error !== null) {
-        errorCode = JSON.stringify(event.error);
+      let errorCode = "Unknown TTS Error";
+      if (typeof event.error === 'string' && event.error) {
+          errorCode = event.error;
+      } else if (typeof event.error === 'object' && event.error !== null) {
+          // Attempt to get more details if it's an object, otherwise stringify
+          errorCode = (event.error as any).message || JSON.stringify(event.error);
       }
       const fullErrorMessage = `SpeechSynthesis Error: ${errorCode}. Check browser console for details.`;
       setSpeechApiError(fullErrorMessage);
@@ -177,14 +184,16 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     
     try {
         speechSynthesis.speak(utterance);
-    } catch (e) {
+    } catch (e: any) {
         console.error("Error calling speechSynthesis.speak():", e);
-        setSpeechApiError("Failed to initiate speech synthesis. Ensure your browser supports it and permissions are granted.");
+        const catchErrorMessage = `Failed to initiate speech synthesis: ${e.message || 'Unknown error'}. Ensure your browser supports it.`;
+        setSpeechApiError(catchErrorMessage);
+        toast({ variant: "destructive", title: "Speech Init Error", description: catchErrorMessage});
         setIsMiraSpeaking(false);
         onEndCallback?.();
     }
 
-  }, [selectedVoice, availableVoices, toast]);
+  }, [selectedVoice, availableVoices, toast]); // availableVoices dependency might be redundant if we always check current voices in speak
 
   const cleanupStreamAndRecorders = useCallback(() => {
     if (recordingTimerIdRef.current) {
@@ -440,7 +449,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="aspect-video w-full max-w-lg mx-auto bg-muted rounded-md flex items-center justify-center overflow-hidden relative shadow-inner border border-border">
+             <div className="aspect-video w-full max-w-lg mx-auto bg-muted rounded-md flex items-center justify-center overflow-hidden relative shadow-inner border border-border">
               <video ref={videoPreviewRef} className="w-full h-full object-cover transform scale-x-[-1]" playsInline autoPlay muted />
               {stage === "preparingStream" && !streamRef.current && !mediaError && cameraPermission === null && <Loader2 className="absolute h-16 w-16 text-primary animate-spin" />}
               {stage === "countdown" && countdown !== null && (
