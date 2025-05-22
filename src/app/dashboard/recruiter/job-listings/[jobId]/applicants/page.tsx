@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // Added Table imports
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlus, UserX, Users, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -195,16 +195,16 @@ export default function ViewApplicantsPage() {
               {applicants.map((applicant) => (
                 <TableRow key={applicant.id}>
                   <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
+                    <Link href={`/dashboard/recruiter/candidate-profile/${applicant.id}`} className="flex items-center gap-3 group hover:underline">
+                      <Avatar className="h-9 w-9 group-hover:ring-2 group-hover:ring-primary/50 transition-all">
                         <AvatarImage src={applicant.avatar} alt={applicant.name} data-ai-hint="person professional" />
                         <AvatarFallback>{applicant.name.split(" ").map(n => n[0]).join("").toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium">{applicant.name}</div>
+                        <div className="font-medium text-primary group-hover:text-primary/80 transition-colors">{applicant.name}</div>
                         <div className="text-xs text-muted-foreground">{applicant.email}</div>
                       </div>
-                    </div>
+                    </Link>
                   </TableCell>
                   <TableCell>{applicant.applicationDate}</TableCell>
                   <TableCell>
