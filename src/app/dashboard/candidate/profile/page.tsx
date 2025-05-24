@@ -64,9 +64,14 @@ export default function CandidateProfilePage() {
     defaultValues: {
       fullName: "",
       email: "",
+      phone: "",
+      location: "",
+      headline: "",
+      summary: "",
       skills: [],
       experience: [],
       education: [],
+      resume: null,
       linkedinProfile: "",
       portfolioUrl: "",
     },
@@ -80,17 +85,16 @@ export default function CandidateProfilePage() {
       form.reset({
         fullName: currentUser.name,
         email: currentUser.email,
-        // Mock data for other fields until actual data source or first edit
+        phone: form.getValues("phone") || "123-456-7890",
+        location: form.getValues("location") || "Anytown, USA",
         headline: form.getValues("headline") || "Aspiring Software Innovator | Eager to Learn",
         summary: form.getValues("summary") || "Passionate about creating impactful technology solutions. Eager to learn and contribute to a dynamic team. Seeking new challenges to grow my skills in web development and AI.",
         skills: form.getValues("skills")?.length ? form.getValues("skills") : ["JavaScript", "React", "Node.js", "Problem Solving"],
         experience: form.getValues("experience")?.length ? form.getValues("experience") : [{ title: "Software Development Intern", company: "Tech Startup X", startDate: "2023-06-01", endDate: "2023-08-31", description: "Assisted senior developers in building and testing new features for a web application. Gained experience with agile methodologies and version control."}],
         education: form.getValues("education")?.length ? form.getValues("education") : [{institution: "State University", degree: "BSc", fieldOfStudy: "Computer Science", graduationDate: "2024-05-01"}],
-        location: form.getValues("location") || "Anytown, USA",
-        phone: form.getValues("phone") || "123-456-7890",
         linkedinProfile: form.getValues("linkedinProfile") || "",
         portfolioUrl: form.getValues("portfolioUrl") || "",
-        resume: null, // Reset resume file input
+        resume: form.getValues("resume") || null,
       });
     }
   }, [form]);
@@ -234,21 +238,6 @@ export default function CandidateProfilePage() {
           </Card>
           
           <Card className="shadow-lg">
-            <CardHeader><CardTitle>Resume</CardTitle><CardDescription>Upload your latest resume. Our AI can help enrich your profile based on it.</CardDescription></CardHeader>
-            <CardContent>
-               <FormField control={form.control} name="resume" render={({ field: { onChange, value, ...rest } }) => (
-                  <FormItem>
-                    <FormLabel>Upload Resume (PDF, DOCX)</FormLabel>
-                    <div className="flex items-center gap-4">
-                      <FormControl><Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { onChange(e.target.files[0]); handleResumeUpload(e.target.files[0]); } }} {...rest} className="flex-grow" disabled={!isEditing || isAiProcessing} /></FormControl>
-                       {isAiProcessing && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
-                    </div>
-                    <FormDescription>{typeof value === 'object' && value?.name ? `Current file: ${value.name}` : "No resume uploaded for this session or AI processing."}</FormDescription><FormMessage />
-                  </FormItem>)}/>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg">
             <CardHeader><CardTitle>Professional Summary</CardTitle></CardHeader>
             <CardContent>
               <FormField control={form.control} name="summary" render={({ field }) => (
@@ -312,9 +301,25 @@ export default function CandidateProfilePage() {
               {educationFields.length === 0 && <p className="text-muted-foreground text-sm">No education details added yet.</p>}
             </CardContent>
           </Card>
+          
+          <Card className="shadow-lg">
+            <CardHeader><CardTitle>Resume</CardTitle><CardDescription>Upload your latest resume. Our AI can help enrich your profile based on it.</CardDescription></CardHeader>
+            <CardContent>
+               <FormField control={form.control} name="resume" render={({ field: { onChange, value, ...rest } }) => (
+                  <FormItem>
+                    <FormLabel>Upload Resume (PDF, DOCX)</FormLabel>
+                    <div className="flex items-center gap-4">
+                      <FormControl><Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { onChange(e.target.files[0]); handleResumeUpload(e.target.files[0]); } }} {...rest} className="flex-grow" disabled={!isEditing || isAiProcessing} /></FormControl>
+                       {isAiProcessing && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+                    </div>
+                    <FormDescription>{typeof value === 'object' && value?.name ? `Current file: ${value.name}` : "No resume uploaded for this session or AI processing."}</FormDescription><FormMessage />
+                  </FormItem>)}/>
+            </CardContent>
+          </Card>
+
 
           {isEditing && (
-            <CardFooter className="flex justify-end gap-2 pt-8">
+            <CardFooter className="flex justify-end gap-2 pt-8 border-t">
               <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if(user) resetFormValues(user); }} disabled={isSubmitting || isAiProcessing}>Cancel</Button>
               <Button type="submit" disabled={isSubmitting || isAiProcessing}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -327,3 +332,6 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
+
+
+    
