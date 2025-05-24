@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, CheckCircle, Loader2, MicOff, Video, Timer, AlertCircle, BotMessageSquare, User, Film, Volume2, ThumbsUp, ThumbsDown, MessageSquare, Star, Users, Brain } from "lucide-react";
+import { Camera, CheckCircle, Loader2, MicOff, Video, Timer, AlertCircle, BotMessageSquare, User, Film, Volume2, ThumbsUp, ThumbsDown, MessageSquare, Star, Users, Brain, Bot } from "lucide-react"; // Added Bot
 import { useEffect, useRef, useState, useCallback } from "react";
 
 import type { AiInterviewSimulationInput, AiInterviewSimulationOutput } from "@/ai/flows/ai-interview-simulation";
@@ -183,7 +183,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       let errorCode = "Unknown TTS Error";
        if (event.error && typeof event.error === 'string') {
           errorCode = event.error;
-      } else if (event.error && typeof event.error === 'object') {
+      } else if (event.error && typeof event.error === 'object' && event.error !== null) {
           errorCode = (event.error as any).message || JSON.stringify(event.error);
       }
       const fullErrorMessage = `SpeechSynthesis Error: ${errorCode}. Check browser console for details.`;
@@ -231,12 +231,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           interimTranscript += event.results[i][0].transcript;
         }
       }
-      // For now, we primarily care about the final transcript for each utterance.
-      // We'll append to sessionTranscript when an "answer" is considered complete.
-      // For interim visual feedback, you could update a temporary state here.
       if (finalTranscript.trim()) {
-        // This will be refined: transcript for the current answer.
-        // console.log("Final segment: ", finalTranscript);
+         (speechRecognitionRef.current as any).transcriptForCurrentTurn = (speechRecognitionRef.current as any).transcriptForCurrentTurn ? (speechRecognitionRef.current as any).transcriptForCurrentTurn + finalTranscript.trim() + ". " : finalTranscript.trim() + ". ";
       }
     };
 
@@ -269,7 +265,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       speechRecognitionRef.current.onerror = null;
       speechRecognitionRef.current.onstart = null;
       speechRecognitionRef.current.onend = null;
-      if (isCandidateSpeaking) { // Check if STT is active before trying to stop
+      if (isCandidateSpeaking) { 
           try {
             speechRecognitionRef.current.stop();
           } catch (e) {
@@ -281,9 +277,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         console.log("Stopping MediaRecorder on cleanup...");
-        mediaRecorderRef.current.stop(); // This will trigger onstop
+        mediaRecorderRef.current.stop(); 
     }
-    mediaRecorderRef.current = null; // Explicitly nullify
+    mediaRecorderRef.current = null; 
     
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -303,7 +299,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const submitForFinalFeedback = useCallback(async (videoBlob: Blob) => {
     if (!videoBlob) {
       toast({ variant: "destructive", title: "No Video Recorded", description: "Cannot submit feedback without a video." });
-      setStage("preparingStream"); // Or an appropriate error stage
+      setStage("preparingStream"); 
       return;
     }
     setStage("submitting");
@@ -316,7 +312,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           jobDescription: jobContext.jobDescription,
           candidateResume: jobContext.candidateResume,
           videoDataUri,
-          fullTranscript: sessionTranscript.join('\n\n---\n\n'), // Join all transcribed answers
+          fullTranscript: sessionTranscript.join('\n\n---\n\n'), 
         };
         const result = await aiInterviewSimulation(input);
         setFeedbackResult(result);
@@ -341,7 +337,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         console.warn("Interview not active or not in interviewing stage, finish aborted.");
         return;
     }
-    isInterviewActiveRef.current = false; // Signal interview end
+    isInterviewActiveRef.current = false; 
     if (sessionTimerIdRef.current) {
         clearTimeout(sessionTimerIdRef.current);
         sessionTimerIdRef.current = null;
@@ -355,29 +351,42 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         console.log("Stopping MediaRecorder via handleFinishInterview...");
-        mediaRecorderRef.current.onstop = () => { // Ensure this is set before stop()
+        mediaRecorderRef.current.onstop = () => { 
             const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
             console.log("MediaRecorder stopped, blob size:", blob.size);
-            setRecordedVideoBlob(blob); // This will trigger useEffect for submission
+            setRecordedVideoBlob(blob); 
             submitForFinalFeedback(blob); 
+            // Reset chunks after processing
+            recordedChunksRef.current = [];
+             if (streamRef.current) { // Ensure stream is stopped here after recording
+                streamRef.current.getTracks().forEach(track => track.stop());
+                streamRef.current = null;
+            }
+            if (videoPreviewRef.current && videoPreviewRef.current.srcObject) {
+                const stream = videoPreviewRef.current.srcObject as MediaStream;
+                stream?.getTracks().forEach(track => track.stop());
+                videoPreviewRef.current.srcObject = null;
+            }
         };
         mediaRecorderRef.current.stop();
-    } else if (recordedVideoBlob) { // If already stopped but blob exists
+    } else if (recordedVideoBlob) { 
         console.log("MediaRecorder already stopped, submitting existing blob.");
         submitForFinalFeedback(recordedVideoBlob);
     } else {
         console.warn("No recording or blob found to submit.");
-        setStage("preparingStream"); // Or an error state
+        setStage("preparingStream"); 
         toast({variant: "destructive", title: "Recording Issue", description: "No video was recorded."});
     }
-    // cleanupResources should not be called here if it also tries to stop mediaRecorder,
-    // as onstop handles the blob processing and submission.
-    // It will be called when unmounting or resetting.
   }, [stage, recordedVideoBlob, submitForFinalFeedback, toast, isCandidateSpeaking]);
 
 
   const askNextQuestion = useCallback(async () => {
-    if (currentTurn === 0) { // Initial question
+    if (speechRecognitionRef.current && isCandidateSpeaking) {
+        speechRecognitionRef.current.stop(); // Stop STT for previous turn
+    }
+    (speechRecognitionRef.current as any).transcriptForCurrentTurn = ""; // Clear transcript for new question
+
+    if (currentTurn === 0) { 
       try {
         const utterance: InitialInterviewUtteranceOutput = await getInitialInterviewUtterance({ jobTitle: jobContext.jobTitle });
         setCurrentAiMessage(utterance.aiGreeting + " " + utterance.firstQuestion);
@@ -387,12 +396,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       } catch (error) {
         console.error("Error getting initial question:", error);
         setCurrentAiMessage("Sorry, I'm having trouble starting the interview. Please try refreshing.");
-        speak("Sorry, I'm having trouble starting the interview. Please try refreshing.");
-        handleFinishInterview();
+        speak("Sorry, I'm having trouble starting the interview. Please try refreshing.", () => {
+            handleFinishInterview();
+        });
       }
-    } else if (currentTurn < MAX_INTERVIEW_TURNS) { // Follow-up questions
-        const lastQuestion = currentAiMessage || "The previous question."; // Fallback
-        const lastAnswer = sessionTranscript[sessionTranscript.length - 1] || "No answer recorded."; // Last candidate answer
+    } else if (currentTurn < MAX_INTERVIEW_TURNS) { 
+        const lastQuestion = currentAiMessage || "The previous question."; 
+        const lastAnswer = sessionTranscript[sessionTranscript.length - 1] || "No answer recorded.";
 
         try {
             const utterance: FollowUpQuestionOutput = await getFollowUpQuestion({
@@ -412,25 +422,20 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                 handleFinishInterview();
             });
         }
-    } else { // Max turns reached
+    } else { 
       handleFinishInterview();
     }
-  }, [currentTurn, jobContext, sessionTranscript, speak, handleFinishInterview, currentAiMessage]);
+  }, [currentTurn, jobContext, sessionTranscript, speak, handleFinishInterview, currentAiMessage, isCandidateSpeaking]);
 
-  const handleCandidateAnswer = () => { // Called when candidate indicates they're done with current answer
+  const handleCandidateAnswer = () => { 
     if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop(); // Stop STT for this turn
+        speechRecognitionRef.current.stop(); 
     }
     
-    // Simulate capturing the final transcript for this turn.
-    // In a real STT setup, you'd get this from the 'onresult' final transcript.
-    // For this placeholder, let's assume the 'speechRecognitionRef.current.onresult' populated some temp state.
-    // For simplicity, we'll mock it.
-    const currentAnswerTranscript = speechRecognitionRef.current?.transcriptForCurrentTurn || `(Mocked Answer for turn ${currentTurn + 1})`;
-    setSessionTranscript(prev => [...prev, currentAnswerTranscript]);
+    const currentAnswerTranscript = (speechRecognitionRef.current as any)?.transcriptForCurrentTurn || `(No speech detected for turn ${currentTurn + 1})`;
+    setSessionTranscript(prev => [...prev, currentAnswerTranscript.trim()]);
     
     setCurrentTurn(prev => prev + 1);
-    // askNextQuestion will be called by useEffect watching currentTurn
   };
 
 
@@ -454,20 +459,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         isInterviewActiveRef.current = false; setStage("preparingStream"); return;
     }
     speechRecognitionRef.current = recognition;
-    // Accumulate transcript segments here
-    let currentAnswerFinalTranscript = "";
-    speechRecognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-        let interim = "";
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                currentAnswerFinalTranscript += event.results[i][0].transcript.trim() + ". ";
-            } else {
-                interim += event.results[i][0].transcript;
-            }
-        }
-        // You could display 'interim' for live feedback if desired
-        (speechRecognitionRef.current as any).transcriptForCurrentTurn = currentAnswerFinalTranscript; // Store it on the ref
-    };
+    (speechRecognitionRef.current as any).transcriptForCurrentTurn = ""; 
 
     try {
         streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -480,14 +472,14 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
         mediaRecorderRef.current = new MediaRecorder(streamRef.current);
         mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
-        mediaRecorderRef.current.onstop = () => { // This onstop is primarily for final cleanup or unexpected stops
-          if (isInterviewActiveRef.current) { // If interview ended unexpectedly
-              console.warn("MediaRecorder stopped unexpectedly during active interview.");
-              // Potentially handle this by trying to finalize with existing chunks
+        mediaRecorderRef.current.onstop = () => { 
+          if (!isInterviewActiveRef.current) { // Only process if handleFinishInterview initiated the stop
+             const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+             setRecordedVideoBlob(blob);
+             console.log("MediaRecorder stopped through onstop. Final blob size:", blob.size);
+          } else {
+              console.log("MediaRecorder onstop called, but interview still active. Ignoring blob processing here.");
           }
-          const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-          setRecordedVideoBlob(blob); // This is mostly for review, submission logic is in handleFinishInterview
-          console.log("MediaRecorder stopped. Final blob size:", blob.size);
         };
         
         setStage("countdown");
@@ -498,12 +490,11 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
               clearInterval(countdownInterval);
               setStage("interviewing");
               if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "recording") {
-                  mediaRecorderRef.current.start(); // Start video recording for the whole session
+                  mediaRecorderRef.current.start(); 
                   console.log("MediaRecorder started for the session.");
               }
-              askNextQuestion(); // Mira asks the first question
+              askNextQuestion(); 
               
-              // Start session timer
               sessionTimerIdRef.current = setTimeout(() => {
                 toast({ title: "Session Timeout", description: "The interview session has ended due to timeout."});
                 handleFinishInterview();
@@ -533,7 +524,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     if (currentTurn > 0 && currentTurn <= MAX_INTERVIEW_TURNS && stage === "interviewing") {
       askNextQuestion();
     } else if (currentTurn > MAX_INTERVIEW_TURNS && stage === "interviewing") {
-      handleFinishInterview(); // All questions asked
+      handleFinishInterview(); 
     }
   }, [currentTurn, stage, askNextQuestion, handleFinishInterview]);
 
@@ -576,7 +567,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         <DialogHeader>
           <DialogTitle>AI Interview Consent</DialogTitle>
           <DialogDescription>
-            This AI Interview requires access to your camera and microphone to record your video and audio responses. 
+            This Realtime AI Interview requires access to your camera and microphone to record your video and audio responses. 
             The recording will begin after a short countdown and will last for the duration of the interview (up to {MAX_SESSION_DURATION_MS / 1000 / 60} minutes). 
             Your entire session will be analyzed by AI to provide you with comprehensive feedback.
           </DialogDescription>
@@ -626,7 +617,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
-              <Film className="text-primary"/> Your Video Response
+              <Film className="text-primary"/> Your Video
             </CardTitle>
              <CardDescription>
               {stage === 'countdown' && "Get ready! The interview will start after the countdown."}
