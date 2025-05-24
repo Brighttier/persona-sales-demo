@@ -7,17 +7,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, CheckCircle, Loader2, MicOff, Video, Timer, AlertCircle, BotMessageSquare, User, Film, Volume2, ThumbsUp, ThumbsDown, MessageSquare, Star, Users, Brain, Bot } from "lucide-react"; // Added Bot
+import { Camera, CheckCircle, Loader2, Video, Timer, AlertCircle, BotMessageSquare, User, Film, Brain, ThumbsUp, ThumbsDown, MessageSquare, Star, Users } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 
 import type { AiInterviewSimulationInput, AiInterviewSimulationOutput } from "@/ai/flows/ai-interview-simulation";
 import { aiInterviewSimulation } from "@/ai/flows/ai-interview-simulation";
-import type { InitialInterviewUtteranceOutput } from "@/ai/flows/initial-interview-message";
-import { getInitialInterviewUtterance } from "@/ai/flows/initial-interview-message";
-import type { FollowUpQuestionOutput } from "@/ai/flows/follow-up-question";
-import { getFollowUpQuestion } from "@/ai/flows/follow-up-question";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ElevenLabsProvider, Chat, AudioPlayer } from '@11labs/react';
+
 
 interface AIInterviewClientProps {
   jobContext: {
@@ -28,24 +26,22 @@ interface AIInterviewClientProps {
 }
 
 type InterviewStage = "consent" | "preparingStream" | "countdown" | "interviewing" | "submitting" | "feedback";
-const MAX_INTERVIEW_TURNS = 2; // Initial question + 1 follow-up
-const SESSION_COUNTDOWN_SECONDS = 5;
-const MAX_SESSION_DURATION_MS = 3 * 60 * 1000; // 3 minutes for the whole session
+const SESSION_COUNTDOWN_SECONDS = 3; // Shortened for quicker start with Chat
+const MAX_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 minutes max for the session
 
 const formatFeedbackText = (text: string | undefined): React.ReactNode => {
   if (!text) return "No content available.";
-
   const lines = text.split('\n');
   const output: JSX.Element[] = [];
   let listItems: JSX.Element[] = [];
 
   const renderTextWithBold = (line: string, keyPrefix: string): React.ReactNode[] => {
-    const parts = line.split(/(\*\*.*?\*\*)/g); 
+    const parts = line.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
         return <strong key={`${keyPrefix}-bold-${index}`}>{part.substring(2, part.length - 2)}</strong>;
       }
-      return part; 
+      return part;
     });
   };
 
@@ -59,7 +55,7 @@ const formatFeedbackText = (text: string | undefined): React.ReactNode => {
     } else {
       if (listItems.length > 0) {
         output.push(<ul key={`ul-${output.length}`} className="list-disc pl-5 space-y-1 my-2">{listItems}</ul>);
-        listItems = []; 
+        listItems = [];
       }
       if (trimmedLine) {
         output.push(<p key={`p-${index}`} className="my-2">{renderTextWithBold(trimmedLine, `p-${index}`)}</p>);
@@ -80,178 +76,21 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const [consentGiven, setConsentGiven] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   
-  const [currentAiMessage, setCurrentAiMessage] = useState<string | null>("Preparing for your interview...");
-  const [currentTurn, setCurrentTurn] = useState(0);
-  const [sessionTranscript, setSessionTranscript] = useState<string[]>([]);
-  const [isMiraSpeaking, setIsMiraSpeaking] = useState(false);
-  const [isCandidateSpeaking, setIsCandidateSpeaking] = useState(false); // For STT visual cue
-
   const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
   const [feedbackResult, setFeedbackResult] = useState<AiInterviewSimulationOutput | null>(null);
   
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
-  const [speechApiError, setSpeechApiError] = useState<string | null>(null);
   
-  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const sessionTimerIdRef = useRef<NodeJS.Timeout | null>(null);
   const isInterviewActiveRef = useRef(false);
 
-
-  const loadVoices = useCallback(() => {
-    const voices = speechSynthesis.getVoices();
-    setAvailableVoices(voices);
-    if (voices.length > 0) {
-        let preferredVoice = voices.find(voice => voice.name === 'Google US English Female' && voice.lang.startsWith('en-US'));
-        if (!preferredVoice) preferredVoice = voices.find(voice => voice.name === 'Microsoft Zira - English (United States)' && voice.lang.startsWith('en-US'));
-        if (!preferredVoice) preferredVoice = voices.find(voice => voice.lang.startsWith('en-US') && voice.gender === 'female');
-        if (!preferredVoice) preferredVoice = voices.find(voice => voice.lang.startsWith('en-US'));
-        if (!preferredVoice) preferredVoice = voices.find(voice => voice.lang.startsWith('en'));
-        setSelectedVoice(preferredVoice || voices[0]);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadVoices();
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = loadVoices;
-    }
-    return () => {
-        speechSynthesis.onvoiceschanged = null;
-    };
-  }, [loadVoices]);
-
-  const speak = useCallback((text: string | null | undefined, onEndCallback?: () => void) => {
-    if (speechSynthesis.speaking) {
-        speechSynthesis.cancel(); 
-    }
-
-    if (!text || text.trim() === "") {
-        console.warn("Speak function called with empty text.");
-        setSpeechApiError(null);
-        setIsMiraSpeaking(false);
-        onEndCallback?.();
-        return;
-    }
-    setSpeechApiError(null);
-    setIsMiraSpeaking(true);
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    let currentSelectedVoice = selectedVoice;
-
-    if (!currentSelectedVoice) {
-        const currentVoices = speechSynthesis.getVoices();
-        if (currentVoices.length > 0) {
-            let preferredVoice = currentVoices.find(voice => voice.name === 'Google US English Female' && voice.lang.startsWith('en-US'));
-            if (!preferredVoice) preferredVoice = currentVoices.find(voice => voice.name === 'Microsoft Zira - English (United States)' && voice.lang.startsWith('en-US'));
-            if (!preferredVoice) preferredVoice = currentVoices.find(voice => voice.lang.startsWith('en-US') && voice.gender === 'female');
-            if (!preferredVoice) preferredVoice = currentVoices.find(voice => voice.lang.startsWith('en-US'));
-            if (!preferredVoice) preferredVoice = currentVoices.find(voice => voice.lang.startsWith('en'));
-            currentSelectedVoice = preferredVoice || currentVoices[0];
-        }
-    }
-    
-    if (currentSelectedVoice) {
-        utterance.voice = currentSelectedVoice;
-    } else {
-        const noVoiceError = "No Text-to-Speech voices are available in your browser.";
-        console.warn(noVoiceError);
-        setSpeechApiError(noVoiceError);
-        setIsMiraSpeaking(false);
-        onEndCallback?.();
-        return;
-    }
-    
-    utterance.pitch = 1;
-    utterance.rate = 0.9; 
-    utterance.volume = 1;
-
-    utterance.onend = () => {
-      setIsMiraSpeaking(false);
-      onEndCallback?.();
-    };
-
-    utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
-      console.error("SpeechSynthesis Error Event (see details in browser console):", event);
-      let errorCode = "Unknown TTS Error";
-       if (event.error && typeof event.error === 'string') {
-          errorCode = event.error;
-      } else if (event.error && typeof event.error === 'object' && event.error !== null) {
-          errorCode = (event.error as any).message || JSON.stringify(event.error);
-      }
-      const fullErrorMessage = `SpeechSynthesis Error: ${errorCode}. Check browser console for details.`;
-      setSpeechApiError(fullErrorMessage);
-      toast({ variant: "destructive", title: "Speech Error", description: fullErrorMessage });
-      setIsMiraSpeaking(false);
-      onEndCallback?.(); 
-    };
-    
-    try {
-        speechSynthesis.speak(utterance);
-    } catch (e: any) {
-        console.error("Error calling speechSynthesis.speak():", e);
-        const catchErrorMessage = `Failed to initiate speech synthesis: ${e.message || 'Unknown error'}. Ensure your browser supports it.`;
-        setSpeechApiError(catchErrorMessage);
-        toast({ variant: "destructive", title: "Speech Init Error", description: catchErrorMessage});
-        setIsMiraSpeaking(false);
-        onEndCallback?.();
-    }
-  }, [selectedVoice, toast]);
-
-
-  const initializeSpeechRecognition = useCallback(() => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      setSpeechApiError("Speech recognition is not supported in this browser.");
-      toast({ variant: "destructive", title: "Unsupported Browser", description: "Speech recognition not supported." });
-      return null;
-    }
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognitionAPI();
-    recognition.continuous = true; // Keep listening
-    recognition.interimResults = true; // Get results as they come
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => setIsCandidateSpeaking(true);
-    recognition.onend = () => setIsCandidateSpeaking(false);
-    
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        } else {
-          interimTranscript += event.results[i][0].transcript;
-        }
-      }
-      if (finalTranscript.trim()) {
-         (speechRecognitionRef.current as any).transcriptForCurrentTurn = (speechRecognitionRef.current as any).transcriptForCurrentTurn ? (speechRecognitionRef.current as any).transcriptForCurrentTurn + finalTranscript.trim() + ". " : finalTranscript.trim() + ". ";
-      }
-    };
-
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error("SpeechRecognition Error:", event.error);
-      let errorMsg = `SpeechRecognition Error: "${event.error}"`;
-       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        errorMsg = "Microphone access denied or service not allowed. Please check browser permissions.";
-        setMediaError(errorMsg);
-      } else if (event.error === 'no-speech') {
-        errorMsg = "No speech detected. Please ensure your microphone is working and you are speaking clearly.";
-      }
-      setSpeechApiError(errorMsg);
-      toast({ variant: "destructive", title: "Speech Recognition Error", description: errorMsg });
-      setIsCandidateSpeaking(false);
-    };
-    return recognition;
-  }, [toast]);
-  
+  const elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
+  const elevenLabsAgentId = "EVQJtCNSo0L6uHQnImQu"; // Your agent ID
 
   const cleanupResources = useCallback(() => {
     console.log("Cleaning up resources...");
@@ -259,21 +98,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     if (sessionTimerIdRef.current) {
       clearTimeout(sessionTimerIdRef.current);
       sessionTimerIdRef.current = null;
-    }
-    if (speechRecognitionRef.current) {
-      speechRecognitionRef.current.onresult = null; 
-      speechRecognitionRef.current.onerror = null;
-      speechRecognitionRef.current.onstart = null;
-      speechRecognitionRef.current.onend = null;
-      if (isCandidateSpeaking) { 
-          try {
-            speechRecognitionRef.current.stop();
-          } catch (e) {
-            console.warn("Error stopping STT on cleanup:", e);
-          }
-      }
-      speechRecognitionRef.current = null;
-      setIsCandidateSpeaking(false);
     }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         console.log("Stopping MediaRecorder on cleanup...");
@@ -290,11 +114,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         stream?.getTracks().forEach(track => track.stop());
         videoPreviewRef.current.srcObject = null;
     }
-    if (speechSynthesis.speaking) {
-        speechSynthesis.cancel();
-    }
-    setIsMiraSpeaking(false);
-  }, [isCandidateSpeaking]);
+  }, []);
 
   const submitForFinalFeedback = useCallback(async (videoBlob: Blob) => {
     if (!videoBlob) {
@@ -308,11 +128,14 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       reader.readAsDataURL(videoBlob);
       reader.onloadend = async () => {
         const videoDataUri = reader.result as string;
+        // TODO: Find a way to extract transcript from ElevenLabs Chat if possible.
+        // For now, sending a placeholder.
+        const placeholderTranscript = "Transcript from ElevenLabs Chat session (feature to extract actual transcript TBD).";
         const input: AiInterviewSimulationInput = {
           jobDescription: jobContext.jobDescription,
           candidateResume: jobContext.candidateResume,
           videoDataUri,
-          fullTranscript: sessionTranscript.join('\n\n---\n\n'), 
+          fullTranscript: placeholderTranscript, 
         };
         const result = await aiInterviewSimulation(input);
         setFeedbackResult(result);
@@ -328,8 +151,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       toast({ variant: "destructive", title: "Feedback Error", description: "Could not get AI feedback." });
       setStage("preparingStream");
     }
-  }, [jobContext, sessionTranscript, toast]);
-
+  }, [jobContext, toast]);
 
   const handleFinishInterview = useCallback(() => {
     console.log("handleFinishInterview called. Current stage:", stage);
@@ -342,12 +164,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         clearTimeout(sessionTimerIdRef.current);
         sessionTimerIdRef.current = null;
     }
-    if (speechRecognitionRef.current && isCandidateSpeaking) {
-        try {
-            speechRecognitionRef.current.stop();
-        } catch(e) { console.warn("Error stopping STT on finish:", e); }
-    }
-    setIsCandidateSpeaking(false);
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         console.log("Stopping MediaRecorder via handleFinishInterview...");
@@ -356,9 +172,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             console.log("MediaRecorder stopped, blob size:", blob.size);
             setRecordedVideoBlob(blob); 
             submitForFinalFeedback(blob); 
-            // Reset chunks after processing
             recordedChunksRef.current = [];
-             if (streamRef.current) { // Ensure stream is stopped here after recording
+             if (streamRef.current) { 
                 streamRef.current.getTracks().forEach(track => track.stop());
                 streamRef.current = null;
             }
@@ -377,75 +192,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         setStage("preparingStream"); 
         toast({variant: "destructive", title: "Recording Issue", description: "No video was recorded."});
     }
-  }, [stage, recordedVideoBlob, submitForFinalFeedback, toast, isCandidateSpeaking]);
+  }, [stage, recordedVideoBlob, submitForFinalFeedback, toast]);
 
-
-  const askNextQuestion = useCallback(async () => {
-    if (speechRecognitionRef.current && isCandidateSpeaking) {
-        speechRecognitionRef.current.stop(); // Stop STT for previous turn
-    }
-    (speechRecognitionRef.current as any).transcriptForCurrentTurn = ""; // Clear transcript for new question
-
-    if (currentTurn === 0) { 
-      try {
-        const utterance: InitialInterviewUtteranceOutput = await getInitialInterviewUtterance({ jobTitle: jobContext.jobTitle });
-        setCurrentAiMessage(utterance.aiGreeting + " " + utterance.firstQuestion);
-        speak(utterance.aiGreeting + " " + utterance.firstQuestion, () => {
-          if (speechRecognitionRef.current && isInterviewActiveRef.current) speechRecognitionRef.current.start();
-        });
-      } catch (error) {
-        console.error("Error getting initial question:", error);
-        setCurrentAiMessage("Sorry, I'm having trouble starting the interview. Please try refreshing.");
-        speak("Sorry, I'm having trouble starting the interview. Please try refreshing.", () => {
-            handleFinishInterview();
-        });
-      }
-    } else if (currentTurn < MAX_INTERVIEW_TURNS) { 
-        const lastQuestion = currentAiMessage || "The previous question."; 
-        const lastAnswer = sessionTranscript[sessionTranscript.length - 1] || "No answer recorded.";
-
-        try {
-            const utterance: FollowUpQuestionOutput = await getFollowUpQuestion({
-            jobDescription: jobContext.jobDescription,
-            candidateResume: jobContext.candidateResume,
-            previousQuestion: lastQuestion,
-            candidateAnswer: lastAnswer,
-            });
-            setCurrentAiMessage(utterance.nextQuestion);
-            speak(utterance.nextQuestion, () => {
-              if (speechRecognitionRef.current && isInterviewActiveRef.current) speechRecognitionRef.current.start();
-            });
-        } catch (error) {
-            console.error("Error getting follow-up question:", error);
-            setCurrentAiMessage("I seem to have lost my train of thought. Let's proceed to feedback.");
-            speak("I seem to have lost my train of thought. Let's proceed to feedback.", () => {
-                handleFinishInterview();
-            });
-        }
-    } else { 
-      handleFinishInterview();
-    }
-  }, [currentTurn, jobContext, sessionTranscript, speak, handleFinishInterview, currentAiMessage, isCandidateSpeaking]);
-
-  const handleCandidateAnswer = () => { 
-    if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop(); 
-    }
-    
-    const currentAnswerTranscript = (speechRecognitionRef.current as any)?.transcriptForCurrentTurn || `(No speech detected for turn ${currentTurn + 1})`;
-    setSessionTranscript(prev => [...prev, currentAnswerTranscript.trim()]);
-    
-    setCurrentTurn(prev => prev + 1);
-  };
-
-
-  const startInterviewProcess = useCallback(async () => {
+  const startInterviewSession = useCallback(async () => {
     if (stage !== "preparingStream") return;
     isInterviewActiveRef.current = true;
     setMediaError(null);
     setRecordedVideoBlob(null);
-    setSessionTranscript([]);
-    setCurrentTurn(0);
     recordedChunksRef.current = [];
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -454,15 +207,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         isInterviewActiveRef.current = false; setStage("preparingStream"); setCameraPermission(false); return;
     }
     
-    const recognition = initializeSpeechRecognition();
-    if (!recognition) { 
-        isInterviewActiveRef.current = false; setStage("preparingStream"); return;
-    }
-    speechRecognitionRef.current = recognition;
-    (speechRecognitionRef.current as any).transcriptForCurrentTurn = ""; 
-
     try {
-        streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); // Audio handled by ElevenLabs Chat
         setCameraPermission(true);
         if (videoPreviewRef.current) {
           videoPreviewRef.current.srcObject = streamRef.current;
@@ -473,7 +219,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         mediaRecorderRef.current = new MediaRecorder(streamRef.current);
         mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
         mediaRecorderRef.current.onstop = () => { 
-          if (!isInterviewActiveRef.current) { // Only process if handleFinishInterview initiated the stop
+          if (!isInterviewActiveRef.current) { 
              const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
              setRecordedVideoBlob(blob);
              console.log("MediaRecorder stopped through onstop. Final blob size:", blob.size);
@@ -493,7 +239,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                   mediaRecorderRef.current.start(); 
                   console.log("MediaRecorder started for the session.");
               }
-              askNextQuestion(); 
               
               sessionTimerIdRef.current = setTimeout(() => {
                 toast({ title: "Session Timeout", description: "The interview session has ended due to timeout."});
@@ -518,28 +263,16 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         toast({ variant: "destructive", title: "Media Device Error", description: desc });
         isInterviewActiveRef.current = false; setStage("preparingStream"); 
       }
-  }, [stage, toast, askNextQuestion, handleFinishInterview, initializeSpeechRecognition]);
-
-  useEffect(() => {
-    if (currentTurn > 0 && currentTurn <= MAX_INTERVIEW_TURNS && stage === "interviewing") {
-      askNextQuestion();
-    } else if (currentTurn > MAX_INTERVIEW_TURNS && stage === "interviewing") {
-      handleFinishInterview(); 
-    }
-  }, [currentTurn, stage, askNextQuestion, handleFinishInterview]);
+  }, [stage, toast, handleFinishInterview]);
 
   const resetFullInterview = useCallback(() => {
     cleanupResources();
     setStage("consent");
     setConsentGiven(false);
     setCountdown(null);
-    setCurrentAiMessage("Preparing for your interview...");
-    setCurrentTurn(0);
-    setSessionTranscript([]);
     setRecordedVideoBlob(null);
     setFeedbackResult(null);
     setMediaError(null);
-    setSpeechApiError(null);
     setCameraPermission(null);
   }, [cleanupResources]);
 
@@ -551,9 +284,14 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
   useEffect(() => {
     if (stage === "preparingStream" && consentGiven) {
-      startInterviewProcess();
+      if (!elevenLabsApiKey) {
+        setMediaError("ElevenLabs API Key is not configured. Please set NEXT_PUBLIC_ELEVENLABS_API_KEY in your environment.");
+        toast({variant: "destructive", title: "Configuration Error", description: "ElevenLabs API Key missing."});
+        return;
+      }
+      startInterviewSession();
     }
-  }, [stage, consentGiven, startInterviewProcess]);
+  }, [stage, consentGiven, startInterviewSession, elevenLabsApiKey, toast]);
 
   useEffect(() => {
     return () => { 
@@ -565,16 +303,17 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     <Dialog open={stage === "consent"} onOpenChange={(open) => !open && stage === "consent" && setStage("consent")}>
       <DialogContent className="sm:max-w-md shadow-xl">
         <DialogHeader>
-          <DialogTitle>AI Interview Consent</DialogTitle>
+          <DialogTitle>Realtime AI Interview Consent</DialogTitle>
           <DialogDescription>
-            This Realtime AI Interview requires access to your camera and microphone to record your video and audio responses. 
+            This Realtime AI Interview requires access to your camera to record your video responses. 
+            Your audio will be handled by the ElevenLabs AI Agent.
             The recording will begin after a short countdown and will last for the duration of the interview (up to {MAX_SESSION_DURATION_MS / 1000 / 60} minutes). 
             Your entire session will be analyzed by AI to provide you with comprehensive feedback.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center space-x-2 py-4">
           <Checkbox id="consent-checkbox" checked={consentGiven} onCheckedChange={(checked) => setConsentGiven(Boolean(checked))} />
-          <Label htmlFor="consent-checkbox">I consent to video and audio recording for this AI interview.</Label>
+          <Label htmlFor="consent-checkbox">I consent to video recording and interaction with the AI agent for this interview.</Label>
         </div>
         <DialogFooter>
           <Button type="button" onClick={() => {
@@ -587,29 +326,45 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   );
 
   const renderInterviewContent = () => {
+    if (!elevenLabsApiKey) {
+      return (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Configuration Error</AlertTitle>
+          <AlertDescription>
+            The ElevenLabs API Key is missing. Please ensure `NEXT_PUBLIC_ELEVENLABS_API_KEY` is set in your environment variables.
+            The AI Interview feature cannot start without it.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
     return (
       <div className="grid md:grid-cols-2 gap-6 items-start">
-        <Card className="shadow-lg md:sticky md:top-20">
+        <Card className="shadow-lg md:sticky md:top-20 h-full min-h-[400px] md:min-h-[calc(100vh-10rem)] flex flex-col">
           <CardHeader className="text-center">
-            <div className="relative inline-block mx-auto">
-                <BotMessageSquare className="h-16 w-16 text-primary mb-2" />
-                {isMiraSpeaking && <Volume2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-accent animate-pulse" />}
-            </div>
+             <BotMessageSquare className="h-10 w-10 text-primary mx-auto mb-2" />
             <CardTitle className="text-xl">Mira - Your AI Interviewer</CardTitle>
-            <CardDescription>Job: {jobContext.jobTitle}</CardDescription>
+            <CardDescription>Agent ID: {elevenLabsAgentId}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Alert variant="default" className="bg-primary/10 border-primary/20 min-h-[100px]">
-                <Bot className="h-4 w-4 !text-primary"/>
-                <AlertTitle className="text-primary">Mira Says:</AlertTitle>
-                <AlertDescription className="text-sm">{currentAiMessage || "Waiting for the next question..."}</AlertDescription>
-            </Alert>
-             {speechApiError && (
-              <Alert variant="destructive" className="mt-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>System Message</AlertTitle>
-                <AlertDescription>{speechApiError}</AlertDescription>
-              </Alert>
+          <CardContent className="flex-grow p-0 md:p-2">
+            {stage === 'interviewing' && (
+              <ElevenLabsProvider apiKey={elevenLabsApiKey}>
+                <div className="h-full w-full overflow-y-auto rounded-md border border-input">
+                   {/* The Chat component takes up available space. Its internal height might need to be managed by its own styling or props if available. */}
+                  <Chat 
+                    agentId={elevenLabsAgentId} 
+                    // You might need to pass initial system prompt or context here if supported
+                    // For example: systemPrompt={`You are Mira, conducting an interview for the ${jobContext.jobTitle} role. The candidate's resume mentions: ${jobContext.candidateResume}. The job description is: ${jobContext.jobDescription}. Start by introducing yourself and asking the candidate to tell you about themselves.`}
+                  />
+                </div>
+              </ElevenLabsProvider>
+            )}
+            {(stage === 'preparingStream' || stage === 'countdown') && (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-2" />
+                    <p>{stage === 'countdown' ? "Get Ready..." : "Preparing Interview..."}</p>
+                </div>
             )}
           </CardContent>
         </Card>
@@ -639,11 +394,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                   <Timer className="h-4 w-4 mr-1" /> REC
                 </div>
               )}
-              {isCandidateSpeaking && (
-                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white p-1 px-2 rounded-full text-xs flex items-center animate-pulse">
-                  <MicOff className="h-4 w-4 mr-1" /> Listening...
-                </div>
-              )}
                {((cameraPermission === false || (!streamRef.current && videoPreviewRef.current?.srcObject === null)) &&
                  stage !== "preparingStream" && stage !== "countdown" && mediaRecorderRef.current?.state !== "recording" && !mediaError) && (
                    <Camera className="absolute h-24 w-24 text-muted-foreground" />
@@ -659,18 +409,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             )}
           </CardContent>
           <CardFooter className="flex-col space-y-2">
-            {stage === "interviewing" && currentTurn < MAX_INTERVIEW_TURNS && !isMiraSpeaking && (
-              <Button onClick={handleCandidateAnswer} className="w-full" size="lg" disabled={isMiraSpeaking}>
-                I'm Done with My Answer
-              </Button>
-            )}
             {stage === "interviewing" && (
-              <Button onClick={handleFinishInterview} className="w-full" size="lg" variant="outline" disabled={isMiraSpeaking}>
+              <Button onClick={handleFinishInterview} className="w-full" size="lg" variant="default">
                 Finish Interview & Get Feedback
               </Button>
             )}
             {((stage === "preparingStream" && mediaError) || cameraPermission === false) && (
-               <Button onClick={startInterviewProcess} className="w-full" size="lg">
+               <Button onClick={startInterviewSession} className="w-full" size="lg">
                   Try Again
               </Button>
             )}
@@ -736,6 +481,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
       {(stage === "preparingStream" || stage === "countdown" || stage === "interviewing") && renderInterviewContent()}
       {stage === "feedback" && feedbackResult && renderFeedbackContent()}
+      
+      {/* Render AudioPlayer outside the main flow, if ElevenLabsProvider wraps it. This is often for global playback controls. */}
+      {elevenLabsApiKey && stage === 'interviewing' && (
+          <ElevenLabsProvider apiKey={elevenLabsApiKey}>
+            <AudioPlayer className="fixed bottom-4 right-4 z-[10000] opacity-50 hover:opacity-100 transition-opacity"/>
+          </ElevenLabsProvider>
+      )}
     </>
   );
 }
