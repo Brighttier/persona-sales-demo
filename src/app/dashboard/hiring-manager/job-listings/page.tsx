@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Edit, MoreHorizontal, Trash2, Users, Eye, Play, Pause, ShieldCheck, Search as SearchIcon, Check, Briefcase } from "lucide-react";
+import { Edit, MoreHorizontal, PlusCircle, Trash2, Users, Eye, Play, Pause, Check, Search as SearchIcon, Briefcase } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -14,14 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 
-const mockJobListings = [
-  { id: "job1", title: "Software Engineer, Frontend", status: "Active", applicants: 25, interviews: 5, hired: 1, department: "Engineering", location: "Remote", aiScreeningStatus: "Completed", datePosted: "2024-07-20", approvalStatus: "Approved" },
-  { id: "job2", title: "Product Manager", status: "Pending Approval", applicants: 0, interviews: 0, hired: 0, department: "Product", location: "New York, NY", aiScreeningStatus: "N/A", datePosted: "2024-07-28", approvalStatus: "Pending Recruiter Approval"},
-  { id: "job3", title: "UX Designer", status: "Paused", applicants: 15, interviews: 2, hired: 0, department: "Design", location: "San Francisco, CA", aiScreeningStatus: "N/A", datePosted: "2024-07-15", approvalStatus: "Approved" },
-  { id: "job4", title: "Data Scientist", status: "Closed", applicants: 60, interviews: 10, hired: 2, department: "Data Science", location: "Remote", aiScreeningStatus: "Completed", datePosted: "2024-06-10", approvalStatus: "Approved"},
+const mockHMJobListings = [
+  { id: "hmjob1", title: "Lead Software Architect", status: "Pending Approval", applicants: 0, department: "Engineering", location: "Remote", dateCreated: "2024-07-28" },
+  { id: "hmjob2", title: "Senior Product Designer", status: "Active", applicants: 15, department: "Design", location: "New York, NY", dateCreated: "2024-07-25" },
+  { id: "hmjob3", title: "Marketing Manager", status: "Draft", applicants: 0, department: "Marketing", location: "San Francisco, CA", dateCreated: "2024-07-22" },
 ];
 
-export default function RecruiterJobListingsPage() {
+export default function HiringManagerJobListingsPage() {
   const { user, role } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -33,29 +32,26 @@ export default function RecruiterJobListingsPage() {
   const getStatusPill = (status: string) => {
     switch(status) {
         case "Active": return <Badge className="bg-green-100 text-green-700 border-green-300">{status}</Badge>;
-        case "Paused": return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">{status}</Badge>;
+        case "Pending Approval": return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">{status}</Badge>;
         case "Closed": return <Badge variant="secondary" className="bg-gray-100 text-gray-700 border-gray-300">{status}</Badge>;
-        case "Draft": return <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">{status}</Badge>; // Should not appear for Recruiter often
-        case "Pending Approval": return <Badge className="bg-orange-100 text-orange-700 border-orange-300">{status}</Badge>;
+        case "Draft": return <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">{status}</Badge>;
         default: return <Badge>{status}</Badge>;
     }
   };
-
-  const getApprovalStatusPill = (status: string) => {
-     if (status === "Pending Recruiter Approval") return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">Pending Your Approval</Badge>;
-     if (status === "Approved") return <Badge className="bg-green-100 text-green-700 border-green-300">Approved</Badge>;
-     return <Badge variant="outline">{status}</Badge>;
-  }
 
   return (
     <div className="space-y-6">
       <Card className="shadow-xl">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-2xl flex items-center"><Briefcase className="mr-2 h-6 w-6 text-primary"/> Job Listings Overview</CardTitle>
-            <CardDescription>Oversee all job postings, track applicants, and manage their status or approval.</CardDescription>
+            <CardTitle className="text-2xl flex items-center"><Briefcase className="mr-2 h-6 w-6 text-primary"/> My Job Postings</CardTitle>
+            <CardDescription>Create and manage job postings for your team.</CardDescription>
           </div>
-          {/* "Create New Job" button removed from here */}
+          <Button asChild>
+            <Link href={`/dashboard/${role}/job-listings/new`}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Create New Job
+            </Link>
+          </Button>
         </CardHeader>
       </Card>
 
@@ -72,9 +68,9 @@ export default function RecruiterJobListingsPage() {
                         <SelectContent>
                             <SelectItem value="all">All Statuses</SelectItem>
                             <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="paused">Paused</SelectItem>
-                            <SelectItem value="closed">Closed</SelectItem>
                             <SelectItem value="pending-approval">Pending Approval</SelectItem>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="closed">Closed</SelectItem>
                         </SelectContent>
                     </Select>
                     <Button variant="outline">Apply Filters</Button>
@@ -87,24 +83,26 @@ export default function RecruiterJobListingsPage() {
               <TableRow>
                 <TableHead>Job Title</TableHead>
                 <TableHead>Department</TableHead>
-                <TableHead>Overall Status</TableHead>
-                <TableHead>Approval Status</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Applicants</TableHead>
+                <TableHead>Date Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockJobListings.map((job) => (
+              {mockHMJobListings.map((job) => (
                 <TableRow key={job.id}>
                   <TableCell className="font-medium">
-                    <Link href={`/dashboard/${role}/job-listings/${job.id}/applicants`} className="hover:underline text-primary">
-                      {job.title}
+                    <Link href={`/dashboard/recruiter/job-listings/${job.id}/applicants`} className="hover:underline text-primary">
+                        {job.title}
                     </Link>
                   </TableCell>
                   <TableCell>{job.department}</TableCell>
+                  <TableCell>{job.location}</TableCell>
                   <TableCell>{getStatusPill(job.status)}</TableCell>
-                  <TableCell>{getApprovalStatusPill(job.approvalStatus || job.status)}</TableCell>
-                  <TableCell>{job.applicants}</TableCell>
+                  <TableCell>{job.status === "Active" || job.status === "Closed" ? job.applicants : "N/A"}</TableCell>
+                  <TableCell>{job.dateCreated}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -115,29 +113,22 @@ export default function RecruiterJobListingsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        {job.approvalStatus === "Pending Recruiter Approval" && (
-                             <DropdownMenuItem onClick={() => router.push(`/dashboard/${role}/job-approvals`)}>
-                                <Check className="mr-2 h-4 w-4" /> Review for Approval
-                             </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/${role}/job-listings/${job.id}/applicants`}>
+                        {(job.status === "Active" || job.status === "Pending Approval") && (
+                           <DropdownMenuItem onClick={() => router.push(`/dashboard/recruiter/job-listings/${job.id}/applicants`)}>
                             <Users className="mr-2 h-4 w-4" />View Applicants
-                          </Link>
-                        </DropdownMenuItem>
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => handleJobAction(job.id, 'edit_job')}><Edit className="mr-2 h-4 w-4" />Edit Job</DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => handleJobAction(job.id, 'ai_screen')}><ShieldCheck className="mr-2 h-4 w-4" />AI Screen Applicants</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {job.status === "Active" && <DropdownMenuItem onClick={() => handleJobAction(job.id, 'pause_job')}><Pause className="mr-2 h-4 w-4" />Pause Job</DropdownMenuItem>}
-                        {job.status === "Paused" && <DropdownMenuItem onClick={() => handleJobAction(job.id, 'activate_job')}><Play className="mr-2 h-4 w-4" />Activate Job</DropdownMenuItem>}
+                        {job.status === "Draft" && <DropdownMenuItem onClick={() => handleJobAction(job.id, 'submit_for_approval')}><Check className="mr-2 h-4 w-4"/>Submit for Approval</DropdownMenuItem>}
                         <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleJobAction(job.id, 'delete_job')}><Trash2 className="mr-2 h-4 w-4" />Delete Job</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
-              {mockJobListings.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No job listings found.</TableCell></TableRow>
+              {mockHMJobListings.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No job postings created yet.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

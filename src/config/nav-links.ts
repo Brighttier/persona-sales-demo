@@ -1,7 +1,7 @@
 
 import type { UserRole } from '@/config/roles';
 import { USER_ROLES } from '@/config/roles';
-import { LayoutDashboard, Briefcase, Users, CalendarDays, UserCircle, Settings, Building, CreditCard, BotMessageSquare, ShieldCheck, BarChart3, CheckSquare, UserCheck, Search, FileText, BarChartHorizontalBig } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Users, CalendarDays, UserCircle, Settings, Building, CreditCard, BotMessageSquare, ShieldCheck, BarChart3, CheckSquare, Search, FileText, BarChartHorizontalBig } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavLink {
@@ -11,7 +11,7 @@ export interface NavLink {
   roles: UserRole[];
   subLinks?: NavLink[];
   isTourStep?: boolean;
-  tourStepId?: string; // This should be unique across all tourable elements
+  tourStepId?: string;
   tourText?: string;
 }
 
@@ -46,7 +46,7 @@ export const NAV_LINKS: NavLink[] = [
   },
   {
     href: `/dashboard/${USER_ROLES.CANDIDATE}/ai-interview`,
-    label: 'AI Interview Simulation',
+    label: 'Realtime AI Interview',
     icon: BotMessageSquare,
     roles: [USER_ROLES.CANDIDATE],
     isTourStep: true,
@@ -80,12 +80,21 @@ export const NAV_LINKS: NavLink[] = [
     roles: [USER_ROLES.RECRUITER],
     isTourStep: true,
     tourStepId: 'recruiter-job-listings-link',
-    tourText: 'Manage all your job postings. Create new listings, edit existing ones, view applicants, and track status.'
+    tourText: 'Oversee all job postings. View applicants, manage statuses, and track job performance.'
+  },
+  {
+    href: `/dashboard/${USER_ROLES.RECRUITER}/job-approvals`, // New link for Recruiter
+    label: 'Job Approvals',
+    icon: CheckSquare,
+    roles: [USER_ROLES.RECRUITER],
+    isTourStep: true,
+    tourStepId: 'recruiter-job-approvals-link',
+    tourText: 'Review job postings submitted by Hiring Managers. Optimize, approve, or reject them to ensure quality and consistency.'
   },
   {
     href: `/dashboard/${USER_ROLES.RECRUITER}/candidate-pool`,
     label: 'Candidate Pool',
-    icon: Search, // Changed from Users for better differentiation
+    icon: Search,
     roles: [USER_ROLES.RECRUITER],
     isTourStep: true,
     tourStepId: 'recruiter-candidate-pool-link',
@@ -112,13 +121,13 @@ export const NAV_LINKS: NavLink[] = [
     tourText: "Hiring Manager's hub. Get an overview of your team's hiring activities, open positions, and key metrics."
   },
   {
-    href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-approvals`,
-    label: 'Job Approvals',
-    icon: CheckSquare, // Changed from Briefcase
+    href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-listings`, // New link for HM
+    label: 'My Job Postings',
+    icon: FileText, // Changed icon
     roles: [USER_ROLES.HIRING_MANAGER],
     isTourStep: true,
-    tourStepId: 'hm-job-approvals-link',
-    tourText: 'Review job postings submitted by recruiters. Approve or reject them to keep the hiring process moving.'
+    tourStepId: 'hm-my-job-postings-link',
+    tourText: 'Create, draft, and manage job postings for your team. Submit them for Recruiter approval.'
   },
   {
     href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/interviews`,
@@ -132,7 +141,7 @@ export const NAV_LINKS: NavLink[] = [
   {
     href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/analytics`,
     label: 'Hiring Analytics',
-    icon: BarChart3, // More specific for analytics
+    icon: BarChart3,
     roles: [USER_ROLES.HIRING_MANAGER],
     isTourStep: true,
     tourStepId: 'hm-analytics-link',
@@ -179,7 +188,7 @@ export const NAV_LINKS: NavLink[] = [
   {
     href: `/dashboard/${USER_ROLES.ADMIN}/reports`,
     label: 'Reports & Analytics',
-    icon: BarChartHorizontalBig, 
+    icon: BarChartHorizontalBig,
     roles: [USER_ROLES.ADMIN],
     isTourStep: true,
     tourStepId: 'admin-reports-link',
@@ -203,8 +212,6 @@ export const getNavLinksForRole = (role: UserRole | null): NavLink[] => {
 
 export const getTourStepsForRole = (role: UserRole | null): NavLink[] => {
   if (!role) return [];
-  // Filter for links that are explicitly marked as tour steps and belong to the current user's role.
   return NAV_LINKS.filter(link => link.isTourStep && link.roles.includes(role) && link.tourStepId);
 }
-
     
