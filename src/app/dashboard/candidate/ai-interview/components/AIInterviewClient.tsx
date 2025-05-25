@@ -7,14 +7,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, CheckCircle, Loader2, Video, Timer, AlertCircle, BotMessageSquare, User, Film, Brain, ThumbsUp, ThumbsDown, MessageSquare, Star, Users } from "lucide-react";
+import { Camera, CheckCircle, Loader2, Timer, AlertCircle, BotMessageSquare, User, Film, Brain, ThumbsUp, ThumbsDown, MessageSquare as MessageSquareIcon, Star, Users as UsersIcon, Bot, Volume2 } from "lucide-react"; // Aliased MessageSquare
 import { useEffect, useRef, useState, useCallback } from "react";
 
 import type { AiInterviewSimulationInput, AiInterviewSimulationOutput } from "@/ai/flows/ai-interview-simulation";
 import { aiInterviewSimulation } from "@/ai/flows/ai-interview-simulation";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ElevenLabsProvider, Chat } from '@11labs/react';
+import * as ElevenReact from '@11labs/react';
 
 
 interface AIInterviewClientProps {
@@ -26,7 +26,7 @@ interface AIInterviewClientProps {
 }
 
 type InterviewStage = "consent" | "preparingStream" | "countdown" | "interviewing" | "submitting" | "feedback";
-const SESSION_COUNTDOWN_SECONDS = 3; 
+const SESSION_COUNTDOWN_SECONDS = 3;
 const MAX_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 minutes max for the session
 
 const formatFeedbackText = (text: string | undefined): React.ReactNode => {
@@ -75,13 +75,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const [stage, setStage] = useState<InterviewStage>("consent");
   const [consentGiven, setConsentGiven] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  
+
   const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
   const [feedbackResult, setFeedbackResult] = useState<AiInterviewSimulationOutput | null>(null);
-  
+
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
-  
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
@@ -101,10 +101,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         console.log("Stopping MediaRecorder on cleanup...");
-        mediaRecorderRef.current.stop(); 
+        mediaRecorderRef.current.stop();
     }
-    mediaRecorderRef.current = null; 
-    
+    mediaRecorderRef.current = null;
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -119,7 +119,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const submitForFinalFeedback = useCallback(async (videoBlob: Blob) => {
     if (!videoBlob) {
       toast({ variant: "destructive", title: "No Video Recorded", description: "Cannot submit feedback without a video." });
-      setStage("preparingStream"); 
+      setStage("preparingStream");
       return;
     }
     setStage("submitting");
@@ -128,14 +128,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       reader.readAsDataURL(videoBlob);
       reader.onloadend = async () => {
         const videoDataUri = reader.result as string;
-        // TODO: Find a way to extract transcript from ElevenLabs Chat if possible.
-        // For now, sending a placeholder.
+        // Placeholder transcript as extracting from Chat component might be complex
         const placeholderTranscript = "Transcript from ElevenLabs Chat session (feature to extract actual transcript TBD).";
         const input: AiInterviewSimulationInput = {
           jobDescription: jobContext.jobDescription,
           candidateResume: jobContext.candidateResume,
           videoDataUri,
-          fullTranscript: placeholderTranscript, 
+          fullTranscript: placeholderTranscript,
         };
         const result = await aiInterviewSimulation(input);
         setFeedbackResult(result);
@@ -144,7 +143,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       };
       reader.onerror = () => {
         toast({ variant: "destructive", title: "File Read Error", description: "Could not process video for submission." });
-        setStage("preparingStream"); 
+        setStage("preparingStream");
       }
     } catch (error) {
       console.error("Error getting feedback:", error);
@@ -159,7 +158,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         console.warn("Interview not active or not in interviewing stage, finish aborted.");
         return;
     }
-    isInterviewActiveRef.current = false; 
+    isInterviewActiveRef.current = false;
     if (sessionTimerIdRef.current) {
         clearTimeout(sessionTimerIdRef.current);
         sessionTimerIdRef.current = null;
@@ -167,13 +166,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         console.log("Stopping MediaRecorder via handleFinishInterview...");
-        mediaRecorderRef.current.onstop = () => { 
+        mediaRecorderRef.current.onstop = () => {
             const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
             console.log("MediaRecorder stopped, blob size:", blob.size);
-            setRecordedVideoBlob(blob); 
-            submitForFinalFeedback(blob); 
+            setRecordedVideoBlob(blob);
+            submitForFinalFeedback(blob);
             recordedChunksRef.current = [];
-             if (streamRef.current) { 
+             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
                 streamRef.current = null;
             }
@@ -184,12 +183,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             }
         };
         mediaRecorderRef.current.stop();
-    } else if (recordedVideoBlob) { 
+    } else if (recordedVideoBlob) {
         console.log("MediaRecorder already stopped, submitting existing blob.");
         submitForFinalFeedback(recordedVideoBlob);
     } else {
         console.warn("No recording or blob found to submit.");
-        setStage("preparingStream"); 
+        setStage("preparingStream");
         toast({variant: "destructive", title: "Recording Issue", description: "No video was recorded."});
     }
   }, [stage, recordedVideoBlob, submitForFinalFeedback, toast]);
@@ -206,22 +205,20 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         toast({ variant: "destructive", title: "Unsupported Browser", description: "Media recording not supported." });
         isInterviewActiveRef.current = false; setStage("preparingStream"); setCameraPermission(false); return;
     }
-    
+
     try {
-        // For ElevenLabs Chat, audio is handled by the Chat component itself.
-        // We only need video from the user's device.
-        streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); 
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); // Audio will be handled by ElevenLabs
         setCameraPermission(true);
         if (videoPreviewRef.current) {
           videoPreviewRef.current.srcObject = streamRef.current;
-          videoPreviewRef.current.muted = true; 
+          videoPreviewRef.current.muted = true;
           videoPreviewRef.current.play().catch(e => console.error("Preview play error", e));
         }
 
         mediaRecorderRef.current = new MediaRecorder(streamRef.current);
         mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
-        mediaRecorderRef.current.onstop = () => { 
-          if (!isInterviewActiveRef.current) { 
+        mediaRecorderRef.current.onstop = () => {
+          if (!isInterviewActiveRef.current) {
              const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
              setRecordedVideoBlob(blob);
              console.log("MediaRecorder stopped through onstop. Final blob size:", blob.size);
@@ -229,7 +226,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
               console.log("MediaRecorder onstop called, but interview still active. Ignoring blob processing here.");
           }
         };
-        
+
         setStage("countdown");
         setCountdown(SESSION_COUNTDOWN_SECONDS);
         const countdownInterval = setInterval(() => {
@@ -238,10 +235,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
               clearInterval(countdownInterval);
               setStage("interviewing");
               if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "recording") {
-                  mediaRecorderRef.current.start(); 
+                  mediaRecorderRef.current.start();
                   console.log("MediaRecorder started for the session.");
               }
-              
+
               sessionTimerIdRef.current = setTimeout(() => {
                 toast({ title: "Session Timeout", description: "The interview session has ended due to timeout."});
                 handleFinishInterview();
@@ -263,7 +260,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         setMediaError(desc);
         setCameraPermission(false);
         toast({ variant: "destructive", title: "Media Device Error", description: desc });
-        isInterviewActiveRef.current = false; setStage("preparingStream"); 
+        isInterviewActiveRef.current = false; setStage("preparingStream");
       }
   }, [stage, toast, handleFinishInterview]);
 
@@ -296,7 +293,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   }, [stage, consentGiven, startInterviewSession, elevenLabsApiKey, toast]);
 
   useEffect(() => {
-    return () => { 
+    return () => {
       cleanupResources();
     };
   }, [cleanupResources]);
@@ -307,9 +304,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         <DialogHeader>
           <DialogTitle>Realtime AI Interview Consent</DialogTitle>
           <DialogDescription>
-            This Realtime AI Interview requires access to your camera to record your video responses. 
+            This Realtime AI Interview requires access to your camera to record your video responses.
             Your audio interaction will be handled by the Persona AI Agent powered by ElevenLabs.
-            The recording will begin after a short countdown and will last for the duration of the interview (up to {MAX_SESSION_DURATION_MS / 1000 / 60} minutes). 
+            The recording will begin after a short countdown and will last for the duration of the interview (up to {MAX_SESSION_DURATION_MS / 1000 / 60} minutes).
             Your entire session will be analyzed by AI to provide you with comprehensive feedback.
           </DialogDescription>
         </DialogHeader>
@@ -330,7 +327,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const renderInterviewContent = () => {
     if (!elevenLabsApiKey) {
       return (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="shadow-lg">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Configuration Error</AlertTitle>
           <AlertDescription>
@@ -351,20 +348,24 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           </CardHeader>
           <CardContent className="flex-grow p-0 md:p-2">
             {stage === 'interviewing' && (
-              <ElevenLabsProvider apiKey={elevenLabsApiKey}>
                 <div className="h-full w-full overflow-y-auto rounded-md border border-input">
-                  <Chat 
-                    agentId={elevenLabsAgentId} 
-                    // Pass initial context to the agent if the API supports it.
-                    // systemPrompt={`You are Mira, an AI interviewer for Persona AI. You are conducting an interview for the ${jobContext.jobTitle} role. The candidate's resume summary is: ${jobContext.candidateResume}. The job description is: ${jobContext.jobDescription}. Start by warmly greeting the candidate and asking them to tell you a bit about themselves.`}
-                  />
+                  <p className="p-4 text-center text-muted-foreground">
+                    The ElevenLabs `Chat` component or `useConversation` hook integration would go here.
+                    Currently, this library does not directly export a `Chat` or `ElevenLabsProvider` component.
+                    Please refer to ElevenLabs documentation for using `useConversation`.
+                  </p>
                 </div>
-              </ElevenLabsProvider>
             )}
             {(stage === 'preparingStream' || stage === 'countdown') && (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-2" />
                     <p>{stage === 'countdown' ? "Get Ready..." : "Preparing Interview..."}</p>
+                </div>
+            )}
+             {stage !== 'interviewing' && stage !== 'preparingStream' && stage !== 'countdown' && (
+                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
+                    <Bot className="h-12 w-12 text-primary mb-2"/>
+                    <p>The AI Interviewer will appear here.</p>
                 </div>
             )}
           </CardContent>
@@ -400,9 +401,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                    <Camera className="absolute h-24 w-24 text-muted-foreground" />
                )}
             </div>
-            
+
             {(mediaError || cameraPermission === false) && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="shadow-md">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Media Error</AlertTitle>
                 <AlertDescription>{mediaError || "Camera/microphone access was not granted or is unavailable."}</AlertDescription>
@@ -448,10 +449,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                 {renderFeedbackSection("Overall Assessment", feedbackResult?.overallAssessment, <Brain className="mr-2 h-5 w-5 text-primary"/>)}
                 {renderFeedbackSection("Key Strengths", feedbackResult?.keyStrengths, <ThumbsUp className="mr-2 h-5 w-5 text-green-500"/>)}
                 {renderFeedbackSection("Areas for Improvement", feedbackResult?.areasForImprovement, <ThumbsDown className="mr-2 h-5 w-5 text-red-500"/>)}
-                {renderFeedbackSection("Communication & Clarity", feedbackResult?.communicationClarity, <MessageSquare className="mr-2 h-5 w-5 text-blue-500"/>)}
+                {renderFeedbackSection("Communication & Clarity", feedbackResult?.communicationClarity, <MessageSquareIcon className="mr-2 h-5 w-5 text-blue-500"/>)}
                 {renderFeedbackSection("Body Language & Presentation", feedbackResult?.bodyLanguageAnalysis, <User className="mr-2 h-5 w-5 text-purple-500"/>)}
                 {renderFeedbackSection("Relevance to Role Context", feedbackResult?.relevanceToRole, <Star className="mr-2 h-5 w-5 text-yellow-500"/>)}
-                {renderFeedbackSection("Hiring Recommendation Justification", feedbackResult?.hiringRecommendationJustification, <Users className="mr-2 h-5 w-5 text-indigo-500"/>)}
+                {renderFeedbackSection("Hiring Recommendation Justification", feedbackResult?.hiringRecommendationJustification, <UsersIcon className="mr-2 h-5 w-5 text-indigo-500"/>)}
 
                 {recordedVideoBlob && (
                 <Card className="shadow-md">
@@ -472,7 +473,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   return (
     <>
       {renderConsentDialog()}
-      
+
       {stage === "submitting" && (
           <div className="text-center p-8 space-y-2">
               <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
@@ -482,7 +483,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
       {(stage === "preparingStream" || stage === "countdown" || stage === "interviewing") && renderInterviewContent()}
       {stage === "feedback" && feedbackResult && renderFeedbackContent()}
-      
+
     </>
   );
 }
+
+    
