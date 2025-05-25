@@ -36,10 +36,12 @@ const prompt = ai.definePrompt({
   name: 'generateJobPostingPrompt',
   input: {schema: GenerateJobPostingInputSchema},
   output: {schema: GenerateJobPostingOutputSchema},
-  prompt: `You are an expert HR content writer specializing in crafting compelling job postings.
-Given the following job title and optional context (company, experience, location), generate the requested sections.
-Consider all provided context (job title: {{{jobTitle}}}, company: {{#if company}}{{{company}}}{{else}}N/A{{/if}}, experience: {{#if experienceRequired}}{{{experienceRequired}}}{{else}}N/A{{/if}}, location: {{#if location}}{{{location}}}{{else}}N/A{{/if}}) to make the generated content as relevant and appealing as possible.
+  prompt: `You are an AI assistant helping a **Recruiter** craft an outstanding job posting.
+The Recruiter has received initial information about the role (job title, and optionally company, experience level, location) likely from the **Hiring Manager**.
+Your task is to take these core details and generate compelling, optimized content for the job posting sections.
+Focus on making the job description engaging, using relevant keywords for searchability, ensuring clarity, and reflecting company culture if company information is provided.
 
+Core Role Information:
 Job Title: {{{jobTitle}}}
 {{#if company}}Company: {{{company}}}{{/if}}
 {{#if experienceRequired}}Experience Required: {{{experienceRequired}}}{{/if}}
@@ -47,13 +49,13 @@ Job Title: {{{jobTitle}}}
 
 Follow these specific constraints for each section:
 
-1.  **Job Description**: Generate a concise and engaging job description as a single paragraph. It MUST be strictly between 4 and 5 lines long. If a company name ({{{company}}}) is provided, weave in compelling details about the company naturally within this paragraph. If location ({{{location}}}) is specified as 'Remote', emphasize remote work aspects if appropriate for the role.
-2.  **Responsibilities**: List key responsibilities for this role. Provide a minimum of 7 and a maximum of 15 distinct responsibilities. Each responsibility MUST start with a bullet character and a space ('• ') on a new line.
-3.  **Qualifications**: List essential qualifications and experience for this role. Provide a minimum of 5 and a maximum of 10 distinct qualifications. Each qualification MUST start with a bullet character and a space ('• ') on a new line.
-4.  **Skills**: Identify the top 5 to 10 most relevant technical and soft skills for this job title and context. Return these as an array of skill strings.
+1.  **Job Description**: Generate a concise and engaging job description as a single paragraph. It MUST be strictly between 4 and 5 lines long. This section should capture the essence of the role and the company. If a company name ({{{company}}}) is provided, weave in compelling details about the company culture and mission naturally within this paragraph. If location ({{{location}}}) is specified as 'Remote', emphasize remote work aspects if appropriate for the role.
+2.  **Responsibilities**: List key responsibilities for this role, as defined by the Hiring Manager and optimized by you for clarity and impact. Provide a minimum of 7 and a maximum of 15 distinct responsibilities. Each responsibility MUST start with a bullet character and a space ('• ') on a new line.
+3.  **Qualifications**: List essential qualifications and experience required for this role. These are the "must-haves." Provide a minimum of 5 and a maximum of 10 distinct qualifications. Each qualification MUST start with a bullet character and a space ('• ') on a new line.
+4.  **Skills**: Identify the top 5 to 10 most relevant technical and soft skills for this job title and context. These skills should be valuable for search engine optimization and candidate matching. Return these as an array of skill strings.
 5.  **Company Benefits**: List 3 to 5 common company benefits relevant to a professional role, formatted as newline-separated bullet points (each starting with '• '). If a location ({{{location}}}) is provided, try to suggest benefits that are commonly valued or offered in that region or for remote roles, while still keeping them generally professional. Examples: Health Insurance, Paid Time Off, 401(k) Plan, Professional Development, Flexible Work Hours, Home Office Stipend (for remote).
 
-Ensure the generated content is professional, clear, and attractive to potential candidates. The recruiter will review and customize these suggestions.
+The generated content should be professional, clear, and attractive to potential candidates. The Recruiter will review and customize these suggestions before submitting for final approval by the Hiring Manager.
 `,
 });
 
