@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, CheckCircle, FileUp, Loader2, Video } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation"; // Import useParams
 import { useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -24,8 +24,8 @@ const applicationFormSchema = z.object({
   phone: z.string().optional(),
   resume: z.any().refine(fileList => fileList && fileList.length === 1, "Resume is required."),
   coverLetter: z.string().optional(),
-  linkedinProfile: z.string().url("Invalid LinkedIn URL.").optional(),
-  portfolioUrl: z.string().url("Invalid portfolio URL.").optional(),
+  linkedinProfile: z.string().url("Invalid LinkedIn URL.").optional().or(z.literal('')),
+  portfolioUrl: z.string().url("Invalid portfolio URL.").optional().or(z.literal('')),
 });
 
 type ApplicationFormValues = z.infer<typeof applicationFormSchema>;
@@ -33,8 +33,11 @@ type ApplicationFormValues = z.infer<typeof applicationFormSchema>;
 // Mock job title for the application page
 const jobTitle = "Software Engineer, Frontend"; // Would be fetched in a real app
 
-export default function JobApplicationPage({ params }: { params: { id: string } }) {
+export default function JobApplicationPage() { // Removed params from props
   const router = useRouter();
+  const params = useParams(); // Use the hook
+  const jobId = params.id as string; // Get id from the hook's return value
+
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -167,7 +170,7 @@ export default function JobApplicationPage({ params }: { params: { id: string } 
   return (
     <div className="max-w-2xl mx-auto">
       <Button variant="ghost" asChild className="mb-4">
-        <Link href={`/jobs/${params.id}`}>
+        <Link href={`/jobs/${jobId}`}> {/* Use jobId from useParams */}
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Job Details
         </Link>
       </Button>
@@ -333,3 +336,4 @@ export default function JobApplicationPage({ params }: { params: { id: string } 
     </div>
   );
 }
+
