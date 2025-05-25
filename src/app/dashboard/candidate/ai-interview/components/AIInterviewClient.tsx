@@ -14,7 +14,7 @@ import type { AiInterviewSimulationInput, AiInterviewSimulationOutput } from "@/
 import { aiInterviewSimulation } from "@/ai/flows/ai-interview-simulation";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ElevenLabsProvider, Chat, AudioPlayer } from '@11labs/react';
+import { ElevenLabsProvider, Chat } from '@11labs/react';
 
 
 interface AIInterviewClientProps {
@@ -26,7 +26,7 @@ interface AIInterviewClientProps {
 }
 
 type InterviewStage = "consent" | "preparingStream" | "countdown" | "interviewing" | "submitting" | "feedback";
-const SESSION_COUNTDOWN_SECONDS = 3; // Shortened for quicker start with Chat
+const SESSION_COUNTDOWN_SECONDS = 3; 
 const MAX_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 minutes max for the session
 
 const formatFeedbackText = (text: string | undefined): React.ReactNode => {
@@ -208,7 +208,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
     
     try {
-        streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); // Audio handled by ElevenLabs Chat
+        // For ElevenLabs Chat, audio is handled by the Chat component itself.
+        // We only need video from the user's device.
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); 
         setCameraPermission(true);
         if (videoPreviewRef.current) {
           videoPreviewRef.current.srcObject = streamRef.current;
@@ -252,11 +254,11 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       } catch (err) {
         console.error("Error accessing media devices.", err);
         const error = err as Error;
-        let desc = "Could not access camera/microphone. Please check permissions and ensure they are not in use by another app.";
+        let desc = "Could not access camera. Please check permissions and ensure it's not in use by another app.";
         if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
-            desc = "No camera/microphone found. Please ensure they are connected and enabled.";
+            desc = "No camera found. Please ensure it is connected and enabled.";
         } else if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-            desc = "Permission to access camera/microphone was denied. Please enable it in your browser settings.";
+            desc = "Permission to access camera was denied. Please enable it in your browser settings.";
         }
         setMediaError(desc);
         setCameraPermission(false);
@@ -306,7 +308,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           <DialogTitle>Realtime AI Interview Consent</DialogTitle>
           <DialogDescription>
             This Realtime AI Interview requires access to your camera to record your video responses. 
-            Your audio will be handled by the ElevenLabs AI Agent.
+            Your audio interaction will be handled by the Persona AI Agent powered by ElevenLabs.
             The recording will begin after a short countdown and will last for the duration of the interview (up to {MAX_SESSION_DURATION_MS / 1000 / 60} minutes). 
             Your entire session will be analyzed by AI to provide you with comprehensive feedback.
           </DialogDescription>
@@ -351,11 +353,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             {stage === 'interviewing' && (
               <ElevenLabsProvider apiKey={elevenLabsApiKey}>
                 <div className="h-full w-full overflow-y-auto rounded-md border border-input">
-                   {/* The Chat component takes up available space. Its internal height might need to be managed by its own styling or props if available. */}
                   <Chat 
                     agentId={elevenLabsAgentId} 
-                    // You might need to pass initial system prompt or context here if supported
-                    // For example: systemPrompt={`You are Mira, conducting an interview for the ${jobContext.jobTitle} role. The candidate's resume mentions: ${jobContext.candidateResume}. The job description is: ${jobContext.jobDescription}. Start by introducing yourself and asking the candidate to tell you about themselves.`}
+                    // Pass initial context to the agent if the API supports it.
+                    // systemPrompt={`You are Mira, an AI interviewer for Persona AI. You are conducting an interview for the ${jobContext.jobTitle} role. The candidate's resume summary is: ${jobContext.candidateResume}. The job description is: ${jobContext.jobDescription}. Start by warmly greeting the candidate and asking them to tell you a bit about themselves.`}
                   />
                 </div>
               </ElevenLabsProvider>
@@ -482,12 +483,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       {(stage === "preparingStream" || stage === "countdown" || stage === "interviewing") && renderInterviewContent()}
       {stage === "feedback" && feedbackResult && renderFeedbackContent()}
       
-      {/* Render AudioPlayer outside the main flow, if ElevenLabsProvider wraps it. This is often for global playback controls. */}
-      {elevenLabsApiKey && stage === 'interviewing' && (
-          <ElevenLabsProvider apiKey={elevenLabsApiKey}>
-            <AudioPlayer className="fixed bottom-4 right-4 z-[10000] opacity-50 hover:opacity-100 transition-opacity"/>
-          </ElevenLabsProvider>
-      )}
     </>
   );
 }
