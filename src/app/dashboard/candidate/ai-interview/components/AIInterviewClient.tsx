@@ -71,6 +71,7 @@ const formatFeedbackText = (text: string | undefined): React.ReactNode => {
   return output.length > 0 ? <>{output}</> : "No content available.";
 };
 
+
 export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const { toast } = useToast();
   const [stage, setStage] = useState<InterviewStage>("consent");
@@ -88,17 +89,19 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null); // For camera and mic stream
   const sessionTimerIdRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const isInterviewActiveRef = useRef(false);
-  const isStartingSessionRef = useRef(false); // New ref to track session start attempt
-  const isProcessingErrorRef = useRef(false); // To prevent re-entrant error handling
+  const isStartingSessionRef = useRef(false);
+  const isProcessingErrorRef = useRef(false);
   const chatMessagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const [conversationMessages, setConversationMessages] = useState<Message[]>([]);
   const elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
+
+  const conversationRef = useRef<ReturnType<typeof ElevenReact.useConversation> | null>(null);
 
   const cleanupResources = useCallback(() => {
     console.log("Cleaning up resources...");
@@ -114,11 +117,14 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     if (mediaRecorderRef.current && (mediaRecorderRef.current.state === "recording" || mediaRecorderRef.current.state === "paused")) {
       console.log("Stopping MediaRecorder on cleanup...");
       mediaRecorderRef.current.onstop = null;
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {
+        console.warn("Error stopping media recorder during cleanup:", e);
+      }
     }
     mediaRecorderRef.current = null;
     recordedChunksRef.current = [];
-
 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -130,132 +136,14 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       videoPreviewRef.current.srcObject = null;
     }
     
-    // Only end ElevenLabs session if it's actually connected
-    if (conversation.status === "connected" && !isStartingSessionRef.current) {
-        console.log("Attempting to end ElevenLabs session on cleanup (if connected).");
-        conversation.endSession().catch(e => console.error("Error ending ElevenLabs session on cleanup:", e));
+    const conv = conversationRef.current;
+    if (conv && conv.status === "connected" && !isStartingSessionRef.current) {
+        console.log("Attempting to end ElevenLabs session on cleanup (if connected and not starting).");
+        conv.endSession().catch(e => console.error("Error ending ElevenLabs session on cleanup:", e));
     }
     isInterviewActiveRef.current = false;
-    isStartingSessionRef.current = false; // Ensure this is reset
-  }, [conversation]); // conversation is stable from useConversation
-
-
-  const conversation = ElevenReact.useConversation({
-    onConnect: () => {
-      console.log("ElevenLabs agent connected.");
-      toast({ title: "AI Interviewer Connected", description: "Mira is ready." });
-      
-      isInterviewActiveRef.current = true; // Session is now active
-      isStartingSessionRef.current = false; // Session start attempt finished
-      setStage("interviewing");
-      
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "recording") {
-        mediaRecorderRef.current.start();
-        console.log("Video recording started for the session.");
-      }
-      sessionTimerIdRef.current = setTimeout(() => {
-        if (isInterviewActiveRef.current) {
-          toast({ title: "Session Timeout", description: "The interview session has ended due to timeout." });
-          handleFinishInterview();
-        }
-      }, MAX_SESSION_DURATION_MS);
-    },
-    onDisconnect: () => {
-      console.log("ElevenLabs agent disconnected.");
-      if (isProcessingErrorRef.current) return; // Already handling an error
-
-      if (isStartingSessionRef.current) { // Disconnected during startup
-        console.warn("ElevenLabs disconnected during session start.");
-        isProcessingErrorRef.current = true;
-        setMediaError("AI Interviewer disconnected during startup. Please try again.");
-        toast({ variant: "destructive", title: "Connection Issue", description: "AI Interviewer disconnected during startup." });
-        cleanupResources(); // Basic cleanup
-        setStage("consent");
-        // Reset states
-        setRecordedVideoBlob(null);
-        setConversationMessages([]);
-        setFullTranscript("");
-        setCountdown(null);
-        setCameraPermission(null);
-        setMicPermission(null);
-        isInterviewActiveRef.current = false;
-        isStartingSessionRef.current = false;
-        setTimeout(() => { isProcessingErrorRef.current = false; }, 1000);
-        return;
-      }
-
-      if (isInterviewActiveRef.current && stage === 'interviewing') { 
-         toast({ title: "AI Interviewer Disconnected", variant: "destructive" });
-         handleFinishInterview();
-      }
-      isStartingSessionRef.current = false; // Ensure reset
-    },
-    onMessage: (message: any) => {
-      console.log("ElevenLabs message:", message);
-      let sender: 'user' | 'agent' = 'agent';
-      let textContent = '';
-
-      if (message.type === 'user_transcript' && message.text) { // Assuming 'text' for final user transcript
-        sender = 'user';
-        textContent = message.text;
-      } else if (message.type === 'agent_response' && message.text) {
-        sender = 'agent';
-        textContent = message.text;
-      } else if (typeof message.text === 'string' && !message.type) { 
-        textContent = message.text;
-        if (!conversation.isSpeaking) sender = 'user';
-      } else if (message.audio && message.text) { 
-        sender = 'agent';
-        textContent = message.text;
-      }
-
-      if (textContent) {
-        setConversationMessages(prev => [...prev, { sender, text: textContent, timestamp: Date.now() }]);
-        setFullTranscript(prev => prev + `\n${sender === 'user' ? 'Candidate' : 'Mira'}: ${textContent}`);
-      }
-    },
-    onError: (error: Error) => {
-      if (isProcessingErrorRef.current) {
-          console.warn("Error processing already in progress, skipping additional error handling.");
-          return;
-      }
-      isProcessingErrorRef.current = true;
-      
-      console.error("ElevenLabs error:", error);
-      const errorMessage = error.message || "An unknown error occurred with the AI Agent.";
-      setMediaError(`AI Agent Error: ${errorMessage}`);
-      toast({ variant: "destructive", title: "AI Agent Error", description: errorMessage });
-
-      // Critical: Reset logic, especially if error happens during startup
-      if (isStartingSessionRef.current) {
-        console.warn("ElevenLabs error during session start. Forcing reset to consent.");
-      }
-      
-      cleanupResources(); // This will now try to end session only if connected and not starting
-      
-      // Reset all relevant states to initial values to force a clean UI state
-      setStage("consent");
-      setRecordedVideoBlob(null);
-      setConversationMessages([]);
-      setFullTranscript("");
-      setCountdown(null);
-      setCameraPermission(null); 
-      setMicPermission(null);   
-      isInterviewActiveRef.current = false;
-      isStartingSessionRef.current = false;
-
-      setTimeout(() => {
-        isProcessingErrorRef.current = false;
-      }, 1000); 
-    },
-  });
-
-  const scrollToBottom = () => {
-    chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(scrollToBottom, [conversationMessages]);
-
+    // isStartingSessionRef.current = false; // Should be managed by start/end of session attempt
+  }, [/* No dependency on conversation directly */]);
 
   const submitForFinalFeedback = useCallback(async (videoBlob: Blob) => {
     if (!videoBlob) {
@@ -294,27 +182,33 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
   }, [jobContext, toast, fullTranscript, cleanupResources]);
 
-  const handleFinishInterview = useCallback(() => {
-    console.log("handleFinishInterview called. Current stage:", stage, "Is active:", isInterviewActiveRef.current);
-    
+  const handleFinishInterview = useCallback(async () => {
     if (!isInterviewActiveRef.current && stage !== 'interviewing') {
-      console.warn("Interview not active or not in interviewing stage, finish aborted or already handled.");
-      if (stage === 'submitting' || stage === 'feedback') return;
-      cleanupResources();
-      setStage("consent");
+      console.warn("Interview not active or not in interviewing stage during handleFinishInterview, finish aborted or already handled. Stage:", stage);
+      if (stage !== 'submitting' && stage !== 'feedback') {
+         // If somehow called in an invalid state, just try to cleanup and go to consent
+        cleanupResources();
+        setStage("consent");
+      }
       return;
     }
     
     isInterviewActiveRef.current = false; 
+    isStartingSessionRef.current = false;
 
     if (sessionTimerIdRef.current) {
       clearTimeout(sessionTimerIdRef.current);
       sessionTimerIdRef.current = null;
     }
-
-    if (conversation.status === "connected") {
+    
+    const conv = conversationRef.current;
+    if (conv && conv.status === "connected") {
         console.log("Ending ElevenLabs session via Finish button.");
-        conversation.endSession().catch(e => console.error("Error ending ElevenLabs session:", e));
+        try {
+            await conv.endSession();
+        } catch (e) {
+            console.error("Error ending ElevenLabs session in handleFinishInterview:", e);
+        }
     }
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
@@ -322,40 +216,193 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
         console.log("MediaRecorder stopped, blob size:", blob.size);
-        recordedChunksRef.current = []; // Clear chunks after creating blob
+        recordedChunksRef.current = [];
         if (blob.size > 0) {
             submitForFinalFeedback(blob);
         } else {
             toast({ variant: "destructive", title: "Recording Issue", description: "No video data was recorded. Please try again." });
             setStage("consent");
-            cleanupResources(); 
+            // No need to call cleanupResources here as it's implied by reaching consent
         }
       };
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {
+        console.warn("Error stopping media recorder in handleFinishInterview:", e);
+        // If stop fails, we might have a problem. Still try to proceed to consent.
+        setStage("consent");
+      }
     } else if (recordedVideoBlob && recordedVideoBlob.size > 0 && stage !== 'submitting' && stage !== 'feedback') {
-      console.log("MediaRecorder already stopped or no active recording, submitting existing blob if available.");
+      console.log("MediaRecorder already stopped, submitting existing blob if available.");
       submitForFinalFeedback(recordedVideoBlob);
     } else {
       console.warn("No recording or blob found to submit, or already submitted/failed.");
       if(stage !== 'submitting' && stage !== 'feedback') {
         setStage("consent");
-        cleanupResources();
         toast({ variant: "destructive", title: "Recording Issue", description: "No video was recorded or found to submit." });
       }
     }
-  }, [stage, recordedVideoBlob, submitForFinalFeedback, toast, conversation, cleanupResources]);
+  }, [stage, recordedVideoBlob, submitForFinalFeedback, toast, cleanupResources]);
+
+
+  const conversation = ElevenReact.useConversation({
+    onConnect: () => {
+      console.log("ElevenLabs agent connected.");
+      toast({ title: "AI Interviewer Connected", description: "Mira is ready." });
+      
+      isInterviewActiveRef.current = true;
+      isStartingSessionRef.current = false;
+      setStage("interviewing");
+      
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "recording") {
+        try {
+          mediaRecorderRef.current.start();
+          console.log("Video recording started for the session.");
+        } catch (e) {
+            console.error("Error starting MediaRecorder in onConnect:", e);
+            setMediaError("Failed to start video recording. Please try again.");
+            toast({variant: "destructive", title: "Recording Error", description: "Could not start video recording."});
+            handleFinishInterview(); // Attempt graceful shutdown
+        }
+      }
+      sessionTimerIdRef.current = setTimeout(() => {
+        if (isInterviewActiveRef.current) {
+          toast({ title: "Session Timeout", description: "The interview session has ended due to timeout." });
+          handleFinishInterview();
+        }
+      }, MAX_SESSION_DURATION_MS);
+    },
+    onDisconnect: () => {
+      console.log("ElevenLabs agent disconnected.");
+      if (isProcessingErrorRef.current) return; 
+
+      if (isStartingSessionRef.current) {
+        console.warn("ElevenLabs disconnected during session start attempt.");
+        setMediaError("AI Interviewer disconnected during startup. Please try again.");
+        toast({ variant: "destructive", title: "Connection Issue", description: "AI Interviewer disconnected during startup." });
+        // Basic cleanup and reset to consent
+        isStartingSessionRef.current = false;
+        cleanupResources(); // Call cleanup without relying on handleFinishInterview here
+        setStage("consent");
+        setRecordedVideoBlob(null);
+        setConversationMessages([]);
+        setFullTranscript("");
+        setCountdown(null);
+        setCameraPermission(null);
+        setMicPermission(null);
+        return;
+      }
+
+      if (isInterviewActiveRef.current && stage === 'interviewing') { 
+         toast({ title: "AI Interviewer Disconnected", variant: "destructive" });
+         handleFinishInterview(); // This will attempt cleanup including ElevenLabs session
+      }
+      isStartingSessionRef.current = false;
+    },
+    onMessage: (message: any) => {
+      console.log("ElevenLabs message:", message);
+      let sender: 'user' | 'agent' = 'agent';
+      let textContent = '';
+
+      if (message.type === 'user_transcript' && message.text) { 
+        sender = 'user';
+        textContent = message.text;
+      } else if (message.type === 'agent_response' && message.text) {
+        sender = 'agent';
+        textContent = message.text;
+      } else if (typeof message.text === 'string' && !message.type) { 
+        textContent = message.text;
+        const conv = conversationRef.current;
+        if (conv && !conv.isSpeaking) sender = 'user';
+      } else if (message.audio && message.text) { 
+        sender = 'agent';
+        textContent = message.text;
+      }
+
+      if (textContent) {
+        setConversationMessages(prev => [...prev, { sender, text: textContent, timestamp: Date.now() }]);
+        setFullTranscript(prev => prev + `\n${sender === 'user' ? 'Candidate' : 'Mira'}: ${textContent}`);
+      }
+    },
+    onError: (error: Error) => {
+      if (isProcessingErrorRef.current) {
+          console.warn("Error processing already in progress, skipping additional error handling.");
+          return;
+      }
+      isProcessingErrorRef.current = true;
+      
+      console.error("ElevenLabs onError:", error);
+      const errorMessage = error.message || "An unknown error occurred with the AI Agent.";
+      setMediaError(`AI Agent Error: ${errorMessage}`);
+      toast({ variant: "destructive", title: "AI Agent Error", description: errorMessage });
+
+      // Clear timers directly
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      if (sessionTimerIdRef.current) clearTimeout(sessionTimerIdRef.current);
+      countdownIntervalRef.current = null;
+      sessionTimerIdRef.current = null;
+
+      // Stop local media streams and recorder if they were started
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.onstop = null; // Remove listener
+        try { mediaRecorderRef.current.stop(); } catch(e) { console.warn("Error stopping media recorder in onError", e); }
+      }
+      mediaRecorderRef.current = null;
+      recordedChunksRef.current = [];
+
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+       if (videoPreviewRef.current?.srcObject) {
+        (videoPreviewRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+        videoPreviewRef.current.srcObject = null;
+      }
+
+      // Force reset to consent stage
+      setStage("consent");
+      setRecordedVideoBlob(null);
+      setConversationMessages([]);
+      setFullTranscript("");
+      setCountdown(null);
+      setCameraPermission(null); 
+      setMicPermission(null);   
+      isInterviewActiveRef.current = false;
+      isStartingSessionRef.current = false;
+
+      setTimeout(() => {
+        isProcessingErrorRef.current = false;
+      }, 1000); 
+    },
+  });
+
+  useEffect(() => {
+    conversationRef.current = conversation;
+  }, [conversation]);
+
+
+  const scrollToBottom = () => {
+    chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(scrollToBottom, [conversationMessages]);
+
 
   const startInterviewSession = useCallback(async () => {
-    if (stage !== "preparingStream") return;
+    if (stage !== "preparingStream") {
+      console.warn("startInterviewSession called in unexpected stage:", stage);
+      return;
+    }
     
     setMediaError(null);
-    setRecordedVideoBlob(null);
-    setConversationMessages([]);
-    setFullTranscript("");
+    setRecordedVideoBlob(null); // Clear previous recording
+    setConversationMessages([]); // Clear previous messages
+    setFullTranscript(""); // Clear previous transcript
     recordedChunksRef.current = [];
     isInterviewActiveRef.current = false;
-    isStartingSessionRef.current = false;
     setFeedbackResult(null);
+    setCameraPermission(null);
+    setMicPermission(null);
 
     if (!elevenLabsApiKey) {
         setMediaError("Configuration Error: ElevenLabs API Key is missing.");
@@ -369,52 +416,44 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       setStage("consent"); setCameraPermission(false); setMicPermission(false); return;
     }
 
+    let tempStream: MediaStream | null = null;
     try {
-      streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      // 1. Get Camera Permission & Preview
+      tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       setCameraPermission(true);
       if (videoPreviewRef.current) {
-        videoPreviewRef.current.srcObject = streamRef.current;
-        videoPreviewRef.current.muted = true;
+        videoPreviewRef.current.srcObject = tempStream;
+        videoPreviewRef.current.muted = true; // Preview is always muted
         videoPreviewRef.current.play().catch(e => console.error("Preview play error", e));
       }
 
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true }); // Request mic permission separately
-        setMicPermission(true);
+      // 2. Get Microphone Permission (for ElevenLabs)
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicPermission(true);
 
-        // We need a new stream that includes audio for MediaRecorder
-        const fullStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (videoPreviewRef.current && !videoPreviewRef.current.srcObject) {
-            const videoOnlyStream = new MediaStream(fullStream.getVideoTracks());
-            videoPreviewRef.current.srcObject = videoOnlyStream;
-            videoPreviewRef.current.muted = true;
-            videoPreviewRef.current.play().catch(e => console.error("Preview play error on fullStream", e));
-        }
-        if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = fullStream;
-
-        mediaRecorderRef.current = new MediaRecorder(streamRef.current, { mimeType: 'video/webm' });
-        mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
-        mediaRecorderRef.current.onstop = () => { 
-            if (!isInterviewActiveRef.current && stage !== 'submitting' && stage !== 'feedback' ) {
-                const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-                setRecordedVideoBlob(blob);
-                console.log("MediaRecorder stopped via onstop (likely by finish/timeout/error). Final blob size:", blob.size);
-            }
-        };
-
-      } catch (micErr) {
-         console.error("Error accessing microphone.", micErr);
-         const error = micErr as Error;
-         let desc = "Could not access microphone. Please check permissions.";
-         if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") desc = "No microphone found.";
-         else if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") desc = "Permission to access microphone was denied.";
-         setMediaError(desc); setMicPermission(false);
-         toast({ variant: "destructive", title: "Microphone Error", description: desc });
-         setStage("consent");
-         if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
-         return;
+      // 3. Get combined stream for MediaRecorder
+      const fullStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      // Stop the temporary video-only stream if it's different
+      if (tempStream && tempStream.id !== fullStream.id) {
+          tempStream.getTracks().forEach(track => track.stop());
       }
+      streamRef.current = fullStream; // Store the full stream for recorder and potential cleanup
+
+      // Re-assign video preview if it got cleared or was using the temp stream
+      if (videoPreviewRef.current && videoPreviewRef.current.srcObject !== streamRef.current) {
+          const videoOnlyForPreview = new MediaStream(streamRef.current.getVideoTracks());
+          videoPreviewRef.current.srcObject = videoOnlyForPreview;
+          if (!videoPreviewRef.current.muted) videoPreviewRef.current.muted = true;
+          videoPreviewRef.current.play().catch(e => console.error("Full stream preview play error", e));
+      }
+      
+      mediaRecorderRef.current = new MediaRecorder(streamRef.current, { mimeType: 'video/webm' });
+      mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+      mediaRecorderRef.current.onstop = () => { 
+          // This onstop is primarily for when recording is stopped by handleFinishInterview or error
+          // The blob is processed there.
+          console.log("MediaRecorder stopped. Chunks:", recordedChunksRef.current.length);
+      };
       
       setStage("countdown");
       setCountdown(SESSION_COUNTDOWN_SECONDS);
@@ -424,21 +463,20 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
             countdownIntervalRef.current = null;
             
-            isStartingSessionRef.current = true; // Mark session start attempt
+            isStartingSessionRef.current = true;
             console.log("Starting ElevenLabs session...");
             conversation.startSession({ agentId: ELEVENLABS_AGENT_ID })
               .then(conversationId => {
                 console.log("ElevenLabs session initialization request sent, ID:", conversationId);
-                // Note: Actual 'interviewing' stage and recorder start is now in onConnect
-                // isStartingSessionRef.current will be set to false in onConnect or onError/onDisconnect
+                // onConnect callback will handle setting stage to 'interviewing' and starting recorder
               })
-              .catch(err => { // This catch might not be hit if useConversation's onError handles it first
-                console.error("Failed to start ElevenLabs session (in .catch):", err);
+              .catch(err => { 
+                console.error("Failed to start ElevenLabs session (in startInterviewSession .catch):", err);
                 setMediaError(`Failed to start AI Agent: ${err.message}`);
                 toast({variant: "destructive", title: "AI Agent Error", description: "Could not connect to the AI interviewer."});
                 isStartingSessionRef.current = false;
-                cleanupResources();
-                setStage("consent");
+                cleanupResources(); // Cleanup media resources
+                setStage("consent"); // Reset to consent
               });
             return null;
           }
@@ -446,19 +484,26 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         });
       }, 1000);
     } catch (err) {
-      console.error("Error accessing media devices (camera).", err);
+      console.error("Error accessing media devices.", err);
       const error = err as Error;
-      let desc = "Could not access camera. Please check permissions.";
-      if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") desc = "No camera found.";
-      else if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") desc = "Permission to access camera was denied.";
-      setMediaError(desc); setCameraPermission(false);
-      toast({ variant: "destructive", title: "Camera Error", description: desc });
+      let desc = "Could not access media devices. Please check permissions.";
+      if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") desc = "No camera or microphone found.";
+      else if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") desc = "Permission to access camera/microphone was denied.";
+      setMediaError(desc);
+      if (!cameraPermission) setCameraPermission(false); // If error before mic check
+      if (!micPermission) setMicPermission(false);
+      toast({ variant: "destructive", title: "Media Error", description: desc });
+      
+      if (tempStream) tempStream.getTracks().forEach(track => track.stop());
+      if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop()); // Clean up full stream if obtained
+      streamRef.current = null;
+      
       setStage("consent");
     }
-  }, [stage, toast, elevenLabsApiKey, conversation, ELEVENLABS_AGENT_ID, cleanupResources]); // Added cleanupResources dependency
+  }, [stage, toast, elevenLabsApiKey, conversation]); 
 
   const resetFullInterview = useCallback(() => {
-    cleanupResources();
+    cleanupResources(); // This will attempt to end ElevenLabs session if active
     setStage("consent");
     setConsentGiven(false);
     setCountdown(null);
@@ -469,11 +514,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     setMicPermission(null);
     setConversationMessages([]);
     setFullTranscript("");
-    isProcessingErrorRef.current = false; // Ensure this is reset
-    isStartingSessionRef.current = false; // Ensure this is reset
+    isProcessingErrorRef.current = false;
+    isStartingSessionRef.current = false;
   }, [cleanupResources]);
 
   useEffect(() => {
+    // ComponentWillUnmount
     return () => {
       cleanupResources();
     };
@@ -500,8 +546,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             if (consentGiven) {
                 setStage("preparingStream");
                 // Call startInterviewSession directly after setting stage
-                // This will be executed in the next render cycle when stage is "preparingStream"
-                // Ensure permissions are requested before starting.
+                // This ensures permissions are requested before starting.
                 startInterviewSession(); 
             } else {
                 toast({ variant: "destructive", title: "Consent Required", description: "You must consent to proceed." });
