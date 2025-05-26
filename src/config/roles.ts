@@ -1,8 +1,10 @@
+
 export const USER_ROLES = {
   CANDIDATE: 'candidate',
   RECRUITER: 'recruiter',
   HIRING_MANAGER: 'hiring-manager',
   ADMIN: 'admin',
+  INTERVIEWER: 'interviewer', // New role
 } as const;
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
@@ -43,6 +45,13 @@ export const DEMO_USERS: Record<UserRole, User> = {
     name: 'Diana Green',
     email: 'diana.green@example.com',
     role: USER_ROLES.ADMIN,
+    avatar: 'https://placehold.co/100x100.png',
+  },
+  [USER_ROLES.INTERVIEWER]: { // New demo interviewer
+    id: 'interviewer1',
+    name: 'Ian Reviewer',
+    email: 'ian.reviewer@example.com',
+    role: USER_ROLES.INTERVIEWER,
     avatar: 'https://placehold.co/100x100.png',
   },
 };

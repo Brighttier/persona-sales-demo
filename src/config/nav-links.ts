@@ -1,7 +1,7 @@
 
 import type { UserRole } from '@/config/roles';
 import { USER_ROLES } from '@/config/roles';
-import { LayoutDashboard, Briefcase, Users, CalendarDays, UserCircle, Settings, Building, CreditCard, BotMessageSquare, ShieldCheck, BarChart3, CheckSquare, Search, FileText, BarChartHorizontalBig, PlusCircle } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Users, CalendarDays, UserCircle, Settings, Building, CreditCard, BotMessageSquare, ShieldCheck, BarChart3, CheckSquare, Search, FileText, BarChartHorizontalBig, PlusCircle, MessagesSquare } from 'lucide-react'; // Added MessagesSquare
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavLink {
@@ -88,7 +88,7 @@ export const NAV_LINKS: NavLink[] = [
     icon: CheckSquare,
     roles: [USER_ROLES.RECRUITER],
     isTourStep: true,
-    tourStepId: 'recruiter-job-approvals-link', 
+    tourStepId: 'recruiter-job-approvals-link',
     tourText: 'Review job postings submitted by Hiring Managers. Optimize, approve, or reject them to ensure quality and consistency before publishing.'
   },
   {
@@ -121,15 +121,23 @@ export const NAV_LINKS: NavLink[] = [
     tourText: "Hiring Manager's hub. Get an overview of your team's hiring activities, open positions, and key metrics."
   },
   {
-    href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-listings`, 
+    href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-listings`,
     label: 'My Job Postings',
-    icon: FileText, 
+    icon: FileText,
     roles: [USER_ROLES.HIRING_MANAGER],
     isTourStep: true,
     tourStepId: 'hm-my-job-postings-link',
     tourText: 'Create, draft, and manage job postings for your team. Submit them for Recruiter approval. The "Create New Job" button is on this page.'
   },
-  // Removed Job Approvals for HM as per new workflow
+  {
+    href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-approvals`,
+    label: 'Job Approvals',
+    icon: CheckSquare,
+    roles: [USER_ROLES.HIRING_MANAGER],
+    isTourStep: true,
+    tourStepId: 'hm-job-approvals-link',
+    tourText: 'Review job postings submitted by Recruiters. Approve or reject them for your team.'
+  },
   {
     href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/interviews`,
     label: 'Team Interviews',
@@ -204,6 +212,17 @@ export const NAV_LINKS: NavLink[] = [
     tourStepId: 'admin-settings-link',
     tourText: 'Configure global settings for the application, including general preferences, notifications, security, and integrations.'
   },
+
+  // Interviewer Links
+  {
+    href: `/dashboard/${USER_ROLES.INTERVIEWER}/dashboard`,
+    label: 'My Schedule',
+    icon: CalendarDays, // Or MessagesSquare for feedback focus
+    roles: [USER_ROLES.INTERVIEWER],
+    isTourStep: true,
+    tourStepId: 'interviewer-dashboard-link',
+    tourText: 'View your upcoming interviews, join them, and submit your feedback and verdict afterwards.'
+  },
 ];
 
 export const getNavLinksForRole = (role: UserRole | null): NavLink[] => {
@@ -215,6 +234,3 @@ export const getTourStepsForRole = (role: UserRole | null): NavLink[] => {
   if (!role) return [];
   return NAV_LINKS.filter(link => link.isTourStep && link.roles.includes(role) && link.tourStepId);
 }
-    
-
-    

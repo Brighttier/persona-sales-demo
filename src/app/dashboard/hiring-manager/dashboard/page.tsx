@@ -4,17 +4,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Briefcase, Users, UserCheck, BarChart3 as BarChartIcon, ArrowRight, CalendarCheck, PieChart as PieChartIcon, MessageSquare } from "lucide-react";
+import { Briefcase, Users, UserCheck, BarChart3 as BarChartIcon, ArrowRight, CalendarCheck, PieChart as PieChartIcon, MessageSquare, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useToast } from "@/hooks/use-toast";
 
 const teamStats = {
   openPositions: 5,
   candidatesInPipeline: 45,
   interviewsToday: 3,
   avgTimeToFill: "28 days", // This might come from analytics
-  pendingApprovals: 2, // New stat
-  feedbackDue: 8, // New stat
+  pendingApprovals: 2, 
+  feedbackDue: 8, 
 };
 
 const monthlyHiresData = [
@@ -28,8 +29,22 @@ const candidateSourceData = [
   { name: 'LinkedIn', value: 20, fill: 'hsl(var(--chart-3))' }, { name: 'Career Site', value: 10, fill: 'hsl(var(--chart-4))' },
 ];
 
+const mockInterviewers = [
+    { id: "interviewerA", name: "John Smith - Sr. Engineer" },
+    { id: "interviewerB", name: "Alice Brown - Team Lead" },
+    { id: "interviewerC", name: "Bob Green - Architect" },
+];
+
 export default function HiringManagerDashboardPage() {
   const { user, role } = useAuth();
+  const { toast } = useToast();
+
+  const handleAddInterviewer = () => {
+    toast({
+        title: "Add Interviewer (Placeholder)",
+        description: "Full user management for interviewers by Hiring Managers is a future enhancement. For now, you would coordinate with your Admin/Recruiter."
+    });
+  };
 
   if (!user) {
     return <div className="flex h-screen items-center justify-center"><p>Loading user data...</p></div>;
@@ -52,7 +67,7 @@ export default function HiringManagerDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{teamStats.openPositions}</div>
-            <Link href={`/dashboard/${role}/job-approvals`} className="text-xs text-primary hover:underline mt-1 block">Review Jobs</Link>
+            <Link href={`/dashboard/${role}/job-listings`} className="text-xs text-primary hover:underline mt-1 block">Manage My Postings</Link>
           </CardContent>
         </Card>
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
@@ -75,7 +90,6 @@ export default function HiringManagerDashboardPage() {
             <Link href={`/dashboard/${role}/interviews`} className="text-xs text-primary hover:underline mt-1 block">View Schedule</Link>
           </CardContent>
         </Card>
-        {/* Remaining cards (candidates, feedback, time to fill) could be in a second row or combined */}
       </div>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -111,6 +125,27 @@ export default function HiringManagerDashboardPage() {
         </Card>
       </div>
 
+      <Card className="shadow-lg">
+        <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg">My Team's Interviewers (Placeholder)</CardTitle>
+            <Button variant="outline" size="sm" onClick={handleAddInterviewer}><UserPlus className="mr-2 h-4 w-4"/>Add Interviewer</Button>
+        </CardHeader>
+        <CardContent>
+            {mockInterviewers.length > 0 ? (
+                <ul className="space-y-2">
+                    {mockInterviewers.map(interviewer => (
+                        <li key={interviewer.id} className="text-sm p-2 bg-secondary/50 rounded-md flex justify-between items-center">
+                            <span>{interviewer.name}</span>
+                            <Button variant="ghost" size="xs" onClick={() => toast({title: "Manage Interviewer (Placeholder)"})}>Manage</Button>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="text-sm text-muted-foreground">No interviewers added for your team yet.</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-3">This section will allow you to manage users from your company who can conduct interviews.</p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
@@ -155,7 +190,7 @@ export default function HiringManagerDashboardPage() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
              <Button size="lg" variant="default" asChild className="w-full">
-                <Link href={`/dashboard/${role}/job-approvals`}><UserCheck className="mr-2 h-4 w-4"/> Review Job Postings</Link>
+                <Link href={`/dashboard/${role}/job-listings`}><FileText className="mr-2 h-4 w-4"/> My Job Postings</Link>
              </Button>
              <Button size="lg" variant="outline" asChild className="w-full">
                 <Link href={`/dashboard/${role}/interviews`}><CalendarCheck className="mr-2 h-4 w-4"/> Manage Interviews</Link>
