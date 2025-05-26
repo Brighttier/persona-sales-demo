@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Briefcase, MapPin, Search, Eye, Clock, ArrowRight, Star } from "lucide-react";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
-// Updated Mock job data
-const jobListings = [
+// Expanded Mock job data
+const allMockJobListings = [
   {
     id: "1",
     title: "Senior SAP Basis Consultant",
@@ -50,16 +51,79 @@ const jobListings = [
     salary: "$70,000 - $90,000",
     isFeatured: false,
   },
+  {
+    id: "4",
+    title: "Data Analyst",
+    company: "Number Crunchers Ltd.",
+    location: "Chicago, IL",
+    type: "Full-time",
+    postedDate: "2024-07-12",
+    skills: ["SQL", "Tableau", "Python", "Excel"],
+    shortDescription: "Analyze complex datasets to provide actionable insights and support data-driven decision-making across various departments. Develop dashboards and reports.",
+    experienceLevel: "Mid-Level",
+    salary: "$80,000 - $100,000",
+    isFeatured: false,
+  },
+  {
+    id: "5",
+    title: "DevOps Engineer",
+    company: "CloudNet Solutions",
+    location: "Remote",
+    type: "Full-time",
+    postedDate: "2024-07-10",
+    skills: ["AWS", "Kubernetes", "Docker", "Terraform", "CI/CD"],
+    shortDescription: "Design, implement, and manage our cloud infrastructure and CI/CD pipelines. Ensure system reliability, scalability, and security. Automate everything.",
+    experienceLevel: "Senior",
+    salary: "$130,000 - $160,000",
+    isFeatured: true,
+  },
+  {
+    id: "6",
+    title: "Customer Support Specialist",
+    company: "HelpDesk Heroes",
+    location: "Austin, TX (Hybrid)",
+    type: "Full-time",
+    postedDate: "2024-07-08",
+    skills: ["Communication", "Problem-Solving", "Zendesk", "Empathy"],
+    shortDescription: "Provide exceptional support to our customers via multiple channels. Troubleshoot issues, answer questions, and ensure customer satisfaction. Patience is key.",
+    experienceLevel: "Entry-Level",
+    salary: "$50,000 - $65,000",
+    isFeatured: false,
+  },
+   {
+    id: "7",
+    title: "Backend Developer (Node.js)",
+    company: "API Masters",
+    location: "Remote",
+    type: "Full-time",
+    postedDate: "2024-07-05",
+    skills: ["Node.js", "Express", "MongoDB", "REST APIs", "Microservices"],
+    shortDescription: "Build and maintain scalable backend services and APIs using Node.js. Work with databases like MongoDB and PostgreSQL. Focus on performance and reliability.",
+    experienceLevel: "Mid-Level",
+    salary: "$95,000 - $115,000",
+    isFeatured: false,
+  },
 ];
+
+const INITIAL_JOBS_TO_SHOW = 3;
+const JOBS_INCREMENT_COUNT = 2;
 
 
 export default function JobBoardPage() {
+  const [displayedJobs, setDisplayedJobs] = useState(allMockJobListings.slice(0, INITIAL_JOBS_TO_SHOW));
+  const [visibleJobsCount, setVisibleJobsCount] = useState(INITIAL_JOBS_TO_SHOW);
 
-  const renderJobCard = (job: typeof jobListings[0]) => (
+  const handleLoadMore = () => {
+    const newVisibleCount = Math.min(visibleJobsCount + JOBS_INCREMENT_COUNT, allMockJobListings.length);
+    setVisibleJobsCount(newVisibleCount);
+    setDisplayedJobs(allMockJobListings.slice(0, newVisibleCount));
+  };
+
+  const renderJobCard = (job: typeof allMockJobListings[0]) => (
     <Card key={job.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full overflow-hidden">
       <CardContent className="p-6 space-y-4">
         {job.isFeatured && (
-          <Badge className="bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-100 mb-2 font-normal">
+          <Badge className="bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-100 mb-2 font-semibold">
             <Star className="mr-1 h-3 w-3 fill-current" /> Featured Opportunity
           </Badge>
         )}
@@ -152,8 +216,8 @@ export default function JobBoardPage() {
       </Card>
 
       <div className="space-y-6">
-        {jobListings.map(job => renderJobCard(job))}
-         {jobListings.length === 0 && (
+        {displayedJobs.map(job => renderJobCard(job))}
+         {displayedJobs.length === 0 && (
           <Card className="text-center py-10 shadow-lg">
             <CardContent>
                 <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -162,9 +226,9 @@ export default function JobBoardPage() {
           </Card>
         )}
       </div>
-      {jobListings.length > 0 && (
+      {visibleJobsCount < allMockJobListings.length && (
         <div className="flex justify-center mt-8">
-            <Button variant="outline">Load More Jobs (Placeholder)</Button>
+            <Button variant="outline" onClick={handleLoadMore}>Load More Jobs</Button>
         </div>
       )}
     </div>
