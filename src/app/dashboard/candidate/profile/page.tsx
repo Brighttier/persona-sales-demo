@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit3, FileUp, Loader2, Save, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText } from "lucide-react"; // Added FileText
+import { Edit3, FileUp, Loader2, Save, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
@@ -71,7 +71,12 @@ export default function CandidateProfilePage() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      fullName: "", email: "", phone: "", location: "", headline: "", summary: "",
+      fullName: "", 
+      email: "", 
+      phone: "", 
+      location: "", 
+      headline: "", 
+      summary: "",
       skills: [],
       experience: [],
       education: [],
@@ -153,6 +158,8 @@ export default function CandidateProfilePage() {
 
     if (user && data.fullName !== user.name && login) {
         const updatedUser = { ...user, name: data.fullName };
+        // Simulate updating user context, in a real app, you'd call an API then update context
+        // This is a bit of a hack for the demo to reflect name change immediately in UI
         login(user.role); 
     }
 
@@ -186,7 +193,7 @@ export default function CandidateProfilePage() {
   return (
     <div className="space-y-6">
       <Card className="shadow-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-primary/80 to-primary/60 h-32 md:h-40 relative">
+        <div className="bg-muted/30 h-32 md:h-40 relative"> {/* Changed background here */}
            <Button
               variant="outline"
               size="sm"
@@ -200,7 +207,7 @@ export default function CandidateProfilePage() {
                 }}
               disabled={isSubmitting || isAiProcessing}
             >
-              {isEditing ? (isSubmitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <FileText className="h-4 w-4 mr-1" />) : <Edit3 className="h-4 w-4 mr-1" />} {/* Changed Save to FileText */}
+              {isEditing ? (isSubmitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <FileText className="h-4 w-4 mr-1" />) : <Edit3 className="h-4 w-4 mr-1" />}
               {isEditing ? (isSubmitting ? "Saving..." : "Save Changes") : "Edit Profile"}
             </Button>
         </div>
@@ -330,8 +337,8 @@ export default function CandidateProfilePage() {
                     </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {form.watch("skills")?.map((skill) => (<Badge key={skill} variant="default" className="py-1 px-3 text-sm bg-primary hover:bg-primary/90">{skill}{isEditing && (<button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive-foreground/80"><Trash2 className="h-3 w-3"/></button>)}</Badge>))}
-                  {form.watch("skills")?.length === 0 && !isEditing && <p className="text-muted-foreground text-sm">No skills added yet.</p>}
+                  {(form.watch("skills") || []).map((skill) => (<Badge key={skill} variant="default" className="py-1 px-3 text-sm bg-primary hover:bg-primary/90">{skill}{isEditing && (<button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive-foreground/80"><Trash2 className="h-3 w-3"/></button>)}</Badge>))}
+                  {(form.watch("skills") || []).length === 0 && !isEditing && <p className="text-muted-foreground text-sm">No skills added yet.</p>}
                 </div>
               </CardContent>
             </Card>
@@ -347,7 +354,7 @@ export default function CandidateProfilePage() {
                     <FormItem>
                       <div className="flex items-center gap-4">
                         <FormControl>
-                          <div>
+                          <div> {/* Wrapper div */}
                             <Input
                               type="file"
                               id={fileInputId}
@@ -355,8 +362,8 @@ export default function CandidateProfilePage() {
                               onChange={(e) => {
                                 const files = e.target.files;
                                 if (files && files.length > 0) {
-                                  onChange(files); // Pass FileList to RHF
-                                  handleResumeUpload(files[0]); // Use the first file for processing
+                                  onChange(files); 
+                                  handleResumeUpload(files[0]); 
                                 } else {
                                   onChange(null);
                                 }
@@ -395,7 +402,7 @@ export default function CandidateProfilePage() {
             <CardFooter className="lg:col-span-3 flex justify-end gap-2 pt-8 border-t mt-0"> 
               <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if(user) resetFormValues(user); }} disabled={isSubmitting || isAiProcessing}>Cancel</Button>
               <Button type="button" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting || isAiProcessing}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}{/* Changed Save to FileText */}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
                 Save Changes
               </Button>
             </CardFooter>
