@@ -22,13 +22,14 @@ interface JobForRecruiterApproval {
   status: "Pending Recruiter Approval" | "Approved by Recruiter" | "Rejected by Recruiter";
   jobDescription?: string;
   salaryRange?: string;
+  // Potentially add other fields submitted by HM like responsibilities, qualifications if available
 }
 
 const mockJobsForRecruiterApproval: JobForRecruiterApproval[] = [
-  { id: "jobAppr1", title: "Senior Backend Engineer", department: "Engineering", hiringManager: "Charles Brown", dateSubmitted: "2024-07-22", status: "Pending Recruiter Approval", jobDescription: "Lead the development of our core backend services...", salaryRange: "$120k - $150k" },
-  { id: "jobAppr2", title: "Lead UX Researcher", department: "Design", hiringManager: "Diana Green (Admin as HM)", dateSubmitted: "2024-07-20", status: "Pending Recruiter Approval", jobDescription: "Drive user research initiatives to inform product strategy...", salaryRange: "$110k - $140k" },
-  { id: "jobAppr3", title: "Junior Marketing Analyst", department: "Marketing", hiringManager: "Charles Brown", dateSubmitted: "2024-07-18", status: "Approved by Recruiter", jobDescription: "Analyze marketing campaign performance and identify trends...", salaryRange: "$60k - $75k" },
-  { id: "jobAppr4", title: "DevOps Specialist", department: "IT/Ops", hiringManager: "Diana Green (Admin as HM)", dateSubmitted: "2024-07-15", status: "Rejected by Recruiter", jobDescription: "Maintain and improve our CI/CD pipelines and cloud infrastructure...", salaryRange: "$100k - $130k" },
+  { id: "jobAppr1", title: "Senior Backend Engineer", department: "Engineering", hiringManager: "Charles Brown", dateSubmitted: "2024-07-22", status: "Pending Recruiter Approval", jobDescription: "Lead the development of our core backend services. Design and implement robust APIs, manage database performance, and ensure system scalability. Collaborate with frontend teams and product managers to deliver high-quality software solutions. Mentor junior engineers and contribute to code reviews and architectural decisions.", salaryRange: "$120k - $150k" },
+  { id: "jobAppr2", title: "Lead UX Researcher", department: "Design", hiringManager: "Diana Green (Admin as HM)", dateSubmitted: "2024-07-20", status: "Pending Recruiter Approval", jobDescription: "Drive user research initiatives to inform product strategy. Plan and conduct user studies, analyze findings, and present actionable insights. Work closely with designers, product managers, and engineers to champion user-centered design principles throughout the product lifecycle.", salaryRange: "$110k - $140k" },
+  { id: "jobAppr3", title: "Junior Marketing Analyst", department: "Marketing", hiringManager: "Charles Brown", dateSubmitted: "2024-07-18", status: "Approved by Recruiter", jobDescription: "Analyze marketing campaign performance and identify trends. Prepare reports on key metrics, support market research activities, and assist in the development of marketing strategies. Familiarity with analytics tools and Excel is required.", salaryRange: "$60k - $75k" },
+  { id: "jobAppr4", title: "DevOps Specialist", department: "IT/Ops", hiringManager: "Diana Green (Admin as HM)", dateSubmitted: "2024-07-15", status: "Rejected by Recruiter", jobDescription: "Maintain and improve our CI/CD pipelines and cloud infrastructure. Automate deployment processes, monitor system health, and ensure security best practices are followed. Experience with AWS, Docker, and Kubernetes is essential.", salaryRange: "$100k - $130k" },
 ];
 
 export default function RecruiterJobApprovalsPage() {
@@ -36,6 +37,7 @@ export default function RecruiterJobApprovalsPage() {
   const [jobs, setJobs] = useState<JobForRecruiterApproval[]>(mockJobsForRecruiterApproval);
   const [selectedJob, setSelectedJob] = useState<JobForRecruiterApproval | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [recruiterOptimizedDescription, setRecruiterOptimizedDescription] = useState("");
 
   const handleAction = (jobId: string, action: 'approve' | 'reject', reason?: string) => {
     setJobs(prevJobs => prevJobs.map(job =>
@@ -48,6 +50,7 @@ export default function RecruiterJobApprovalsPage() {
     });
     setSelectedJob(null);
     setRejectionReason("");
+    setRecruiterOptimizedDescription("");
   };
 
   const getStatusPill = (status: JobForRecruiterApproval["status"]) => {
@@ -61,7 +64,7 @@ export default function RecruiterJobApprovalsPage() {
 
   const openDetailsDialog = (job: JobForRecruiterApproval) => {
     setSelectedJob(job);
-    // If rejecting, ensure rejectionReason is cleared for the new dialog instance
+    setRecruiterOptimizedDescription(job.jobDescription || ""); // Pre-fill with HM's description for easier editing
     if (job.status === "Pending Recruiter Approval") {
         setRejectionReason("");
     }
@@ -135,37 +138,53 @@ export default function RecruiterJobApprovalsPage() {
       </div>
 
       {selectedJob && (
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Review & Optimize: {selectedJob.title}</DialogTitle>
             <DialogDescription>Department: {selectedJob.department} | Submitted by: {selectedJob.hiringManager}</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
-            <div className="space-y-1">
-                <h4 className="font-semibold text-sm">Job Description (from HM):</h4>
-                <p className="text-sm text-muted-foreground whitespace-pre-line p-2 border rounded-md bg-secondary/30">{selectedJob.jobDescription || "No description provided."}</p>
-                <Textarea placeholder="Recruiter: Add optimized job description here..." rows={4} className="mt-1"/>
+          <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-3">
+            <div className="space-y-2">
+                <Label htmlFor="hmJobDescription" className="font-semibold text-md">Hiring Manager's Submitted Job Description:</Label>
+                <div id="hmJobDescription" className="text-sm text-foreground/80 whitespace-pre-line p-3 border rounded-md bg-muted min-h-[100px]">
+                    {selectedJob.jobDescription || "No description provided by Hiring Manager."}
+                </div>
             </div>
-            <div className="space-y-1">
-                <h4 className="font-semibold text-sm">Salary Range:</h4>
-                <p className="text-sm text-muted-foreground">{selectedJob.salaryRange || "Not specified."}</p>
+            <div className="space-y-2">
+                <Label htmlFor="hmSalaryRange" className="font-semibold text-md">Hiring Manager's Submitted Salary Range:</Label>
+                <p id="hmSalaryRange" className="text-sm text-foreground/80 p-3 border rounded-md bg-muted">
+                    {selectedJob.salaryRange || "Not specified by Hiring Manager."}
+                </p>
+            </div>
+             {/* Assume other fields like responsibilities, qualifications would also be displayed here if available */}
+
+            <div className="space-y-2 pt-4 border-t mt-4">
+                <Label htmlFor="recruiterOptimizedDescription" className="font-semibold text-md text-primary">Recruiter's Optimized Version / Suggestions:</Label>
+                <Textarea
+                    id="recruiterOptimizedDescription"
+                    value={recruiterOptimizedDescription}
+                    onChange={(e) => setRecruiterOptimizedDescription(e.target.value)}
+                    placeholder="Enter your optimized job description, or list suggested changes/improvements here..."
+                    rows={8}
+                    className="mt-1 border-primary/50 focus:border-primary"
+                />
             </div>
 
             {selectedJob.status === "Pending Recruiter Approval" && (
-                 <div className="pt-4 border-t">
-                    <Label htmlFor="rejectionReason" className="font-semibold text-sm">Reason for Rejection (if rejecting):</Label>
+                 <div className="pt-4 border-t mt-4">
+                    <Label htmlFor="rejectionReason" className="font-semibold text-md">Reason for Rejection (Required if rejecting):</Label>
                     <Textarea
                         id="rejectionReason"
                         value={rejectionReason}
                         onChange={(e) => setRejectionReason(e.target.value)}
-                        placeholder="Provide a brief reason if you are rejecting this job posting..."
+                        placeholder="Provide a clear reason if you are rejecting this job posting..."
                         className="mt-1"
                         rows={3}
                     />
                  </div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-2">
             <Button type="button" variant="outline" onClick={() => setSelectedJob(null)}>Close</Button>
             {selectedJob.status === "Pending Recruiter Approval" && (
                 <>
@@ -178,7 +197,11 @@ export default function RecruiterJobApprovalsPage() {
                 }}>
                     Confirm Rejection
                 </Button>
-                 <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleAction(selectedJob.id, 'approve')}>
+                 <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => {
+                    // Placeholder: In a real app, you'd save the recruiterOptimizedDescription
+                    console.log("Recruiter Optimized Description:", recruiterOptimizedDescription);
+                    handleAction(selectedJob.id, 'approve');
+                 }}>
                     Approve & Post Job
                   </Button>
                 </>
@@ -189,3 +212,6 @@ export default function RecruiterJobApprovalsPage() {
     </Dialog>
   );
 }
+
+
+    
