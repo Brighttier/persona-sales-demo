@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 
 const experienceSchema = z.object({
+  id: z.string().optional(), // For key prop
   title: z.string().min(1, "Title is required"),
   company: z.string().min(1, "Company is required"),
   startDate: z.string().min(1, "Start date is required"),
@@ -28,6 +29,7 @@ const experienceSchema = z.object({
 });
 
 const educationSchema = z.object({
+  id: z.string().optional(), // For key prop
   institution: z.string().min(1, "Institution is required"),
   degree: z.string().min(1, "Degree is required"),
   fieldOfStudy: z.string().optional().or(z.literal('')),
@@ -35,6 +37,7 @@ const educationSchema = z.object({
 });
 
 const certificationSchema = z.object({
+  id: z.string().optional(), // For key prop
   name: z.string().min(1, "Certification name is required"),
   issuingOrganization: z.string().min(1, "Issuing organization is required"),
   date: z.string().optional().or(z.literal('')),
@@ -94,18 +97,18 @@ export default function CandidateProfilePage() {
 
   const resetFormValues = useCallback((currentUser: typeof user) => {
     if (currentUser) {
-      const currentValues = form.getValues();
+      const currentValues = form.getValues(); // Get potentially unsaved values if any
       form.reset({
         fullName: currentUser.name,
         email: currentUser.email,
-        phone: currentValues.phone || "123-456-7890",
+        phone: currentValues.phone || "123-456-7890", // Use current or default mock
         location: currentValues.location || "Anytown, USA",
         headline: currentValues.headline || "Aspiring Software Innovator | Eager to Learn",
         summary: currentValues.summary || "Passionate about creating impactful technology solutions. Eager to learn and contribute to a dynamic team. Seeking new challenges to grow my skills in web development and AI.",
         skills: currentValues.skills?.length ? currentValues.skills : ["JavaScript", "React", "Node.js", "Problem Solving"],
-        experience: currentValues.experience?.length ? currentValues.experience : [{ title: "Software Development Intern", company: "Tech Startup X", startDate: "2023-06", endDate: "2023-08", description: "Assisted senior developers in building and testing new features for a web application. Gained experience with agile methodologies and version control."}],
-        education: currentValues.education?.length ? currentValues.education : [{institution: "State University", degree: "BSc", fieldOfStudy: "Computer Science", graduationDate: "2024-05"}],
-        certifications: currentValues.certifications?.length ? currentValues.certifications : [{name: "Certified React Developer", issuingOrganization: "React Org", date: "2023-11", credentialID: "RC12345"}],
+        experience: currentValues.experience?.length ? currentValues.experience : [{ id: "exp1", title: "Software Development Intern", company: "Tech Startup X", startDate: "2023-06", endDate: "2023-08", description: "Assisted senior developers in building and testing new features for a web application. Gained experience with agile methodologies and version control."}],
+        education: currentValues.education?.length ? currentValues.education : [{id: "edu1", institution: "State University", degree: "BSc", fieldOfStudy: "Computer Science", graduationDate: "2024-05"}],
+        certifications: currentValues.certifications?.length ? currentValues.certifications : [{id: "cert1", name: "Certified React Developer", issuingOrganization: "React Org", date: "2023-11", credentialID: "RC12345"}],
         linkedinProfile: currentValues.linkedinProfile || "",
         portfolioUrl: currentValues.portfolioUrl || "",
         resume: currentValues.resume || null,
@@ -114,7 +117,7 @@ export default function CandidateProfilePage() {
   }, [form]);
 
   useEffect(() => {
-    if (user && !form.formState.isDirty) { // Only reset if form hasn't been touched or submitted
+    if (user && !form.formState.isDirty) { 
       resetFormValues(user);
     }
   }, [user, resetFormValues, form.formState.isDirty]);
@@ -154,13 +157,16 @@ export default function CandidateProfilePage() {
   const onSubmit = async (data: ProfileFormValues) => {
     setIsSubmitting(true);
     console.log("Profile Data Submitted:", data);
+    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    if (user && data.fullName !== user.name && login) {
+    // If the name was changed in the form, update the user context
+    if (user && data.fullName !== user.name && login) { // login function from useAuth also updates the user
         const updatedUser = { ...user, name: data.fullName };
-        // Simulate updating user context, in a real app, you'd call an API then update context
-        // This is a bit of a hack for the demo to reflect name change immediately in UI
-        login(user.role); 
+        // This is a simplified way to update user context for demo. 
+        // In a real app, an API call would save data, then context would be updated or re-fetched.
+        login(user.role); // Re-calling login with current role effectively updates user with demoUser for that role
+                          // but ideally, you'd have a specific updateUserContext function.
     }
 
     setIsSubmitting(false);
@@ -192,24 +198,28 @@ export default function CandidateProfilePage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-background hover:bg-accent hover:text-accent-foreground shadow-md"
+            onClick={() => {
+                if (isEditing) {
+                  form.handleSubmit(onSubmit)();
+                } else {
+                  setIsEditing(true);
+                }
+              }}
+            disabled={isSubmitting || isAiProcessing}
+          >
+            {isEditing ? (isSubmitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <FileText className="h-4 w-4 mr-1" />) : <Edit3 className="h-4 w-4 mr-1" />}
+            {isEditing ? (isSubmitting ? "Saving..." : "Save Changes") : "Edit Profile"}
+          </Button>
+      </div>
+
       <Card className="shadow-xl overflow-hidden">
-        <div className="bg-muted/30 h-32 md:h-40 relative"> {/* Changed background here */}
-           <Button
-              variant="outline"
-              size="sm"
-              className="absolute top-4 right-4 bg-background/80 hover:bg-background shadow-md"
-              onClick={() => {
-                  if (isEditing) {
-                    form.handleSubmit(onSubmit)();
-                  } else {
-                    setIsEditing(true);
-                  }
-                }}
-              disabled={isSubmitting || isAiProcessing}
-            >
-              {isEditing ? (isSubmitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <FileText className="h-4 w-4 mr-1" />) : <Edit3 className="h-4 w-4 mr-1" />}
-              {isEditing ? (isSubmitting ? "Saving..." : "Save Changes") : "Edit Profile"}
-            </Button>
+        <div className="bg-muted/30 h-32 md:h-40 relative">
+           {/* Button moved out from here */}
         </div>
         <div className="px-6 pb-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-16 md:-mt-20">
@@ -265,7 +275,7 @@ export default function CandidateProfilePage() {
             <Card className="shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Work Experience</CardTitle>
-                  {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendExperience({ title: "", company: "", startDate: "", endDate: "", description: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add</Button>}
+                  {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendExperience({ id: `exp-${Date.now()}`, title: "", company: "", startDate: "", endDate: "", description: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add</Button>}
               </CardHeader>
               <CardContent className="space-y-4">
                 {experienceFields.map((field, index) => (
@@ -287,7 +297,7 @@ export default function CandidateProfilePage() {
              <Card className="shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="flex items-center"><GraduationCap className="mr-2 h-5 w-5 text-primary"/>Education</CardTitle>
-                    {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendEducation({ institution: "", degree: "", fieldOfStudy: "", graduationDate: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add</Button>}
+                    {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendEducation({ id: `edu-${Date.now()}`,institution: "", degree: "", fieldOfStudy: "", graduationDate: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add</Button>}
                 </CardHeader>
                 <CardContent className="space-y-4">
                 {educationFields.map((field, index) => (
@@ -306,7 +316,7 @@ export default function CandidateProfilePage() {
             <Card className="shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="flex items-center"><Award className="mr-2 h-5 w-5 text-primary"/>Certifications</CardTitle>
-                    {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendCertification({ name: "", issuingOrganization: "", date: "", credentialID: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add</Button>}
+                    {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendCertification({ id: `cert-${Date.now()}`, name: "", issuingOrganization: "", date: "", credentialID: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add</Button>}
                 </CardHeader>
                 <CardContent className="space-y-4">
                 {certificationFields.map((field, index) => (
@@ -337,7 +347,7 @@ export default function CandidateProfilePage() {
                     </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {(form.watch("skills") || []).map((skill) => (<Badge key={skill} variant="default" className="py-1 px-3 text-sm bg-primary hover:bg-primary/90">{skill}{isEditing && (<button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive-foreground/80"><Trash2 className="h-3 w-3"/></button>)}</Badge>))}
+                  {(form.watch("skills") || []).map((skill) => (<Badge key={skill} variant="default" className="py-1 px-3 text-sm">{skill}{isEditing && (<button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive-foreground/80"><Trash2 className="h-3 w-3"/></button>)}</Badge>))}
                   {(form.watch("skills") || []).length === 0 && !isEditing && <p className="text-muted-foreground text-sm">No skills added yet.</p>}
                 </div>
               </CardContent>
