@@ -8,7 +8,7 @@ import { Briefcase, Users, UserCheck, BarChart3 as BarChartIcon, ArrowRight, Cal
 import Link from "next/link";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -44,27 +44,31 @@ interface TeamInterviewer {
     specializations: string;
 }
 
-const addInterviewerFormSchema = z.object({
+const interviewerFormSchema = z.object({
+  id: z.string().optional(), // For editing
   name: z.string().min(2, "Interviewer name must be at least 2 characters."),
   email: z.string().email("Invalid email address."),
   specializations: z.string().min(5, "Please list at least one specialization (e.g., Java, Behavioral).").optional(),
 });
 
-type AddInterviewerFormValues = z.infer<typeof addInterviewerFormSchema>;
+type InterviewerFormValues = z.infer<typeof interviewerFormSchema>;
 
 
 export default function HiringManagerDashboardPage() {
   const { user, role } = useAuth();
   const { toast } = useToast();
   const [isAddInterviewerDialogOpen, setIsAddInterviewerDialogOpen] = useState(false);
+  const [isEditInterviewerDialogOpen, setIsEditInterviewerDialogOpen] = useState(false);
+  const [editingInterviewer, setEditingInterviewer] = useState<TeamInterviewer | null>(null);
+
   const [teamInterviewers, setTeamInterviewers] = useState<TeamInterviewer[]>([
-    { id: "interviewerA", name: "John Smith - Sr. Engineer", email: "john.s@example.com", specializations: "Java, System Design" },
-    { id: "interviewerB", name: "Alice Brown - Team Lead", email: "alice.b@example.com", specializations: "React, Frontend Architecture, Behavioral" },
-    { id: "interviewerC", name: "Bob Green - Architect", email: "bob.g@example.com", specializations: "Cloud Infrastructure, Python, Scalability" },
+    { id: "interviewerA", name: "John Smith - Sr. Engineer", email: "john.s@example.com", specializations: "Java, System Design, Spring Boot" },
+    { id: "interviewerB", name: "Alice Brown - Team Lead", email: "alice.b@example.com", specializations: "React, Frontend Architecture, Behavioral, JavaScript" },
+    { id: "interviewerC", name: "Bob Green - Architect", email: "bob.g@example.com", specializations: "Cloud Infrastructure, Python, Scalability, AWS" },
   ]);
 
-  const form = useForm<AddInterviewerFormValues>({
-    resolver: zodResolver(addInterviewerFormSchema),
+  const interviewerForm = useForm<InterviewerFormValues>({
+    resolver: zodResolver(interviewerFormSchema),
     defaultValues: {
       name: "",
       email: "",
@@ -72,7 +76,16 @@ export default function HiringManagerDashboardPage() {
     },
   });
 
-  const handleAddInterviewerSubmit = (data: AddInterviewerFormValues) => {
+  useEffect(() => {
+    if (editingInterviewer && isEditInterviewerDialogOpen) {
+      interviewerForm.reset(editingInterviewer);
+    } else {
+      interviewerForm.reset({ name: "", email: "", specializations: "" });
+    }
+  }, [editingInterviewer, isEditInterviewerDialogOpen, interviewerForm]);
+
+
+  const handleAddInterviewerSubmit = (data: InterviewerFormValues) => {
     const newInterviewer: TeamInterviewer = {
         id: `interviewer-${Date.now()}`,
         name: data.name,
@@ -84,9 +97,34 @@ export default function HiringManagerDashboardPage() {
         title: "Interviewer Added (Placeholder)",
         description: `${data.name} has been added to your team's interviewer list.`,
     });
-    form.reset();
+    interviewerForm.reset();
     setIsAddInterviewerDialogOpen(false);
   };
+
+  const handleEditInterviewerSubmit = (data: InterviewerFormValues) => {
+    if (!editingInterviewer) return;
+
+    setTeamInterviewers(prev => 
+        prev.map(interviewer => 
+            interviewer.id === editingInterviewer.id 
+            ? { ...interviewer, name: data.name, email: data.email, specializations: data.specializations || interviewer.specializations } 
+            : interviewer
+        )
+    );
+    toast({
+        title: "Interviewer Updated (Placeholder)",
+        description: `Details for ${data.name} have been updated.`,
+    });
+    setIsEditInterviewerDialogOpen(false);
+    setEditingInterviewer(null);
+    interviewerForm.reset();
+  };
+
+  const openEditDialog = (interviewer: TeamInterviewer) => {
+    setEditingInterviewer(interviewer);
+    setIsEditInterviewerDialogOpen(true);
+  };
+
 
   if (!user) {
     return <div className="flex h-screen items-center justify-center"><p>Loading user data...</p></div>;
@@ -172,7 +210,7 @@ export default function HiringManagerDashboardPage() {
             <CardTitle className="text-lg">My Team's Interviewers</CardTitle>
             <Dialog open={isAddInterviewerDialogOpen} onOpenChange={setIsAddInterviewerDialogOpen}>
                 <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => form.reset()}><UserPlus className="mr-2 h-4 w-4"/>Add Interviewer</Button>
+                    <Button variant="outline" size="sm" onClick={() => interviewerForm.reset({ name: "", email: "", specializations: "" })}><UserPlus className="mr-2 h-4 w-4"/>Add Interviewer</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
@@ -181,10 +219,10 @@ export default function HiringManagerDashboardPage() {
                             Define the interviewer's details and their areas of specialization.
                         </DialogDescription>
                     </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(handleAddInterviewerSubmit)} className="space-y-4 py-4">
+                    <Form {...interviewerForm}>
+                        <form onSubmit={interviewerForm.handleSubmit(handleAddInterviewerSubmit)} className="space-y-4 py-4">
                             <FormField
-                                control={form.control}
+                                control={interviewerForm.control}
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
@@ -195,7 +233,7 @@ export default function HiringManagerDashboardPage() {
                                 )}
                             />
                             <FormField
-                                control={form.control}
+                                control={interviewerForm.control}
                                 name="email"
                                 render={({ field }) => (
                                     <FormItem>
@@ -206,7 +244,7 @@ export default function HiringManagerDashboardPage() {
                                 )}
                             />
                             <FormField
-                                control={form.control}
+                                control={interviewerForm.control}
                                 name="specializations"
                                 render={({ field }) => (
                                     <FormItem>
@@ -227,24 +265,77 @@ export default function HiringManagerDashboardPage() {
         </CardHeader>
         <CardContent>
             {teamInterviewers.length > 0 ? (
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                     {teamInterviewers.map(interviewer => (
-                        <li key={interviewer.id} className="text-sm p-3 bg-secondary/50 rounded-md flex justify-between items-center">
+                        <li key={interviewer.id} className="text-sm p-3 bg-secondary/50 rounded-md flex justify-between items-center shadow-sm">
                             <div>
-                                <span className="font-medium">{interviewer.name}</span>
+                                <span className="font-semibold text-foreground">{interviewer.name}</span>
                                 <p className="text-xs text-muted-foreground">Email: {interviewer.email}</p>
                                 <p className="text-xs text-muted-foreground">Specializations: {interviewer.specializations}</p>
                             </div>
-                            <Button variant="ghost" size="sm" onClick={() => toast({title: "Manage Interviewer (Placeholder)", description: `Further actions for ${interviewer.name} would be here.`})}>Manage</Button>
+                            <Button variant="ghost" size="sm" onClick={() => openEditDialog(interviewer)}>Manage</Button>
                         </li>
                     ))}
                 </ul>
             ) : (
-                <p className="text-sm text-muted-foreground">No interviewers added for your team yet.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No interviewers added for your team yet.</p>
             )}
-            <p className="text-xs text-muted-foreground mt-3">Hiring Managers can add and manage interviewers from their company who can conduct interviews. This is a placeholder for that functionality.</p>
         </CardContent>
       </Card>
+
+      {/* Edit Interviewer Dialog */}
+       <Dialog open={isEditInterviewerDialogOpen} onOpenChange={setIsEditInterviewerDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Manage Interviewer: {editingInterviewer?.name}</DialogTitle>
+                    <DialogDescription>
+                        View or update the interviewer's details and specializations.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...interviewerForm}>
+                    <form onSubmit={interviewerForm.handleSubmit(handleEditInterviewerSubmit)} className="space-y-4 py-4">
+                        <FormField
+                            control={interviewerForm.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Full Name (Read-only)</FormLabel>
+                                    <FormControl><Input {...field} readOnly /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={interviewerForm.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email (Read-only)</FormLabel>
+                                    <FormControl><Input type="email" {...field} readOnly /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={interviewerForm.control}
+                            name="specializations"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Specializations / Focus Areas</FormLabel>
+                                    <FormControl><Textarea placeholder="e.g., Java Backend, System Design, Behavioral Interviews, React Frontend" {...field} rows={4}/></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter className="pt-4">
+                            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                            <Button type="submit">Save Changes</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
@@ -302,3 +393,4 @@ export default function HiringManagerDashboardPage() {
     </div>
   );
 }
+
