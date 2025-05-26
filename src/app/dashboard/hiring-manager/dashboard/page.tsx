@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Briefcase, Users, UserCheck, BarChart3 as BarChartIcon, ArrowRight, CalendarCheck, PieChart as PieChartIcon, MessageSquare, UserPlus } from "lucide-react";
+import { Briefcase, Users, UserCheck, BarChart3 as BarChartIcon, ArrowRight, CalendarCheck, PieChart as PieChartIcon, MessageSquare, UserPlus, FileText } from "lucide-react"; // Added FileText
 import Link from "next/link";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useToast } from "@/hooks/use-toast";
@@ -14,8 +14,8 @@ const teamStats = {
   candidatesInPipeline: 45,
   interviewsToday: 3,
   avgTimeToFill: "28 days", // This might come from analytics
-  pendingApprovals: 2, 
-  feedbackDue: 8, 
+  pendingApprovals: 2,
+  feedbackDue: 8,
 };
 
 const monthlyHiresData = [
@@ -125,7 +125,7 @@ export default function HiringManagerDashboardPage() {
         </Card>
       </div>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
         <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">My Team's Interviewers (Placeholder)</CardTitle>
             <Button variant="outline" size="sm" onClick={handleAddInterviewer}><UserPlus className="mr-2 h-4 w-4"/>Add Interviewer</Button>
