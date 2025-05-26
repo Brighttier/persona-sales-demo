@@ -11,14 +11,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit3, FileUp, Loader2, Save, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award } from "lucide-react";
-import React, { useState, useEffect, useCallback } from "react"; // Added React import
+import { Edit3, FileUp, Loader2, Save, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText } from "lucide-react"; // Added FileText
+import React, { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
-// Placeholder for AI flow import
 import { enrichProfile, type EnrichProfileOutput } from "@/ai/flows/profile-enrichment";
-import { cn } from "@/lib/utils"; // Added cn import
-import { Label } from "@/components/ui/label"; // Added Label import for custom file input
+import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
 
 const experienceSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -54,7 +53,7 @@ const profileFormSchema = z.object({
   experience: z.array(experienceSchema).optional(),
   education: z.array(educationSchema).optional(),
   certifications: z.array(certificationSchema).optional(),
-  resume: z.any().optional(), // Can be File object or null
+  resume: z.any().optional(),
   linkedinProfile: z.string().url("Invalid LinkedIn URL, ensure it includes http(s)://").optional().or(z.literal('')),
   portfolioUrl: z.string().url("Invalid portfolio URL, ensure it includes http(s)://").optional().or(z.literal('')),
 });
@@ -90,29 +89,31 @@ export default function CandidateProfilePage() {
 
   const resetFormValues = useCallback((currentUser: typeof user) => {
     if (currentUser) {
+      const currentValues = form.getValues();
       form.reset({
         fullName: currentUser.name,
         email: currentUser.email,
-        phone: form.getValues("phone") || "123-456-7890",
-        location: form.getValues("location") || "Anytown, USA",
-        headline: form.getValues("headline") || "Aspiring Software Innovator | Eager to Learn",
-        summary: form.getValues("summary") || "Passionate about creating impactful technology solutions. Eager to learn and contribute to a dynamic team. Seeking new challenges to grow my skills in web development and AI.",
-        skills: form.getValues("skills")?.length ? form.getValues("skills") : ["JavaScript", "React", "Node.js", "Problem Solving"],
-        experience: form.getValues("experience")?.length ? form.getValues("experience") : [{ title: "Software Development Intern", company: "Tech Startup X", startDate: "2023-06", endDate: "2023-08", description: "Assisted senior developers in building and testing new features for a web application. Gained experience with agile methodologies and version control."}],
-        education: form.getValues("education")?.length ? form.getValues("education") : [{institution: "State University", degree: "BSc", fieldOfStudy: "Computer Science", graduationDate: "2024-05"}],
-        certifications: form.getValues("certifications")?.length ? form.getValues("certifications") : [{name: "Certified React Developer", issuingOrganization: "React Org", date: "2023-11"}],
-        linkedinProfile: form.getValues("linkedinProfile") || "",
-        portfolioUrl: form.getValues("portfolioUrl") || "",
-        resume: form.getValues("resume") || null,
+        phone: currentValues.phone || "123-456-7890",
+        location: currentValues.location || "Anytown, USA",
+        headline: currentValues.headline || "Aspiring Software Innovator | Eager to Learn",
+        summary: currentValues.summary || "Passionate about creating impactful technology solutions. Eager to learn and contribute to a dynamic team. Seeking new challenges to grow my skills in web development and AI.",
+        skills: currentValues.skills?.length ? currentValues.skills : ["JavaScript", "React", "Node.js", "Problem Solving"],
+        experience: currentValues.experience?.length ? currentValues.experience : [{ title: "Software Development Intern", company: "Tech Startup X", startDate: "2023-06", endDate: "2023-08", description: "Assisted senior developers in building and testing new features for a web application. Gained experience with agile methodologies and version control."}],
+        education: currentValues.education?.length ? currentValues.education : [{institution: "State University", degree: "BSc", fieldOfStudy: "Computer Science", graduationDate: "2024-05"}],
+        certifications: currentValues.certifications?.length ? currentValues.certifications : [{name: "Certified React Developer", issuingOrganization: "React Org", date: "2023-11", credentialID: "RC12345"}],
+        linkedinProfile: currentValues.linkedinProfile || "",
+        portfolioUrl: currentValues.portfolioUrl || "",
+        resume: currentValues.resume || null,
       });
     }
   }, [form]);
 
   useEffect(() => {
-    if (user) {
+    if (user && !form.formState.isDirty) { // Only reset if form hasn't been touched or submitted
       resetFormValues(user);
     }
-  }, [user, resetFormValues]);
+  }, [user, resetFormValues, form.formState.isDirty]);
+
 
   const handleResumeUpload = async (file: File) => {
     setIsAiProcessing(true);
@@ -152,7 +153,7 @@ export default function CandidateProfilePage() {
 
     if (user && data.fullName !== user.name && login) {
         const updatedUser = { ...user, name: data.fullName };
-        login(user.role); // This might be a simplified update for context
+        login(user.role); 
     }
 
     setIsSubmitting(false);
@@ -166,7 +167,7 @@ export default function CandidateProfilePage() {
   const addSkill = () => {
     if (skillsInput.trim() !== "") {
       const currentSkills = form.getValues("skills") || [];
-      if (!currentSkills.includes(skillsInput.trim().toLowerCase())) {
+      if (!currentSkills.map(s => s.toLowerCase()).includes(skillsInput.trim().toLowerCase())) {
         form.setValue("skills", [...currentSkills, skillsInput.trim()], {shouldValidate: true});
       }
       setSkillsInput("");
@@ -199,7 +200,7 @@ export default function CandidateProfilePage() {
                 }}
               disabled={isSubmitting || isAiProcessing}
             >
-              {isEditing ? (isSubmitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4 mr-1" />) : <Edit3 className="h-4 w-4 mr-1" />}
+              {isEditing ? (isSubmitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <FileText className="h-4 w-4 mr-1" />) : <Edit3 className="h-4 w-4 mr-1" />} {/* Changed Save to FileText */}
               {isEditing ? (isSubmitting ? "Saving..." : "Save Changes") : "Edit Profile"}
             </Button>
         </div>
@@ -230,9 +231,9 @@ export default function CandidateProfilePage() {
               <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField control={form.control} name="fullName" render={({ field }) => (
-                    <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormItem><FormLabel>Full Name *</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                 <FormField control={form.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} readOnly /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormItem><FormLabel>Email *</FormLabel><FormControl><Input type="email" {...field} readOnly /></FormControl><FormMessage /></FormItem>)}/>
                 <FormField control={form.control} name="phone" render={({ field }) => (
                     <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                 <FormField control={form.control} name="location" render={({ field }) => (
@@ -257,16 +258,16 @@ export default function CandidateProfilePage() {
             <Card className="shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Work Experience</CardTitle>
-                  {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendExperience({ title: "", company: "", startDate: "", description: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add</Button>}
+                  {isEditing && <Button type="button" variant="outline" size="sm" onClick={() => appendExperience({ title: "", company: "", startDate: "", endDate: "", description: "" })}><PlusCircle className="mr-2 h-4 w-4"/>Add</Button>}
               </CardHeader>
               <CardContent className="space-y-4">
                 {experienceFields.map((field, index) => (
                   <div key={field.id} className="p-4 border rounded-md space-y-3 relative bg-secondary/30 shadow-sm">
                     {isEditing && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10 h-7 w-7" onClick={() => removeExperience(index)}><Trash2 className="h-4 w-4"/></Button>}
-                    <FormField control={form.control} name={`experience.${index}.title`} render={({ field }) => (<FormItem><FormLabel>Job Title</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
-                    <FormField control={form.control} name={`experience.${index}.company`} render={({ field }) => (<FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormField control={form.control} name={`experience.${index}.title`} render={({ field }) => (<FormItem><FormLabel>Job Title *</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormField control={form.control} name={`experience.${index}.company`} render={({ field }) => (<FormItem><FormLabel>Company *</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                     <div className="grid grid-cols-2 gap-4">
-                      <FormField control={form.control} name={`experience.${index}.startDate`} render={({ field }) => (<FormItem><FormLabel>Start Date</FormLabel><FormControl><Input type={isEditing ? "month" : "text"} {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                      <FormField control={form.control} name={`experience.${index}.startDate`} render={({ field }) => (<FormItem><FormLabel>Start Date *</FormLabel><FormControl><Input type={isEditing ? "month" : "text"} {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                       <FormField control={form.control} name={`experience.${index}.endDate`} render={({ field }) => (<FormItem><FormLabel>End Date (or Present)</FormLabel><FormControl><Input type={isEditing ? "month" : "text"} {...field} readOnly={!isEditing} placeholder={isEditing ? "" : "Present"} /></FormControl><FormMessage /></FormItem>)}/>
                     </div>
                     <FormField control={form.control} name={`experience.${index}.description`} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} readOnly={!isEditing} rows={3} placeholder="Key responsibilities and achievements..."/></FormControl><FormMessage /></FormItem>)}/>
@@ -285,8 +286,8 @@ export default function CandidateProfilePage() {
                 {educationFields.map((field, index) => (
                     <div key={field.id} className="p-4 border rounded-md space-y-3 relative bg-secondary/30 shadow-sm">
                     {isEditing && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10 h-7 w-7" onClick={() => removeEducation(index)}><Trash2 className="h-4 w-4"/></Button>}
-                    <FormField control={form.control} name={`education.${index}.institution`} render={({ field }) => (<FormItem><FormLabel>Institution</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
-                    <FormField control={form.control} name={`education.${index}.degree`} render={({ field }) => (<FormItem><FormLabel>Degree</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormField control={form.control} name={`education.${index}.institution`} render={({ field }) => (<FormItem><FormLabel>Institution *</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormField control={form.control} name={`education.${index}.degree`} render={({ field }) => (<FormItem><FormLabel>Degree *</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                     <FormField control={form.control} name={`education.${index}.fieldOfStudy`} render={({ field }) => (<FormItem><FormLabel>Field of Study</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                     <FormField control={form.control} name={`education.${index}.graduationDate`} render={({ field }) => (<FormItem><FormLabel>Graduation Date (or Expected)</FormLabel><FormControl><Input type={isEditing ? "month" : "text"} {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                     </div>
@@ -304,8 +305,8 @@ export default function CandidateProfilePage() {
                 {certificationFields.map((field, index) => (
                     <div key={field.id} className="p-4 border rounded-md space-y-3 relative bg-secondary/30 shadow-sm">
                     {isEditing && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10 h-7 w-7" onClick={() => removeCertification(index)}><Trash2 className="h-4 w-4"/></Button>}
-                    <FormField control={form.control} name={`certifications.${index}.name`} render={({ field }) => (<FormItem><FormLabel>Certification Name</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
-                    <FormField control={form.control} name={`certifications.${index}.issuingOrganization`} render={({ field }) => (<FormItem><FormLabel>Issuing Organization</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormField control={form.control} name={`certifications.${index}.name`} render={({ field }) => (<FormItem><FormLabel>Certification Name *</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
+                    <FormField control={form.control} name={`certifications.${index}.issuingOrganization`} render={({ field }) => (<FormItem><FormLabel>Issuing Organization *</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                     <div className="grid grid-cols-2 gap-4">
                         <FormField control={form.control} name={`certifications.${index}.date`} render={({ field }) => (<FormItem><FormLabel>Date Issued</FormLabel><FormControl><Input type={isEditing ? "month" : "text"} {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
                         <FormField control={form.control} name={`certifications.${index}.credentialID`} render={({ field }) => (<FormItem><FormLabel>Credential ID (Optional)</FormLabel><FormControl><Input {...field} readOnly={!isEditing} /></FormControl><FormMessage /></FormItem>)}/>
@@ -329,7 +330,7 @@ export default function CandidateProfilePage() {
                     </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {form.watch("skills")?.map((skill) => (<Badge key={skill} variant="default" className="py-1 px-3 text-sm">{skill}{isEditing && (<button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive-foreground/80"><Trash2 className="h-3 w-3"/></button>)}</Badge>))}
+                  {form.watch("skills")?.map((skill) => (<Badge key={skill} variant="default" className="py-1 px-3 text-sm bg-primary hover:bg-primary/90">{skill}{isEditing && (<button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive-foreground/80"><Trash2 className="h-3 w-3"/></button>)}</Badge>))}
                   {form.watch("skills")?.length === 0 && !isEditing && <p className="text-muted-foreground text-sm">No skills added yet.</p>}
                 </div>
               </CardContent>
@@ -340,6 +341,8 @@ export default function CandidateProfilePage() {
               <CardContent>
                 <FormField control={form.control} name="resume" render={({ field: { onChange, value, ...rest } }) => {
                     const fileInputId = `resume-upload-${React.useId()}`;
+                    const currentFile = value instanceof FileList ? value[0] : value;
+
                     return (
                     <FormItem>
                       <div className="flex items-center gap-4">
@@ -350,12 +353,12 @@ export default function CandidateProfilePage() {
                               id={fileInputId}
                               accept=".pdf,.doc,.docx"
                               onChange={(e) => {
-                                if (e.target.files && e.target.files.length > 0) {
-                                  const file = e.target.files[0];
-                                  onChange(file);
-                                  handleResumeUpload(file);
+                                const files = e.target.files;
+                                if (files && files.length > 0) {
+                                  onChange(files); // Pass FileList to RHF
+                                  handleResumeUpload(files[0]); // Use the first file for processing
                                 } else {
-                                  onChange(null); // Handle case where selection is cleared
+                                  onChange(null);
                                 }
                               }}
                               className="sr-only"
@@ -371,14 +374,14 @@ export default function CandidateProfilePage() {
                               )}
                             >
                               <FileUp className="mr-2 h-4 w-4" />
-                              {value?.name ? "Change Resume" : "Upload Resume"}
+                              {currentFile instanceof File ? "Change Resume" : "Upload Resume"}
                             </Label>
                           </div>
                         </FormControl>
                         {isAiProcessing && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
                       </div>
                       <FormDescription className="mt-2 text-xs">
-                        {typeof value === 'object' && value?.name ? `Current file: ${value.name}` : "No resume uploaded. (PDF, DOC, DOCX)"}
+                        {currentFile instanceof File ? `Current file: ${currentFile.name}` : "No resume uploaded. (PDF, DOC, DOCX)"}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -389,10 +392,10 @@ export default function CandidateProfilePage() {
           </div>
 
           {isEditing && (
-            <CardFooter className="lg:col-span-3 flex justify-end gap-2 pt-8 border-t mt-0"> {/* Adjusted mt-0 for better fit */}
+            <CardFooter className="lg:col-span-3 flex justify-end gap-2 pt-8 border-t mt-0"> 
               <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if(user) resetFormValues(user); }} disabled={isSubmitting || isAiProcessing}>Cancel</Button>
               <Button type="button" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting || isAiProcessing}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}{/* Changed Save to FileText */}
                 Save Changes
               </Button>
             </CardFooter>
@@ -402,3 +405,4 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
+
