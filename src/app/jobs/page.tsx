@@ -27,14 +27,14 @@ export default function JobBoardPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('card');
 
   const renderCardView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-6"> {/* Changed from grid to space-y-6 for full-width cards */}
       {jobListings.map((job) => (
-        <Card key={job.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <Card key={job.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader>
             <CardTitle className="text-xl">{job.title}</CardTitle>
             <CardDescription>{job.company}</CardDescription>
           </CardHeader>
-          <CardContent className="flex-grow space-y-2">
+          <CardContent className="space-y-2">
             <div className="flex items-center text-sm text-muted-foreground">
               <MapPin className="mr-2 h-4 w-4" />
               {job.location}
@@ -44,6 +44,7 @@ export default function JobBoardPage() {
               {job.type}
             </div>
             <div className="pt-2">
+              <span className="text-sm font-medium text-foreground">Key Skills: </span>
               {job.skills.map(skill => (
                 <Badge key={skill} variant="secondary" className="mr-1 mb-1">{skill}</Badge>
               ))}
