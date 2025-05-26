@@ -6,99 +6,106 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Briefcase, LayoutGrid, List, MapPin, Search, Eye } from "lucide-react";
+import { Briefcase, MapPin, Search, Eye, Clock, ArrowRight, Star } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
 
-// Mock job data
+// Updated Mock job data
 const jobListings = [
-  { id: "1", title: "Software Engineer, Frontend", company: "Tech Solutions Inc.", location: "Remote", type: "Full-time", postedDate: "2024-07-20", skills: ["React", "TypeScript", "Next.js"] },
-  { id: "2", title: "Product Manager", company: "Innovate Hub", location: "New York, NY", type: "Full-time", postedDate: "2024-07-18", skills: ["Agile", "Roadmap", "User Research"] },
-  { id: "3", title: "UX Designer", company: "Creative Designs Co.", location: "San Francisco, CA", type: "Contract", postedDate: "2024-07-15", skills: ["Figma", "Prototyping", "User Testing"] },
-  { id: "4", title: "Data Scientist", company: "Analytics Corp.", location: "Remote", type: "Full-time", postedDate: "2024-07-22", skills: ["Python", "Machine Learning", "SQL"] },
-  { id: "5", title: "Marketing Specialist", company: "Growth Co.", location: "Austin, TX", type: "Part-time", postedDate: "2024-07-19", skills: ["SEO", "Content Marketing", "Social Media"] },
+  { 
+    id: "1", 
+    title: "Senior SAP Basis Consultant", 
+    company: "TechCorp Inc.", 
+    location: "New York, Remote", 
+    type: "Full-time", 
+    postedDate: "2024-07-20", 
+    skills: ["SAP Basis", "HANA", "System Optimization"], 
+    shortDescription: "Drive our SAP infrastructure and ensure seamless system performance. You'll be responsible for managing, maintaining, and optimizing SAP systems to su...",
+    experienceLevel: "Senior",
+    salary: "$120,000 - $140,000",
+    isFeatured: true,
+  },
+  { 
+    id: "2", 
+    title: "Product Manager", 
+    company: "Innovate Hub", 
+    location: "New York, NY", 
+    type: "Full-time", 
+    postedDate: "2024-07-18", 
+    skills: ["Agile", "Roadmap", "User Research"],
+    shortDescription: "Lead product strategy, define product roadmaps, and work closely with engineering and design teams to deliver impactful products.",
+    experienceLevel: "Mid-Level",
+    salary: "$100,000 - $130,000",
+    isFeatured: false,
+  },
+  { 
+    id: "3", 
+    title: "UX Designer", 
+    company: "Creative Designs Co.", 
+    location: "San Francisco, CA", 
+    type: "Contract", 
+    postedDate: "2024-07-15", 
+    skills: ["Figma", "Prototyping", "User Testing"],
+    shortDescription: "Design intuitive and engaging user experiences for web and mobile applications. Conduct user research and create wireframes & prototypes.",
+    experienceLevel: "Junior",
+    salary: "$70,000 - $90,000",
+    isFeatured: false,
+  },
 ];
 
-type ViewMode = 'card' | 'list';
 
 export default function JobBoardPage() {
-  const [viewMode, setViewMode] = useState<ViewMode>('card');
 
-  const renderCardView = () => (
-    <div className="space-y-6"> {/* Changed from grid to space-y-6 for full-width cards */}
-      {jobListings.map((job) => (
-        <Card key={job.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader>
-            <CardTitle className="text-xl">{job.title}</CardTitle>
-            <CardDescription>{job.company}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center text-sm text-muted-foreground">
-              <MapPin className="mr-2 h-4 w-4" />
-              {job.location}
-            </div>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Briefcase className="mr-2 h-4 w-4" />
-              {job.type}
-            </div>
-            <div className="pt-2">
-              <span className="text-sm font-medium text-foreground">Key Skills: </span>
-              {job.skills.map(skill => (
-                <Badge key={skill} variant="secondary" className="mr-1 mb-1">{skill}</Badge>
-              ))}
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between items-center">
-            <p className="text-xs text-muted-foreground">Posted: {job.postedDate}</p>
-            <Button asChild variant="default" size="sm">
-              <Link href={`/jobs/${job.id}`}>View Details</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      ))}
-    </div>
-  );
+  const renderJobCard = (job: typeof jobListings[0]) => (
+    <Card key={job.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full overflow-hidden">
+      <CardContent className="p-6 space-y-4">
+        {job.isFeatured && (
+          <Badge className="bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-100 mb-2 font-normal">
+            <Star className="mr-1 h-3 w-3 fill-current" /> Featured Opportunity
+          </Badge>
+        )}
+        <CardTitle className="text-2xl font-bold group">
+           <Link href={`/jobs/${job.id}`} className="hover:text-primary transition-colors duration-200">
+            {job.title}
+          </Link>
+        </CardTitle>
+        
+        <div className="flex flex-wrap items-center text-sm text-muted-foreground gap-x-3 gap-y-1">
+          <div className="flex items-center">
+            <Briefcase className="mr-1.5 h-4 w-4" /> {job.company}
+          </div>
+          <span className="text-muted-foreground/50">&#8226;</span>
+          <div className="flex items-center">
+            <MapPin className="mr-1.5 h-4 w-4" /> {job.location}
+          </div>
+           <span className="text-muted-foreground/50">&#8226;</span>
+          <div className="flex items-center">
+            <Clock className="mr-1.5 h-4 w-4" /> {job.type}
+          </div>
+        </div>
 
-  const renderListView = () => (
-    <Card className="shadow-lg">
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Job Title</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Posted</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {jobListings.map((job) => (
-              <TableRow key={job.id}>
-                <TableCell className="font-medium">
-                  <Link href={`/jobs/${job.id}`} className="hover:underline text-primary">
-                    {job.title}
-                  </Link>
-                </TableCell>
-                <TableCell>{job.company}</TableCell>
-                <TableCell>{job.location}</TableCell>
-                <TableCell>{job.type}</TableCell>
-                <TableCell>{job.postedDate}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/jobs/${job.id}`}>
-                      <Eye className="mr-1 h-4 w-4" /> View
-                    </Link>
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <p className="text-sm text-foreground/80 line-clamp-2">{job.shortDescription}</p>
+
+        <div className="flex flex-wrap gap-2 items-center">
+          {job.skills.slice(0, 3).map(skill => (
+            <Badge key={skill} variant="secondary" className="font-normal">{skill}</Badge>
+          ))}
+          {job.experienceLevel && <Badge variant="secondary" className="font-normal">{job.experienceLevel}</Badge>}
+          {job.salary && <Badge variant="secondary" className="font-normal">{job.salary}</Badge>}
+           {job.skills.length > 3 && <Badge variant="outline" className="font-normal text-xs">+{job.skills.length - 3} more skills</Badge>}
+        </div>
       </CardContent>
+      <CardFooter className="bg-muted/30 px-6 py-4 flex justify-end items-center gap-3 border-t">
+        <Button variant="outline" size="sm" asChild>
+            <Link href={`/jobs/${job.id}`}>
+                <Eye className="mr-2 h-4 w-4" /> View Details
+            </Link>
+        </Button>
+        <Button asChild size="sm">
+          <Link href={`/jobs/${job.id}/apply`}>
+            Apply Now <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      </CardFooter>
     </Card>
   );
 
@@ -112,14 +119,7 @@ export default function JobBoardPage() {
               <CardTitle className="text-3xl font-bold">Find Your Next Opportunity</CardTitle>
               <CardDescription>Browse through thousands of open positions or use our advanced filters to narrow down your search.</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant={viewMode === 'card' ? 'default' : 'outline'} size="icon" onClick={() => setViewMode('card')} title="Card View">
-                <LayoutGrid className="h-5 w-5" />
-              </Button>
-              <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="icon" onClick={() => setViewMode('list')} title="List View">
-                <List className="h-5 w-5" />
-              </Button>
-            </div>
+            {/* View Toggle Buttons Removed */}
           </div>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end pt-6 border-t">
@@ -152,7 +152,23 @@ export default function JobBoardPage() {
         </CardContent>
       </Card>
 
-      {viewMode === 'card' ? renderCardView() : renderListView()}
+      <div className="space-y-6">
+        {jobListings.map(job => renderJobCard(job))}
+         {jobListings.length === 0 && (
+          <Card className="text-center py-10 shadow-lg">
+            <CardContent>
+                <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No job listings found. Try adjusting your search filters.</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+      {jobListings.length > 0 && (
+        <div className="flex justify-center mt-8">
+            <Button variant="outline">Load More Jobs (Placeholder)</Button>
+        </div>
+      )}
     </div>
   );
 }
+
