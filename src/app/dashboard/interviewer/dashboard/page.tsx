@@ -199,19 +199,14 @@ export default function InterviewerDashboardPage() {
     <Dialog 
       onOpenChange={(open) => {
         if (!open) {
-          // Reset states for all dialogs when any dialog closes
           setSelectedInterviewForFeedback(null);
           setSelectedInterviewForReport(null);
           setSelectedInterviewForStrategy(null);
-          // We don't want to close specific dialogs if another is open,
-          // so we rely on the individual DialogTrigger to set its open state.
-          // This onOpenChange is for the outermost Dialog that wraps everything,
-          // effectively acting as a reset when any interaction closes its specific trigger.
         }
       }}
     >
       <div className="space-y-8">
-        <Card className="shadow-xl">
+        <Card className="shadow-xl bg-gradient-to-br from-primary/10 via-background to-background">
           <CardHeader>
             <CardTitle className="text-2xl">Interviewer Dashboard</CardTitle>
             <CardDescription>Welcome, {user?.name?.split(" ")[0]}! View your scheduled interviews, submit feedback, and prepare with AI tools.</CardDescription>
@@ -291,7 +286,7 @@ export default function InterviewerDashboardPage() {
                                     <div className="flex gap-2 w-full">
                                         <Button size="sm" variant="outline" className="flex-1" asChild><Link href={interview.platformLink || "#"} target="_blank">Join Interview</Link></Button>
                                         <DialogTrigger asChild>
-                                            <Button size="sm" variant="default" className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleOpenFeedbackDialog(interview)}>
+                                            <Button size="sm" variant="default" className="flex-1" onClick={() => handleOpenFeedbackDialog(interview)}>
                                                 <Edit3 className="mr-1 h-3 w-3"/> Feedback
                                             </Button>
                                         </DialogTrigger>
@@ -501,6 +496,3 @@ export default function InterviewerDashboardPage() {
     </Dialog>
   );
 }
-
-
-    
