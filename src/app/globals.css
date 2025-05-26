@@ -117,31 +117,24 @@ body {
 /* Updated Speaking Orb CSS */
 @layer components {
   .ai-speaking-orb {
-    @apply inline-block w-8 h-8 rounded-full bg-accent transition-all duration-300 ease-in-out; /* Increased size */
-    /* Neon glow effect */
-    box-shadow: 0 0 6px hsl(var(--accent)), 
-                0 0 10px hsl(var(--accent)),
-                0 0 14px hsl(var(--accent) / 0.6);
+    @apply inline-block w-6 h-6 rounded-full bg-accent transition-all duration-300 ease-in-out; /* Slightly smaller than before, more standard */
+    box-shadow: 0 0 5px hsl(var(--accent) / 0.7); /* More subtle shadow */
   }
   .ai-speaking-orb.speaking {
-    animation: speaking-pulse-neon 1.2s infinite ease-in-out;
+    animation: speaking-pulse-subtle 1.2s infinite ease-in-out;
   }
 }
 
-@keyframes speaking-pulse-neon {
+@keyframes speaking-pulse-subtle { /* Renamed from speaking-pulse-neon */
   0%, 100% {
-    transform: scale(0.95);
-    opacity: 0.8;
-    box-shadow: 0 0 6px hsl(var(--accent)), 
-                0 0 10px hsl(var(--accent)),
-                0 0 14px hsl(var(--accent) / 0.5);
+    transform: scale(0.9);
+    opacity: 0.7;
+    box-shadow: 0 0 3px hsl(var(--accent) / 0.6);
   }
   50% {
-    transform: scale(1.05);
+    transform: scale(1);
     opacity: 1;
-    box-shadow: 0 0 8px hsl(var(--accent)), 
-                0 0 16px hsl(var(--accent)), 
-                0 0 24px hsl(var(--accent) / 0.7),
-                0 0 32px hsl(var(--accent) / 0.5);
+    box-shadow: 0 0 6px hsl(var(--accent) / 0.8);
   }
 }
+

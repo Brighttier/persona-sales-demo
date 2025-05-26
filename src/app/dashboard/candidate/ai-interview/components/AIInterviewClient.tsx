@@ -32,7 +32,7 @@ type InterviewStage = "consent" | "preparingStream" | "countdown" | "interviewin
 type Message = { sender: "user" | "agent"; text: string; timestamp: number };
 
 const SESSION_COUNTDOWN_SECONDS = 3;
-const MAX_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 minutes for the whole session (can be adjusted)
+const MAX_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 minutes for the whole session
 const ELEVENLABS_AGENT_ID = "EVQJtCNSo0L6uHQnImQu";
 
 const formatFeedbackText = (text: string | undefined): React.ReactNode => {
@@ -165,7 +165,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     isInterviewActiveRef.current = false; 
     console.log("CleanupResources: Finished.");
   }, []); 
-
 
   const handleElevenError = useCallback((error: Error, context?: string) => { 
     if (isProcessingErrorRef.current) { console.warn(`EL onError (${context || 'general'}): Already processing an error. Skipping. Error:`, error); return; }
@@ -470,7 +469,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
 
     return (
-      <Card className="shadow-xl relative overflow-hidden min-h-[500px] md:min-h-[600px] flex flex-col">
+     <Card className="shadow-xl relative overflow-hidden min-h-[500px] md:min-h-[600px] flex flex-col">
         <div className="flex-grow flex items-center justify-center p-2 md:p-4">
             <div className="w-full max-w-2xl aspect-video relative bg-black rounded-md shadow-lg">
                 <video ref={videoPreviewRef} className="w-full h-full object-cover transform scale-x-[-1] rounded-md" playsInline autoPlay muted />
@@ -479,7 +478,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                     <div className="flex items-center gap-2">
                       <BotMessageSquare className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                       <span className="font-semibold text-xs md:text-sm">Mira - AI Interviewer</span>
-                       <div
+                      <div
                         className={cn(
                           'ai-speaking-orb',
                           agentIsSpeaking && 'speaking'
@@ -488,7 +487,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                     </div>
                     <div className="flex items-center gap-2 md:gap-3">
                       {(stage === 'interviewing' && conversationRef.current?.status === "connected" && !agentIsSpeaking) && (
-                          <div className="flex items-center text-xs text-primary animate-pulse"> {/* Changed text color */}
+                          <div className="flex items-center text-xs text-white animate-pulse">
                               <Mic className="h-3 w-3 md:h-4 md:w-4 mr-1" /> Listening...
                           </div>
                       )}
