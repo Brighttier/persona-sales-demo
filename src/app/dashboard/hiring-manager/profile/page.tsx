@@ -81,12 +81,12 @@ export default function HiringManagerProfilePage() {
 
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center"><Users className="mr-2 h-5 w-5 text-primary"/>Team Management Focus (Placeholder)</CardTitle>
+              <CardTitle className="flex items-center"><Users className="mr-2 h-5 w-5 text-primary"/>Team Management Focus</CardTitle>
               <CardDescription>Your responsibilities and focus as a Hiring Manager.</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                E.g., Responsible for leading the Engineering team, defining hiring needs, conducting final interviews, and ensuring successful onboarding of new team members. Key focus on building a high-performing and collaborative technical team.
+                Responsible for leading the [Your Department, e.g., Engineering/Product/Design] team, defining hiring needs in collaboration with recruitment, conducting final-stage interviews, and ensuring successful onboarding of new team members. Key focus on building a high-performing, collaborative team that aligns with company goals and values.
               </p>
             </CardContent>
           </Card>
@@ -96,7 +96,7 @@ export default function HiringManagerProfilePage() {
         <div className="space-y-6">
           <Card className="shadow-lg">
             <CardHeader>
-                <CardTitle className="flex items-center"><BarChart3 className="mr-2 h-5 w-5 text-primary"/>Hiring Activity Overview (Placeholder)</CardTitle>
+                <CardTitle className="flex items-center"><BarChart3 className="mr-2 h-5 w-5 text-primary"/>Hiring Activity Overview</CardTitle>
                 <CardDescription>Key statistics for your team's hiring.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
