@@ -236,21 +236,21 @@ export default function InterviewerDashboardPage() {
                                 </CardContent>
                                 <CardFooter className="pt-3 border-t mt-auto space-y-2 flex-col items-stretch">
                                     <div className="flex gap-2 w-full">
-                                        <Button size="xs" variant="outline" className="flex-1" asChild><Link href={interview.platformLink || "#"} target="_blank">Join Interview</Link></Button>
+                                        <Button size="sm" variant="outline" className="flex-1" asChild><Link href={interview.platformLink || "#"} target="_blank">Join Interview</Link></Button>
                                         <DialogTrigger asChild>
-                                            <Button size="xs" variant="default" className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleOpenFeedbackDialog(interview)}>
+                                            <Button size="sm" variant="default" className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleOpenFeedbackDialog(interview)}>
                                                 <Edit3 className="mr-1 h-3 w-3"/> Feedback
                                             </Button>
                                         </DialogTrigger>
                                     </div>
                                      <div className="flex gap-2 w-full">
                                         {interview.screeningSuitabilityScore !== undefined && (
-                                            <Button size="xs" variant="outline" className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => openScreeningReportDialog(interview)}>
+                                            <Button size="sm" variant="outline" className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => openScreeningReportDialog(interview)}>
                                                 <ShieldCheck className="mr-1 h-3 w-3"/> Screening Report
                                             </Button>
                                         )}
                                         {(interview.jobDescription && interview.candidateResumeSummary) && (
-                                            <Button size="xs" variant="outline" className="flex-1 border-purple-500 text-purple-600 hover:bg-purple-50" onClick={() => openStrategyDialog(interview)}>
+                                            <Button size="sm" variant="outline" className="flex-1 border-purple-500 text-purple-600 hover:bg-purple-50" onClick={() => openStrategyDialog(interview)}>
                                                 <WandSparkles className="mr-1 h-3 w-3"/> AI Strategy
                                             </Button>
                                         )}
