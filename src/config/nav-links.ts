@@ -109,6 +109,15 @@ export const NAV_LINKS: NavLink[] = [
     tourStepId: 'recruiter-screening-link',
     tourText: 'Leverage AI to screen candidates quickly. Input job and candidate details for an instant analysis.'
   },
+  {
+    href: `/dashboard/${USER_ROLES.RECRUITER}/profile`,
+    label: 'My Profile',
+    icon: UserCircle,
+    roles: [USER_ROLES.RECRUITER],
+    isTourStep: true,
+    tourStepId: 'recruiter-profile-link',
+    tourText: 'View your recruiter profile details and preferences.'
+  },
 
   // Hiring Manager Links
   {
@@ -127,7 +136,7 @@ export const NAV_LINKS: NavLink[] = [
     roles: [USER_ROLES.HIRING_MANAGER],
     isTourStep: true,
     tourStepId: 'hm-my-job-postings-link',
-    tourText: 'Create, draft, and manage job postings for your team. Submit them for Recruiter approval. The "Create New Job" button is on this page.'
+    tourText: 'Create, draft, and manage job postings for your team. Submit them to Recruiters for review. The "Create New Job" button is on this page.'
   },
   {
     href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-approvals`,
@@ -155,6 +164,15 @@ export const NAV_LINKS: NavLink[] = [
     isTourStep: true,
     tourStepId: 'hm-analytics-link',
     tourText: 'Dive into data! View analytics on hiring funnels, time-to-hire, offer acceptance rates, and more.'
+  },
+  {
+    href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/profile`,
+    label: 'My Profile',
+    icon: UserCircle,
+    roles: [USER_ROLES.HIRING_MANAGER],
+    isTourStep: true,
+    tourStepId: 'hm-profile-link',
+    tourText: 'View your hiring manager profile details and preferences.'
   },
 
   // Admin Links
