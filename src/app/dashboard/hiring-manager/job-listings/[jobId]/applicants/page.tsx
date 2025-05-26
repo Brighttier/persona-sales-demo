@@ -15,8 +15,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea"; // Added Textarea import
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Added Tooltip imports
+import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -45,12 +45,12 @@ const initialMockApplicants: Applicant[] = [
 ];
 
 const mockJobTitles: { [key: string]: { title: string, description: string } } = {
-  "job1": { title: "Software Engineer, Frontend", description: "Develop user-facing features for our web applications using React and Next.js."},
   "hmjob1": { title: "Lead Software Architect", description: "Lead the architectural design and implementation of complex software systems."},
   "hmjob2": { title: "Senior Product Designer", description: "Craft exceptional user experiences for our flagship products."},
+  "job1": { title: "Software Engineer, Frontend", description: "Develop user-facing features for our web applications using React and Next.js."},
 };
 
-const ALL_APPLICANT_STATUSES: Applicant["status"][] = ["New", "Screening", "Shortlisted", "Interview", "Offer", "Hired", "Not Selected", "Withdrawn"];
+const ALL_APPLICANT_STATUSES_HM: Applicant["status"][] = ["New", "Screening", "Shortlisted", "Interview", "Offer", "Hired", "Not Selected", "Withdrawn"];
 
 export default function HMViewApplicantsPage() {
   const params = useParams();
@@ -171,7 +171,7 @@ export default function HMViewApplicantsPage() {
 
   const openFeedbackDialog = (applicant: Applicant) => {
     setSelectedApplicantForFeedback(applicant);
-    setFeedbackText(""); // Clear previous feedback
+    setFeedbackText(""); 
     setIsFeedbackDialogOpen(true);
   };
 
@@ -221,7 +221,7 @@ export default function HMViewApplicantsPage() {
         <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Applicants for: {jobData.title}</CardTitle>
-            <CardDescription>Review and manage candidates who applied for this position. (Hiring Manager View)</CardDescription>
+            <CardDescription>Review and manage candidates. (Hiring Manager View)</CardDescription>
           </CardHeader>
         </Card>
 
@@ -244,7 +244,7 @@ export default function HMViewApplicantsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    {ALL_APPLICANT_STATUSES.map(s => (
+                    {ALL_APPLICANT_STATUSES_HM.map(s => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
                   </SelectContent>
@@ -345,7 +345,6 @@ export default function HMViewApplicantsPage() {
           </CardContent>
         </Card>
 
-        {/* Status Update Dialog (Generic) */}
         <Dialog open={!!selectedApplicantForStatus && !isRejectConfirmOpen} onOpenChange={(open) => !open && setSelectedApplicantForStatus(null)}>
           <DialogContent>
             <DialogHeader>
@@ -360,7 +359,7 @@ export default function HMViewApplicantsPage() {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ALL_APPLICANT_STATUSES.map(s => (
+                    {ALL_APPLICANT_STATUSES_HM.map(s => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
                   </SelectContent>
@@ -374,7 +373,6 @@ export default function HMViewApplicantsPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Reject Confirmation Dialog */}
         <Dialog open={isRejectConfirmOpen} onOpenChange={setIsRejectConfirmOpen}>
             <DialogContent>
                 <DialogHeader>
@@ -390,7 +388,6 @@ export default function HMViewApplicantsPage() {
             </DialogContent>
         </Dialog>
 
-        {/* Screening Report Dialog */}
         <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
@@ -421,7 +418,7 @@ export default function HMViewApplicantsPage() {
                       <CardContent className="p-3 text-xs whitespace-pre-line">{screeningReports[selectedApplicantForReportView!.id]!.recommendation}</CardContent>
                   </Card>
                 </>
-              ) : <p>No screening report available for this candidate.</p>}
+              ) : <p className="text-muted-foreground">No screening report available for this candidate.</p>}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsReportDialogOpen(false)}>Close</Button>
@@ -443,7 +440,6 @@ export default function HMViewApplicantsPage() {
           />
         )}
 
-      {/* View Simplified Profile Dialog */}
       <Dialog open={isViewProfileDialogOpen} onOpenChange={setIsViewProfileDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -453,9 +449,9 @@ export default function HMViewApplicantsPage() {
           <div className="py-4 space-y-3">
             {selectedApplicantForProfileView ? (
               <>
-                <p><span className="font-semibold">Email:</span> {selectedApplicantForProfileView.email}</p>
-                <p><span className="font-semibold">Status:</span> {getStatusPill(selectedApplicantForProfileView.status)}</p>
-                <p><span className="font-semibold">AI Match:</span> {selectedApplicantForProfileView.aiMatchScore ? `${selectedApplicantForProfileView.aiMatchScore}%` : "N/A"}</p>
+                <div><span className="font-semibold">Email:</span> {selectedApplicantForProfileView.email}</div>
+                <div><span className="font-semibold">Status:</span> {getStatusPill(selectedApplicantForProfileView.status)}</div>
+                <div><span className="font-semibold">AI Match:</span> {selectedApplicantForProfileView.aiMatchScore ? `${selectedApplicantForProfileView.aiMatchScore}%` : "N/A"}</div>
                 <div>
                   <p className="font-semibold mb-1">Skills:</p>
                   <div className="flex flex-wrap gap-1">
@@ -474,7 +470,6 @@ export default function HMViewApplicantsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Provide Feedback Dialog */}
       <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -482,9 +477,9 @@ export default function HMViewApplicantsPage() {
             <DialogDescription>Enter your evaluation and comments for this candidate.</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-3">
-            <Label htmlFor="feedback-text">Your Feedback</Label>
+            <Label htmlFor="feedback-text-hm">Your Feedback</Label>
             <Textarea
-              id="feedback-text"
+              id="feedback-text-hm"
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               placeholder="Strengths, weaknesses, overall impression, recommendation (e.g., Proceed, Hold, Do Not Recommend)..."
@@ -502,3 +497,5 @@ export default function HMViewApplicantsPage() {
     </TooltipProvider>
   );
 }
+
+    
