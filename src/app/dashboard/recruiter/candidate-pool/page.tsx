@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
-import { Eye, Filter, Mail, Search, UserPlus, ExternalLink, Star, Briefcase, MapPin, Users as UsersIcon, FolderPlus, FolderOpen, MoveUpRight, Trash2, Save, GripVertical } from "lucide-react";
+import { Eye, Filter, Mail, Search, UserPlus, ExternalLink, Star, Briefcase, MapPin, Users as UsersIcon, FolderPlus, FolderOpen, MoveUpRight, Trash2, Save, GripVertical, LayoutGrid, List } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo } from "react";
@@ -78,11 +78,9 @@ export default function CandidatePoolPage() {
   const [selectedCandidateForFolderMove, setSelectedCandidateForFolderMove] = useState<Candidate | null>(null);
   const [targetFolderForMove, setTargetFolderForMove] = useState<string>("");
 
-  // States for search/filter inputs
   const [keywordsInput, setKeywordsInput] = useState("");
   const [locationInput, setLocationInput] = useState("");
 
-  // States for applied filters
   const [appliedKeywords, setAppliedKeywords] = useState("");
   const [appliedLocation, setAppliedLocation] = useState("");
 
@@ -90,19 +88,16 @@ export default function CandidatePoolPage() {
   const handleApplySearchFilters = () => {
     setAppliedKeywords(keywordsInput);
     setAppliedLocation(locationInput);
-    // Reset pagination when new filters are applied
     setVisibleCandidatesCount(INITIAL_CANDIDATES_TO_SHOW);
   };
 
   const filteredCandidatesByFolderAndSearch = useMemo(() => {
     let candidates = allMockCandidates;
 
-    // Filter by folder
     if (selectedFolderId !== ALL_CANDIDATES_FOLDER_ID) {
       candidates = candidates.filter(candidate => candidateFolderAssignments[candidate.id] === selectedFolderId);
     }
 
-    // Filter by applied keywords
     if (appliedKeywords) {
       const lowerKeywords = appliedKeywords.toLowerCase();
       candidates = candidates.filter(candidate =>
@@ -112,7 +107,6 @@ export default function CandidatePoolPage() {
       );
     }
 
-    // Filter by applied location
     if (appliedLocation) {
       const lowerLocation = appliedLocation.toLowerCase();
       candidates = candidates.filter(candidate =>
@@ -129,7 +123,6 @@ export default function CandidatePoolPage() {
   }, [filteredCandidatesByFolderAndSearch, visibleCandidatesCount]);
 
   useEffect(() => {
-    // Reset pagination when folder or applied filters change
     setVisibleCandidatesCount(INITIAL_CANDIDATES_TO_SHOW);
   }, [selectedFolderId, appliedKeywords, appliedLocation]);
 
@@ -229,9 +222,9 @@ export default function CandidatePoolPage() {
               <TableHead>Candidate</TableHead>
               <TableHead>Experience</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Top Skills</TableHead>
               <TableHead>AI Match</TableHead>
               <TableHead>Assigned Folder</TableHead>
+              <TableHead>Top Skills</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -253,14 +246,6 @@ export default function CandidatePoolPage() {
                 <TableCell>{candidate.experience}</TableCell>
                 <TableCell>{candidate.location}</TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {candidate.skills.slice(0, 2).map(skill => (
-                      <Badge key={skill} variant="default" className="font-normal text-xs">{skill}</Badge>
-                    ))}
-                    {candidate.skills.length > 2 && <Badge variant="outline" className="font-normal text-xs">+{candidate.skills.length - 2}</Badge>}
-                  </div>
-                </TableCell>
-                <TableCell>
                   <Badge variant="default" className={cn("font-semibold", candidate.aiMatchScore > 80 ? "bg-green-100 text-green-700 border-green-300" : "bg-yellow-100 text-yellow-700 border-yellow-300")}>
                     <Star className="mr-1 h-3 w-3 fill-current" />{candidate.aiMatchScore}%
                   </Badge>
@@ -269,6 +254,14 @@ export default function CandidatePoolPage() {
                   <Badge variant="secondary" className="font-normal text-xs">
                     {getFolderNameById(candidateFolderAssignments[candidate.id] || null)}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {candidate.skills.slice(0, 2).map(skill => (
+                      <Badge key={skill} variant="default" className="font-normal text-xs">{skill}</Badge>
+                    ))}
+                    {candidate.skills.length > 2 && <Badge variant="outline" className="font-normal text-xs">+{candidate.skills.length - 2}</Badge>}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   {renderCandidateActions(candidate)}
@@ -325,7 +318,7 @@ export default function CandidatePoolPage() {
             </CardContent>
           </Card>
             
-          {renderListView()}
+          {renderListView()} {/* Default to list view */}
           
           {filteredCandidatesByFolderAndSearch.length > visibleCandidatesCount && displayedCandidates.length > 0 && (
                 <div className="flex justify-center mt-4">
@@ -411,7 +404,7 @@ export default function CandidatePoolPage() {
                                                 });
                                                 return updated;
                                             });
-                                            if (selectedFolderId === folder.id) setSelectedFolderId(ALL_CANDIDATES_FOLDER_ID); // Reset if active folder deleted
+                                            if (selectedFolderId === folder.id) setSelectedFolderId(ALL_CANDIDATES_FOLDER_ID); 
                                             toast({title: "Folder Deleted"});
                                         }}
                                     >
@@ -460,3 +453,4 @@ export default function CandidatePoolPage() {
     </div>
   );
 }
+
