@@ -11,41 +11,41 @@ import Link from "next/link";
 
 // Updated Mock job data
 const jobListings = [
-  { 
-    id: "1", 
-    title: "Senior SAP Basis Consultant", 
-    company: "TechCorp Inc.", 
-    location: "New York, Remote", 
-    type: "Full-time", 
-    postedDate: "2024-07-20", 
-    skills: ["SAP Basis", "HANA", "System Optimization"], 
-    shortDescription: "Drive our SAP infrastructure and ensure seamless system performance. You'll be responsible for managing, maintaining, and optimizing SAP systems to su...",
+  {
+    id: "1",
+    title: "Senior SAP Basis Consultant",
+    company: "TechCorp Inc.",
+    location: "New York, Remote",
+    type: "Full-time",
+    postedDate: "2024-07-20",
+    skills: ["SAP Basis", "HANA", "System Optimization", "Azure"],
+    shortDescription: "Drive our SAP infrastructure and ensure seamless system performance. You'll be responsible for managing, maintaining, and optimizing SAP systems to support critical business functions. This role requires deep technical expertise and a proactive approach to system health and innovation.",
     experienceLevel: "Senior",
     salary: "$120,000 - $140,000",
     isFeatured: true,
   },
-  { 
-    id: "2", 
-    title: "Product Manager", 
-    company: "Innovate Hub", 
-    location: "New York, NY", 
-    type: "Full-time", 
-    postedDate: "2024-07-18", 
-    skills: ["Agile", "Roadmap", "User Research"],
-    shortDescription: "Lead product strategy, define product roadmaps, and work closely with engineering and design teams to deliver impactful products.",
+  {
+    id: "2",
+    title: "Product Manager",
+    company: "Innovate Hub",
+    location: "New York, NY",
+    type: "Full-time",
+    postedDate: "2024-07-18",
+    skills: ["Agile", "Roadmap", "User Research", "Market Analysis"],
+    shortDescription: "Lead product strategy, define product roadmaps, and work closely with engineering and design teams to deliver impactful products that meet user needs and business goals. Strong analytical and communication skills are essential.",
     experienceLevel: "Mid-Level",
     salary: "$100,000 - $130,000",
     isFeatured: false,
   },
-  { 
-    id: "3", 
-    title: "UX Designer", 
-    company: "Creative Designs Co.", 
-    location: "San Francisco, CA", 
-    type: "Contract", 
-    postedDate: "2024-07-15", 
-    skills: ["Figma", "Prototyping", "User Testing"],
-    shortDescription: "Design intuitive and engaging user experiences for web and mobile applications. Conduct user research and create wireframes & prototypes.",
+  {
+    id: "3",
+    title: "UX Designer",
+    company: "Creative Designs Co.",
+    location: "San Francisco, CA",
+    type: "Contract",
+    postedDate: "2024-07-15",
+    skills: ["Figma", "Prototyping", "User Testing", "Wireframing"],
+    shortDescription: "Design intuitive and engaging user experiences for web and mobile applications. Conduct user research, create wireframes, prototypes, and high-fidelity mockups. Collaborate effectively with product managers and developers.",
     experienceLevel: "Junior",
     salary: "$70,000 - $90,000",
     isFeatured: false,
@@ -68,7 +68,7 @@ export default function JobBoardPage() {
             {job.title}
           </Link>
         </CardTitle>
-        
+
         <div className="flex flex-wrap items-center text-sm text-muted-foreground gap-x-3 gap-y-1">
           <div className="flex items-center">
             <Briefcase className="mr-1.5 h-4 w-4" /> {job.company}
@@ -87,11 +87,11 @@ export default function JobBoardPage() {
 
         <div className="flex flex-wrap gap-2 items-center">
           {job.skills.slice(0, 3).map(skill => (
-            <Badge key={skill} variant="secondary" className="font-normal">{skill}</Badge>
+            <Badge key={skill} variant="default" className="font-normal">{skill}</Badge>
           ))}
-          {job.experienceLevel && <Badge variant="secondary" className="font-normal">{job.experienceLevel}</Badge>}
-          {job.salary && <Badge variant="secondary" className="font-normal">{job.salary}</Badge>}
-           {job.skills.length > 3 && <Badge variant="outline" className="font-normal text-xs">+{job.skills.length - 3} more skills</Badge>}
+          {job.experienceLevel && <Badge variant="default" className="font-normal">{job.experienceLevel}</Badge>}
+          {job.salary && <Badge variant="default" className="font-normal">{job.salary}</Badge>}
+           {job.skills.length > 3 && <Badge variant="default" className="font-normal text-xs">+{job.skills.length - 3} more skills</Badge>}
         </div>
       </CardContent>
       <CardFooter className="bg-muted/30 px-6 py-4 flex justify-end items-center gap-3 border-t">
@@ -119,7 +119,6 @@ export default function JobBoardPage() {
               <CardTitle className="text-3xl font-bold">Find Your Next Opportunity</CardTitle>
               <CardDescription>Browse through thousands of open positions or use our advanced filters to narrow down your search.</CardDescription>
             </div>
-            {/* View Toggle Buttons Removed */}
           </div>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end pt-6 border-t">
@@ -171,4 +170,3 @@ export default function JobBoardPage() {
     </div>
   );
 }
-
