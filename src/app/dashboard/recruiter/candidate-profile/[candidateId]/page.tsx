@@ -8,10 +8,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, FileUp, Loader2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, UserCircle, BrainCircuit, Star, Award, Building, ShieldCheck, BarChart } from "lucide-react";
+import { ArrowLeft, FileUp, Loader2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, UserCircle, BrainCircuit, Star, Award, Building, ShieldCheck, BarChart, VideoIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import React, { useState, useEffect, useCallback } from "react"; // Added React import
+import React, { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,8 +19,8 @@ import { enrichProfile, type EnrichProfileOutput } from "@/ai/flows/profile-enri
 import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { cn } from "@/lib/utils"; // Added cn import
-import { Label } from "@/components/ui/label"; // Added Label import for custom file input
+import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
 
 
 // Data structures for profile sections
@@ -54,12 +54,15 @@ interface ApplicantDetail {
   linkedin?: string;
   portfolio?: string;
   headline?: string;
-  mockResumeDataUri?: string; // Can be the actual data URI or a placeholder string
+  mockResumeDataUri?: string; 
   resumeText: string; 
   mockExperience?: ExperienceItem[];
   mockEducation?: EducationItem[];
   mockCertifications?: CertificationItem[];
+  introductionVideoUrl?: string; // Added for introduction video
 }
+
+const PLACEHOLDER_INTRO_VIDEO_URL = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4";
 
 const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
   "app1": {
@@ -76,7 +79,8 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
     mockCertifications: [
       { name: "AWS Certified Developer - Associate", issuingOrganization: "Amazon Web Services", date: "2022-03" },
       { name: "Professional Scrum Master I", issuingOrganization: "Scrum.org", date: "2021-07" }
-    ]
+    ],
+    introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL,
   },
   "app2": {
     id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", email: "bob@example.com", headline: "Full Stack Python Developer",
@@ -90,7 +94,8 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
     ],
     mockCertifications: [
       { name: "Google Cloud Professional Data Engineer", issuingOrganization: "Google Cloud", date: "2023-01" }
-    ]
+    ],
+    introductionVideoUrl: "",
   },
   "app5": { 
     id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", email: "eve@example.com", headline: "Creative Vue.js Developer",
@@ -104,7 +109,8 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
     ],
      mockCertifications: [
       { name: "Certified Vue.js Developer", issuingOrganization: "Vue School", date: "2022-08" }
-    ]
+    ],
+    introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL,
   },
   "cand1": {
     id: "cand1", name: "Alice Wonderland", avatar: "https://placehold.co/100x100.png?text=AW", email: "alice.wonder@example.com", phone: "555-0102", linkedin: "https://linkedin.com/in/alicewonder", headline: "Frontend Magician",
@@ -112,7 +118,8 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
     resumeText: "Alice Wonderland - Frontend Magician. Skills: React, JavaScript, HTML, CSS. 5 years experience creating enchanting user interfaces. Led UI development at TeaParty Inc.",
     mockExperience: [{ title: "UI Enchantress", company: "TeaParty Inc.", duration: "2020 - Present", description: "Crafted delightful user experiences with React and whimsy." }],
     mockEducation: [{ institution: "Wonderland Academy", degree: "BFA Interactive Design", field: "Digital Arts", year: "2019" }],
-    mockCertifications: [{ name: "Mad Hatter Certified UI Designer", issuingOrganization: "Wonderland Council", date: "2021" }]
+    mockCertifications: [{ name: "Mad Hatter Certified UI Designer", issuingOrganization: "Wonderland Council", date: "2021" }],
+    introductionVideoUrl: "",
   },
   "cand2": {
     id: "cand2", name: "Bob The Builder", avatar: "https://placehold.co/100x100.png?text=BB", email: "bob.builder@example.com", phone: "555-0103", linkedin: "https://linkedin.com/in/bobthebuilder", headline: "Product Construction Expert",
@@ -120,7 +127,8 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
     resumeText: "Bob The Builder - Product Construction Expert. Skills: Product Management, Agile, Roadmapping, JIRA. 8 years experience building successful products. Yes, we can!",
     mockExperience: [{ title: "Chief Product Architect", company: "Builder's Guild", duration: "2018 - Present", description: "Led product strategy and execution for several flagship tools." }],
     mockEducation: [{ institution: "University of Construction", degree: "Master of Product Management", field: "Product Strategy", year: "2017" }],
-    mockCertifications: [{ name: "Certified Scrum Product Owner (CSPO)", issuingOrganization: "Scrum Alliance", date: "2018" }]
+    mockCertifications: [{ name: "Certified Scrum Product Owner (CSPO)", issuingOrganization: "Scrum Alliance", date: "2018" }],
+    introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL,
   },
   "cand3": {
     id: "cand3", name: "Carol Danvers", avatar: "https://placehold.co/100x100.png?text=CD", email: "carol.danvers@example.com", phone: "555-0104", linkedin: "https://linkedin.com/in/caroldanvers", headline: "Captain of UX Design",
@@ -128,7 +136,8 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
     resumeText: "Carol Danvers - Captain of UX Design. Skills: UX Design, Figma, Prototyping, User Research. 3 years experience creating stellar user experiences. Higher, further, faster.",
     mockExperience: [{ title: "Lead UX Pilot", company: "Starforce Design", duration: "2021 - Present", description: "Designed user-centric interfaces for intergalactic applications." }],
     mockEducation: [{ institution: "Air Force Academy of Design", degree: "BSc User Experience", field: "Human-Computer Interaction", year: "2020" }],
-    mockCertifications: [{ name: "Certified Figma Design Expert", issuingOrganization: "Figma Academy", date: "2022" }]
+    mockCertifications: [{ name: "Certified Figma Design Expert", issuingOrganization: "Figma Academy", date: "2022" }],
+    introductionVideoUrl: "",
   },
    "cand4": {
     id: "cand4", name: "David Copperfield", avatar: "https://placehold.co/100x100.png?text=DC", email: "david.copperfield@example.com", phone: "555-0105", linkedin: "https://linkedin.com/in/davidcopperfield", headline: "Data Illusionist",
@@ -136,12 +145,13 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
     resumeText: "David Copperfield - Data Illusionist. Skills: Data Science, Python, Machine Learning, TensorFlow. 6 years experience making data disappear and reappear as insights. It's all about misdirection.",
     mockExperience: [{ title: "Chief Data Sorcerer", company: "Magic & Models Inc.", duration: "2019 - Present", description: "Developed predictive models and data visualizations that amazed audiences." }],
     mockEducation: [{ institution: "Houdini University of Statistics", degree: "PhD Applied Magic (Data Science)", field: "Statistical Sorcery", year: "2018" }],
-    mockCertifications: [{ name: "Certified TensorFlow Developer", issuingOrganization: "Google", date: "2020" }]
+    mockCertifications: [{ name: "Certified TensorFlow Developer", issuingOrganization: "Google", date: "2020" }],
+    introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL,
   }
 };
 
 const resumeUploadSchema = z.object({
-  resumeFile: z.any().refine(file => file && file.length > 0, "Resume file is required."), // Expects a FileList
+  resumeFile: z.any().refine(fileList => fileList && fileList.length === 1, "Resume file is required."),
 });
 type ResumeUploadFormValues = z.infer<typeof resumeUploadSchema>;
 
@@ -182,7 +192,6 @@ export default function CandidateProfilePage() {
       try {
         const result = await enrichProfile({ resumeDataUri: foundCandidate.mockResumeDataUri });
         setEnrichedData(result);
-        // toast({ title: "Profile Enriched", description: "AI has analyzed the resume." });
       } catch (error) {
         console.error("Initial enrichment error:", error);
         toast({ variant: "destructive", title: "AI Enrichment Failed", description: "Could not process the mock resume." });
@@ -215,13 +224,13 @@ export default function CandidateProfilePage() {
         const resumeDataUri = reader.result as string;
         
         let newResumeText = "Uploaded resume content." 
-        if (resumeDataUri.startsWith('data:text/plain;base64,')){
+        if (resumeDataUri.startsWith('data:application/pdf;base64,') || resumeDataUri.startsWith('data:text/plain;base64,')){
             newResumeText = atob(resumeDataUri.split(',')[1]);
         }
 
         const result = await enrichProfile({ resumeDataUri });
         setEnrichedData(result);
-        if (candidate) setCandidate({...candidate, mockResumeDataUri: "New resume uploaded", resumeText: newResumeText }); // Update resume text
+        if (candidate) setCandidate({...candidate, mockResumeDataUri: "New resume uploaded", resumeText: newResumeText }); 
         toast({ title: "New Resume Enriched!", description: "Profile updated with new resume data." });
         resumeForm.reset();
       };
@@ -292,16 +301,18 @@ export default function CandidateProfilePage() {
         <ArrowLeft className="mr-2 h-4 w-4" /> Back
       </Button>
 
-      <Card className="shadow-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-primary/80 to-primary/60 h-32 md:h-40" />
+      <Card className="shadow-xl">
+        <div className="bg-gradient-to-br from-primary/10 via-background to-background h-16 md:h-20" />
         <div className="px-6 pb-6">
-          <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-16 md:-mt-20">
-            <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
-              <AvatarImage src={candidate.avatar} alt={candidate.name} data-ai-hint="person professional"/>
-              <AvatarFallback>{candidate.name.split(" ").map(n=>n[0]).join("").toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div className="sm:ml-6 mt-4 sm:mt-0 text-center sm:text-left">
-             <CardTitle className="text-2xl md:text-3xl">{candidate.name}</CardTitle>
+          <div className="flex flex-col sm:flex-row items-start">
+            <div className="-mt-12 md:-mt-16 shrink-0">
+              <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
+                <AvatarImage src={candidate.avatar} alt={candidate.name} data-ai-hint="person professional"/>
+                <AvatarFallback>{candidate.name.split(" ").map(n=>n[0]).join("").toUpperCase()}</AvatarFallback>
+              </Avatar>
+            </div>
+            <div className="sm:ml-6 mt-4 sm:mt-0 text-center sm:text-left w-full">
+             <CardTitle className="text-2xl md:text-3xl text-foreground">{candidate.name}</CardTitle>
              <CardDescription className="text-base mt-1 text-primary">{candidate.headline || "Headline not provided"}</CardDescription>
              <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                 {candidate.email && <div className="flex items-center justify-center sm:justify-start"><Mail className="mr-2 h-4 w-4"/> {candidate.email}</div>}
@@ -375,7 +386,20 @@ export default function CandidateProfilePage() {
 
         {/* Right Column */}
         <div className="space-y-6">
-         <Card className="shadow-lg">
+          <Card className="shadow-lg">
+            <CardHeader><CardTitle className="text-lg flex items-center"><VideoIcon className="mr-2 h-5 w-5 text-primary"/> Introduction Video</CardTitle></CardHeader>
+            <CardContent>
+              {candidate.introductionVideoUrl ? (
+                <video src={candidate.introductionVideoUrl} controls className="w-full rounded-md aspect-video shadow-inner bg-muted"></video>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  <VideoIcon className="mx-auto h-10 w-10 mb-2" />
+                  <p className="text-sm">No introduction video provided.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg">
             <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
             <CardContent>
               {(isEnriching || isLoading) && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
@@ -401,34 +425,35 @@ export default function CandidateProfilePage() {
                             control={resumeForm.control}
                             name="resumeFile"
                             render={({ field: { onChange, value, ...rest }}) => {
-                                const fileInputId = `recruiter-resume-upload-${React.useId()}`;
+                                const resumeFileInputId = `recruiter-candidate-resume-${React.useId()}`;
+                                const currentFile = value?.[0] as File | undefined;
                                 return (
                                 <FormItem>
-                                    <FormLabel htmlFor={fileInputId} className="sr-only">New Resume</FormLabel>
+                                    <FormLabel htmlFor={resumeFileInputId} className="sr-only">New Resume</FormLabel>
                                     <FormControl>
-                                        <div>
-                                            <Input
-                                                type="file"
-                                                id={fileInputId}
-                                                accept=".pdf,.doc,.docx"
-                                                onChange={(e) => onChange(e.target.files)} // RHF expects FileList
-                                                className="sr-only"
-                                                disabled={isEnriching || isLoading}
-                                                {...rest}
-                                            />
-                                            <Label
-                                                htmlFor={fileInputId}
-                                                className={cn(
+                                      <div>
+                                        <Input 
+                                            type="file"
+                                            id={resumeFileInputId}
+                                            accept=".pdf,.txt" 
+                                            onChange={(e) => onChange(e.target.files)}
+                                            className="sr-only"
+                                            disabled={isEnriching || isLoading}
+                                            {...rest} 
+                                        />
+                                        <Label
+                                            htmlFor={resumeFileInputId}
+                                            className={cn(
                                                 "inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer w-full",
                                                 "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg transition-all"
-                                                )}
-                                            >
-                                                <FileUp className="mr-2 h-4 w-4" />
-                                                {currentResumeFile?.name ? "Change Resume" : "Upload & Re-Enrich"}
-                                            </Label>
-                                        </div>
+                                            )}
+                                        >
+                                            <FileUp className="mr-2 h-4 w-4" />
+                                            {currentFile?.name ? "Change Resume" : "Upload & Re-Enrich"}
+                                        </Label>
+                                      </div>
                                     </FormControl>
-                                     {currentResumeFile?.name && <p className="text-xs text-muted-foreground mt-1">Selected: {currentResumeFile.name}</p>}
+                                     {currentFile?.name && <p className="text-xs text-muted-foreground mt-1">Selected: {currentFile.name}</p>}
                                     <FormMessage className="text-xs"/>
                                 </FormItem>
                                 );
@@ -483,3 +508,4 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
+
