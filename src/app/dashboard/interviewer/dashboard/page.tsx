@@ -10,15 +10,16 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { CalendarDays, CheckCircle, Clock, Edit3, MessageSquare, Video, UserCircle as UserIcon, Check, Send } from "lucide-react";
+import { Calendar as CalendarIcon, CalendarDays, CheckCircle, Clock, Edit3, MessageSquare, Video, UserCircle as UserIcon, Check, Send } from "lucide-react"; // Added CalendarIcon
 import Link from "next/link";
 import { useState } from "react";
+import { Calendar } from "@/components/ui/calendar"; // Added Calendar import
 
 interface AssignedInterview {
   id: string;
   candidateName: string;
   jobTitle: string;
-  date: string;
+  date: string; // Keep as string for mock data simplicity, parse for Calendar if needed
   time: string;
   status: "Upcoming" | "Completed";
   feedbackProvided?: boolean;
@@ -42,6 +43,7 @@ export default function InterviewerDashboardPage() {
   const [selectedInterviewForFeedback, setSelectedInterviewForFeedback] = useState<AssignedInterview | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [verdict, setVerdict] = useState<VerdictOption | undefined>(undefined);
+  const [calendarDate, setCalendarDate] = useState<Date | undefined>(new Date());
 
   const upcomingInterviews = interviews.filter(i => i.status === "Upcoming");
   const pastInterviews = interviews.filter(i => i.status === "Completed");
@@ -142,6 +144,21 @@ export default function InterviewerDashboardPage() {
           </CardHeader>
         </Card>
 
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center"><CalendarIcon className="mr-2 h-5 w-5 text-primary"/> My Interview Calendar</CardTitle>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Calendar
+              mode="single"
+              selected={calendarDate}
+              onSelect={setCalendarDate}
+              className="rounded-md border shadow-inner"
+              // disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))} // Example: disable past dates
+            />
+          </CardContent>
+        </Card>
+
         <div>
           <h2 className="text-xl font-semibold mb-4">Upcoming Interviews ({upcomingInterviews.length})</h2>
           {upcomingInterviews.length > 0 ? (
@@ -221,3 +238,5 @@ export default function InterviewerDashboardPage() {
     </Dialog>
   );
 }
+
+    
