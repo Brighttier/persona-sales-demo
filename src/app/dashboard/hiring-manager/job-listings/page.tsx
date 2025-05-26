@@ -24,6 +24,9 @@ const mockHMJobListings = [
   { id: "hmjob6", title: "UX Research Lead", status: "Pending Recruiter Approval", applicants: 0, department: "Design", location: "Remote", dateCreated: "2024-07-30" },
   { id: "hmjob7", title: "Content Strategy Head", status: "Draft", applicants: 0, department: "Marketing", location: "Boston, MA", dateCreated: "2024-07-12" },
   { id: "hmjob8", title: "Principal Data Engineer", status: "Active", applicants: 8, department: "Analytics", location: "Seattle, WA", dateCreated: "2024-07-01" },
+  { id: "hmjob9", title: "Junior UX Writer", status: "Active", applicants: 5, department: "Design", location: "Remote", dateCreated: "2024-08-01" },
+  { id: "hmjob10", title: "Technical Project Manager", status: "Draft", applicants: 0, department: "Engineering", location: "New York, NY", dateCreated: "2024-08-02" },
+  { id: "hmjob11", title: "Sales Development Representative", status: "Pending Recruiter Approval", applicants: 0, department: "Sales", location: "Remote", dateCreated: "2024-08-03" },
 ];
 
 const INITIAL_JOBS_TO_SHOW = 5;
@@ -38,7 +41,7 @@ export default function HiringManagerJobListingsPage() {
   const [statusFilter, setStatusFilter] = useState<string | "all">("all");
   const [visibleJobsCount, setVisibleJobsCount] = useState(INITIAL_JOBS_TO_SHOW);
 
-  const allFilteredJobs = useMemo(() => {
+  const filteredJobsMemo = useMemo(() => {
     return mockHMJobListings.filter(job => {
       const searchMatch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           job.department.toLowerCase().includes(searchTerm.toLowerCase());
@@ -48,15 +51,15 @@ export default function HiringManagerJobListingsPage() {
   }, [searchTerm, statusFilter]);
 
   const displayedJobs = useMemo(() => {
-    return allFilteredJobs.slice(0, visibleJobsCount);
-  }, [allFilteredJobs, visibleJobsCount]);
+    return filteredJobsMemo.slice(0, visibleJobsCount);
+  }, [filteredJobsMemo, visibleJobsCount]);
 
   useEffect(() => {
-    setVisibleJobsCount(INITIAL_JOBS_TO_SHOW); // Reset pagination when filters change
+    setVisibleJobsCount(INITIAL_JOBS_TO_SHOW); 
   }, [searchTerm, statusFilter]);
 
   const handleLoadMoreJobs = () => {
-    setVisibleJobsCount(prevCount => Math.min(prevCount + JOBS_INCREMENT_COUNT, allFilteredJobs.length));
+    setVisibleJobsCount(prevCount => Math.min(prevCount + JOBS_INCREMENT_COUNT, filteredJobsMemo.length));
   };
 
   const handleJobAction = (jobId: string, action: string) => {
@@ -136,7 +139,7 @@ export default function HiringManagerJobListingsPage() {
               {displayedJobs.map((job) => (
                 <TableRow key={job.id}>
                   <TableCell className="font-medium">
-                    <Link href={`/dashboard/recruiter/job-listings/${job.id}/applicants`} className="hover:underline text-primary">
+                    <Link href={`/dashboard/hiring-manager/job-listings/${job.id}/applicants`} className="hover:underline text-primary">
                         {job.title}
                     </Link>
                   </TableCell>
@@ -145,7 +148,7 @@ export default function HiringManagerJobListingsPage() {
                   <TableCell>{getStatusPill(job.status)}</TableCell>
                   <TableCell>
                     {canViewApplicants(job.status) ? (
-                        <Link href={`/dashboard/recruiter/job-listings/${job.id}/applicants`} className="hover:underline text-primary">
+                        <Link href={`/dashboard/hiring-manager/job-listings/${job.id}/applicants`} className="hover:underline text-primary">
                             {job.applicants}
                         </Link>
                     ) : (
@@ -164,7 +167,7 @@ export default function HiringManagerJobListingsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/recruiter/job-listings/${job.id}/applicants`}>
+                            <Link href={`/dashboard/hiring-manager/job-listings/${job.id}/applicants`}>
                                 <Users className="mr-2 h-4 w-4" />View Applicants
                             </Link>
                         </DropdownMenuItem>
@@ -183,7 +186,7 @@ export default function HiringManagerJobListingsPage() {
             </TableBody>
           </Table>
         </CardContent>
-        {visibleJobsCount < allFilteredJobs.length && (
+        {visibleJobsCount < filteredJobsMemo.length && (
           <CardFooter className="border-t pt-6 flex justify-center">
               <Button variant="outline" size="sm" onClick={handleLoadMoreJobs}>Load More Jobs</Button>
           </CardFooter>
