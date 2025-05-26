@@ -4,7 +4,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, CheckCircle, Clock, Edit, MessageSquare, User, Video, Users } from "lucide-react";
+import { CalendarDays, CheckCircle, Clock, Edit, MessageSquare, User, Video, Users, UserCircle as UserCircleIcon } from "lucide-react"; // Added UserCircleIcon
 import Link from "next/link";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -51,7 +51,7 @@ export default function HMInterviewsPage() {
     // Update local state:
     const updatedInterviews = mockTeamInterviews.map(i => i.id === selectedInterview.id ? {...i, feedbackProvided: true} : i);
     // setMockTeamInterviews(updatedInterviews) // If mockTeamInterviews was state
-    
+
     toast({title: "Feedback Submitted", description: `Feedback for ${selectedInterview.candidateName} saved successfully.`});
     setSelectedInterview(null); // Close dialog
     setFeedbackText("");
@@ -76,7 +76,7 @@ export default function HMInterviewsPage() {
       </CardHeader>
       <CardContent className="space-y-1.5 text-sm">
         <div className="flex items-center"><CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" /> {interview.date} at {interview.time}</div>
-        {!isYourInterview && <div className="flex items-center"><User className="mr-2 h-4 w-4 text-muted-foreground" /> Interviewer: {interview.interviewer}</div>}
+        <div className="flex items-center"><UserCircleIcon className="mr-2 h-4 w-4 text-muted-foreground" /> Interviewer: {interview.interviewer}</div>
          {interview.platformLink && <div className="flex items-center"><Video className="mr-2 h-4 w-4 text-muted-foreground" /> Platform: <Link href={interview.platformLink} target="_blank" className="text-primary hover:underline ml-1">Meeting Link</Link></div>}
       </CardContent>
       <CardFooter>
@@ -116,7 +116,7 @@ export default function HMInterviewsPage() {
             <TabsTrigger value="your-interviews"><User className="mr-2 h-4 w-4"/>Your Interviews ({yourInterviews.length})</TabsTrigger>
             <TabsTrigger value="team-interviews"><Users className="mr-2 h-4 w-4"/>Team's Interviews ({teamInterviews.length})</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="your-interviews">
             <h2 className="text-xl font-semibold mb-4">Your Schedule</h2>
             {yourInterviews.length > 0 ? (
@@ -125,7 +125,7 @@ export default function HMInterviewsPage() {
               </div>
             ) : <Card className="text-center py-10 shadow-lg"><CardContent><CalendarDays className="mx-auto h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No upcoming interviews assigned directly to you.</p></CardContent></Card>}
           </TabsContent>
-          
+
           <TabsContent value="team-interviews">
             <h2 className="text-xl font-semibold mb-4">Team's Full Schedule</h2>
             {teamInterviews.length > 0 ? (
@@ -136,7 +136,7 @@ export default function HMInterviewsPage() {
           </TabsContent>
         </Tabs>
       </div>
-      
+
       {selectedInterview && (
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
