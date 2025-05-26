@@ -14,12 +14,12 @@ import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlu
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"; // Keep Dialog for other modals
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { ScheduleInterviewModal } from "./components/ScheduleInterviewModal"; // Import the new modal
+import { ScheduleInterviewModal } from "./ScheduleInterviewModal"; // Use relative path after moving
 
 interface Applicant {
   id: string;
@@ -370,7 +370,7 @@ export default function ViewApplicantsPage() {
             {screeningReports[selectedApplicantForReportView?.id || ""] ? (
               <>
                 <Alert variant="default" className={cn("shadow-sm", (screeningReports[selectedApplicantForReportView!.id]!.suitabilityScore > 70 ? "bg-green-50 border-green-200 text-green-700" : screeningReports[selectedApplicantForReportView!.id]!.suitabilityScore > 50 ? "bg-yellow-50 border-yellow-200 text-yellow-700" : "bg-red-50 border-red-200 text-red-700"))}>
-                    <ShieldCheck className="h-4 w-4" />
+                    <ShieldCheck className={`h-4 w-4 ${screeningReports[selectedApplicantForReportView!.id]!.suitabilityScore > 70 ? "!text-green-600" : "!text-red-600"}`} />
                     <AlertTitle className="font-semibold">Suitability Score: {screeningReports[selectedApplicantForReportView!.id]!.suitabilityScore}/100</AlertTitle>
                 </Alert>
                  <Card className="shadow-sm">
@@ -414,4 +414,3 @@ export default function ViewApplicantsPage() {
     </div>
   );
 }
-    
