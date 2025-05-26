@@ -9,7 +9,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit3, FileUp, Loader2, Save, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
@@ -97,11 +97,11 @@ export default function CandidateProfilePage() {
 
   const resetFormValues = useCallback((currentUser: typeof user) => {
     if (currentUser) {
-      const currentValues = form.getValues(); // Get potentially unsaved values if any
+      const currentValues = form.getValues(); 
       form.reset({
         fullName: currentUser.name,
         email: currentUser.email,
-        phone: currentValues.phone || "123-456-7890", // Use current or default mock
+        phone: currentValues.phone || "123-456-7890", 
         location: currentValues.location || "Anytown, USA",
         headline: currentValues.headline || "Aspiring Software Innovator | Eager to Learn",
         summary: currentValues.summary || "Passionate about creating impactful technology solutions. Eager to learn and contribute to a dynamic team. Seeking new challenges to grow my skills in web development and AI.",
@@ -157,16 +157,15 @@ export default function CandidateProfilePage() {
   const onSubmit = async (data: ProfileFormValues) => {
     setIsSubmitting(true);
     console.log("Profile Data Submitted:", data);
-    // Simulate API call
+    
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // If the name was changed in the form, update the user context
-    if (user && data.fullName !== user.name && login) { // login function from useAuth also updates the user
+    
+    if (user && data.fullName !== user.name && login) { 
         const updatedUser = { ...user, name: data.fullName };
-        // This is a simplified way to update user context for demo. 
-        // In a real app, an API call would save data, then context would be updated or re-fetched.
-        login(user.role); // Re-calling login with current role effectively updates user with demoUser for that role
-                          // but ideally, you'd have a specific updateUserContext function.
+        
+        login(user.role); 
+                           
     }
 
     setIsSubmitting(false);
@@ -218,11 +217,10 @@ export default function CandidateProfilePage() {
       </div>
 
       <Card className="shadow-xl overflow-hidden">
-        <div className="bg-muted/30 h-32 md:h-40 relative">
-           {/* Button moved out from here */}
-        </div>
+        <div className="bg-gradient-to-br from-primary/10 via-background to-background h-16 md:h-20 relative" /> {/* Reduced height & added gradient */}
         <div className="px-6 pb-6">
-          <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-16 md:-mt-20">
+          {/* Adjusted negative margin to pull avatar up more, relative to shorter banner */}
+          <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-20 md:-mt-24"> 
             <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
               <AvatarImage src={user.avatar || `https://placehold.co/200x200.png?text=${(form.watch("fullName") || user.name).charAt(0)}`} alt={form.watch("fullName") || user.name} data-ai-hint="person professional"/>
               <AvatarFallback>{(form.watch("fullName") || user.name).split(" ").map(n=>n[0]).join("").toUpperCase()}</AvatarFallback>
@@ -347,7 +345,7 @@ export default function CandidateProfilePage() {
                     </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {(form.watch("skills") || []).map((skill) => (<Badge key={skill} variant="default" className="py-1 px-3 text-sm">{skill}{isEditing && (<button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive-foreground/80"><Trash2 className="h-3 w-3"/></button>)}</Badge>))}
+                  {(form.watch("skills") || []).map((skill) => (<Badge key={skill} variant="default" className="py-1 px-3 text-sm bg-primary hover:bg-primary/80">{skill}{isEditing && (<button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive-foreground/80"><Trash2 className="h-3 w-3"/></button>)}</Badge>))}
                   {(form.watch("skills") || []).length === 0 && !isEditing && <p className="text-muted-foreground text-sm">No skills added yet.</p>}
                 </div>
               </CardContent>
@@ -422,4 +420,5 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
+
 
