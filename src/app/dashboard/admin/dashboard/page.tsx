@@ -10,7 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 const systemStats = {
   totalUsers: 1250,
-  activeCompanies: 75, // Updated from 5 for more enterprise feel
+  activeCompanies: 75,
   totalRevenue: "$15,500",
   pendingIssues: 3,
 };
@@ -41,7 +41,7 @@ const platformHiringFunnelData = [
   { stage: 'AI Screened', count: 1800, fill: 'hsl(var(--chart-3))' },
   { stage: 'Interviews Scheduled', count: 600, fill: 'hsl(var(--chart-4))' },
   { stage: 'Offers Made', count: 120, fill: 'hsl(var(--chart-5))' },
-  { stage: 'Hires Made', count: 95, fill: 'hsl(var(--chart-1))' }, // Re-use color
+  { stage: 'Hires Made', count: 95, fill: 'hsl(var(--chart-1))' },
 ];
 
 const subscriptionPlanDistributionData = [
@@ -52,9 +52,17 @@ const subscriptionPlanDistributionData = [
 ];
 const PLAN_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
+const mockSystemLogs = [
+  { id: "log1", timestamp: "2024-08-15 10:30:00", message: "New company 'FutureTech Solutions' registered.", level: "info" },
+  { id: "log2", timestamp: "2024-08-15 09:15:22", message: "User 'alex.johnson@example.com' updated profile.", level: "info" },
+  { id: "log3", timestamp: "2024-08-15 08:05:10", message: "AI Screening job 'jobRec1' completed for 50 candidates.", level: "info" },
+  { id: "log4", timestamp: "2024-08-14 17:45:00", message: "System alert: Database CPU usage reached 85%.", level: "warning" },
+  { id: "log5", timestamp: "2024-08-14 16:00:00", message: "Admin 'diana.green@example.com' updated billing settings.", level: "info" },
+];
+
 
 export default function AdminDashboardPage() {
-  const { user, role } = useAuth(); // Added role for links
+  const { user, role } = useAuth();
 
   if (!user) {
     return <p>Loading user data...</p>;
@@ -227,15 +235,28 @@ export default function AdminDashboardPage() {
             <CardDescription>Recent important system events and activities.</CardDescription>
         </CardHeader>
         <CardContent>
-            <div className="p-4 border rounded-md bg-muted min-h-[150px] flex items-center justify-center">
-                <p className="text-muted-foreground flex items-center"><Activity className="mr-2 h-5 w-5"/> System activity logs will be displayed here. (e.g., New company registered, Major error occurred)</p>
-            </div>
+            {mockSystemLogs.length > 0 ? (
+              <ul className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                {mockSystemLogs.slice(0, 5).map(log => ( // Show latest 5 logs
+                  <li key={log.id} className="text-xs border-l-2 pl-3 py-1 hover:bg-muted/50 transition-colors
+                    ${log.level === 'warning' ? 'border-yellow-500' : log.level === 'error' ? 'border-red-500' : 'border-blue-500'}">
+                    <span className="font-mono text-muted-foreground mr-2">{log.timestamp}:</span>
+                    <span className={log.level === 'warning' ? 'text-yellow-700' : log.level === 'error' ? 'text-red-700' : 'text-foreground/80'}>
+                      {log.message}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="p-4 border rounded-md bg-muted min-h-[150px] flex items-center justify-center">
+                  <p className="text-muted-foreground flex items-center"><Activity className="mr-2 h-5 w-5"/> No system activity logs to display.</p>
+              </div>
+            )}
         </CardContent>
         <CardFooter>
-            <Button variant="outline">View All System Logs</Button>
+            <Button variant="outline">View All System Logs (Placeholder)</Button>
         </CardFooter>
       </Card>
     </div>
   );
 }
-

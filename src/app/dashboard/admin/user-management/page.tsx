@@ -17,9 +17,18 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
-const mockUsers = [
+interface MockUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: string;
+  lastLogin: string;
+}
+
+const initialMockUsers: MockUser[] = [
   { id: "user1", name: "Alex Johnson", email: "alex.johnson@example.com", role: USER_ROLES.CANDIDATE, status: "Active", lastLogin: "2024-07-22" },
   { id: "user2", name: "Brenda Smith", email: "brenda.smith@example.com", role: USER_ROLES.RECRUITER, status: "Active", lastLogin: "2024-07-23" },
   { id: "user3", name: "Charles Brown", email: "charles.brown@example.com", role: USER_ROLES.HIRING_MANAGER, status: "Inactive", lastLogin: "2024-06-15" },
@@ -27,41 +36,109 @@ const mockUsers = [
   { id: "user5", name: "Edward Black", email: "edward.black@example.com", role: USER_ROLES.CANDIDATE, status: "Pending", lastLogin: "N/A" },
 ];
 
-const addUserFormSchema = z.object({
+const userFormSchema = z.object({
+  id: z.string().optional(),
   fullName: z.string().min(2, "Full name must be at least 2 characters."),
   email: z.string().email("Invalid email address."),
   role: z.nativeEnum(USER_ROLES, { errorMap: () => ({ message: "Please select a valid role."}) }),
 });
 
-type AddUserFormValues = z.infer<typeof addUserFormSchema>;
+type UserFormValues = z.infer<typeof userFormSchema>;
 
 export default function UserManagementPage() {
   const { toast } = useToast();
+  const [users, setUsers] = useState<MockUser[]>(initialMockUsers);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [isChangeRoleDialogOpen, setIsChangeRoleDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<MockUser | null>(null);
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [statusFilter, setStatusFilter] = useState<string | "all">("all");
 
-  const form = useForm<AddUserFormValues>({
-    resolver: zodResolver(addUserFormSchema),
-    defaultValues: {
-      fullName: "",
-      email: "",
-    },
+  const userForm = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: { fullName: "", email: "" },
+  });
+  
+  const changeRoleForm = useForm<{ newRole: UserRole }>({
+    resolver: zodResolver(z.object({ newRole: z.nativeEnum(USER_ROLES) })),
   });
 
+
+  useEffect(() => {
+    if (editingUser && isEditUserDialogOpen) {
+      userForm.reset({
+        id: editingUser.id,
+        fullName: editingUser.name,
+        email: editingUser.email,
+        role: editingUser.role,
+      });
+    }
+  }, [editingUser, isEditUserDialogOpen, userForm]);
+
+  useEffect(() => {
+    if (editingUser && isChangeRoleDialogOpen) {
+      changeRoleForm.reset({ newRole: editingUser.role });
+    }
+  }, [editingUser, isChangeRoleDialogOpen, changeRoleForm]);
+
+
   const handleAction = (userId: string, action: string) => {
-    toast({ title: `Action: ${action}`, description: `Performed ${action} on user ${userId}. (Simulated)`});
+    const userToActOn = users.find(u => u.id === userId);
+    if (!userToActOn) return;
+
+    if (action === 'edit') {
+      setEditingUser(userToActOn);
+      setIsEditUserDialogOpen(true);
+    } else if (action === 'change_role') {
+      setEditingUser(userToActOn);
+      setIsChangeRoleDialogOpen(true);
+    } else if (action === 'deactivate') {
+      setUsers(prev => prev.map(u => u.id === userId ? {...u, status: "Inactive"} : u));
+      toast({ title: "User Deactivated", description: `${userToActOn.name} has been deactivated.` });
+    } else if (action === 'activate') {
+      setUsers(prev => prev.map(u => u.id === userId ? {...u, status: "Active"} : u));
+      toast({ title: "User Activated", description: `${userToActOn.name} has been activated.` });
+    } else if (action === 'delete') {
+      // Placeholder: confirm deletion then filter out user
+      toast({ title: "Delete User (Placeholder)", description: `User ${userToActOn.name} would be deleted. This is a placeholder.`});
+    }
   };
 
-  const onAddUserSubmit = (data: AddUserFormValues) => {
-    console.log("Add User Data (Placeholder):", data);
+  const onAddUserSubmit = (data: UserFormValues) => {
+    const newUser: MockUser = {
+      id: `user-${Date.now()}`,
+      name: data.fullName,
+      email: data.email,
+      role: data.role,
+      status: "Pending", // Default status for new users
+      lastLogin: "N/A",
+    };
+    setUsers(prev => [newUser, ...prev]);
     toast({
-      title: "Add User (Placeholder)",
-      description: `User "${data.fullName}" with role "${data.role}" would be added. This is a placeholder.`,
+      title: "User Added (Placeholder)",
+      description: `User "${data.fullName}" with role "${data.role}" has been added.`,
     });
-    form.reset();
+    userForm.reset({ fullName: "", email: "" });
     setIsAddUserDialogOpen(false);
+  };
+
+  const onEditUserSubmit = (data: UserFormValues) => {
+    if (!editingUser) return;
+    setUsers(prev => prev.map(u => u.id === editingUser.id ? {...u, name: data.fullName, email: data.email /* Role change handled separately */} : u));
+    toast({ title: "User Updated (Placeholder)", description: `Details for ${data.fullName} have been updated.` });
+    setIsEditUserDialogOpen(false);
+    setEditingUser(null);
+  };
+
+  const onChangeRoleSubmit = (data: { newRole: UserRole }) => {
+    if (!editingUser) return;
+    setUsers(prev => prev.map(u => u.id === editingUser.id ? {...u, role: data.newRole} : u));
+    toast({ title: "User Role Changed (Placeholder)", description: `${editingUser.name}'s role changed to ${data.newRole}.` });
+    setIsChangeRoleDialogOpen(false);
+    setEditingUser(null);
   };
   
   const getRoleBadgeVariant = (role: UserRole) => {
@@ -83,14 +160,14 @@ export default function UserManagementPage() {
   }
 
   const filteredUsers = useMemo(() => {
-    return mockUsers.filter(user => {
+    return users.filter(user => {
       const searchMatch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.email.toLowerCase().includes(searchTerm.toLowerCase());
       const roleMatch = roleFilter === "all" || user.role === roleFilter;
       const statusMatch = statusFilter === "all" || user.status === statusFilter;
       return searchMatch && roleMatch && statusMatch;
     });
-  }, [searchTerm, roleFilter, statusFilter]);
+  }, [users, searchTerm, roleFilter, statusFilter]);
 
 
   return (
@@ -103,74 +180,30 @@ export default function UserManagementPage() {
           </div>
           <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
             <DialogTrigger asChild>
-              <Button><PlusCircle className="mr-2 h-4 w-4" /> Add New User</Button>
+              <Button onClick={() => userForm.reset({fullName: "", email: ""})}><PlusCircle className="mr-2 h-4 w-4" /> Add New User</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Add New User</DialogTitle>
                 <DialogDescription>
-                  Fill in the details below to add a new user to the platform. (Placeholder)
+                  Fill in the details below to add a new user to the platform.
                 </DialogDescription>
               </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onAddUserSubmit)} className="space-y-4 py-4">
-                  <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="John Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="john.doe@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>User Role</FormLabel>
+              <Form {...userForm}>
+                <form onSubmit={userForm.handleSubmit(onAddUserSubmit)} className="space-y-4 py-4">
+                  <FormField control={userForm.control} name="fullName" render={({ field }) => (
+                      <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                  <FormField control={userForm.control} name="email" render={({ field }) => (
+                      <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" placeholder="john.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                  <FormField control={userForm.control} name="role" render={({ field }) => (
+                      <FormItem><FormLabel>User Role</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a role" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.values(USER_ROLES).map((roleValue) => (
-                              <SelectItem key={roleValue} value={roleValue} className="capitalize">
-                                {roleValue.replace('-', ' ')}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
+                          <SelectContent>{Object.values(USER_ROLES).map((roleValue) => (<SelectItem key={roleValue} value={roleValue} className="capitalize">{roleValue.replace('-', ' ')}</SelectItem>))}</SelectContent>
+                        </Select><FormMessage /></FormItem>)}/>
                   <DialogFooter>
-                    <DialogClose asChild>
-                       <Button type="button" variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <Button type="submit">
-                      <Save className="mr-2 h-4 w-4" /> Add User
-                    </Button>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                    <Button type="submit"><Save className="mr-2 h-4 w-4" /> Add User</Button>
                   </DialogFooter>
                 </form>
               </Form>
@@ -184,70 +217,36 @@ export default function UserManagementPage() {
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
             <div className="flex-grow relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search users by name or email..." 
-                  className="pl-8 w-full md:w-auto" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                <Input placeholder="Search users by name or email..." className="pl-8 w-full md:w-auto" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
             <div className="flex gap-2">
                  <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value as UserRole | "all")}>
                     <SelectTrigger className="w-full md:w-[180px]"> <SelectValue placeholder="Filter by Role" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Roles</SelectItem>
-                        {Object.values(USER_ROLES).map(r => <SelectItem key={r} value={r} className="capitalize">{r.replace("-", " ")}</SelectItem>)}
-                    </SelectContent>
+                    <SelectContent><SelectItem value="all">All Roles</SelectItem>{Object.values(USER_ROLES).map(r => <SelectItem key={r} value={r} className="capitalize">{r.replace("-", " ")}</SelectItem>)}</SelectContent>
                 </Select>
                 <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value)}>
                     <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Filter by Status" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Inactive">Inactive</SelectItem>
-                        <SelectItem value="Pending">Pending</SelectItem>
-                    </SelectContent>
+                    <SelectContent><SelectItem value="all">All Statuses</SelectItem><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem><SelectItem value="Pending">Pending</SelectItem></SelectContent>
                 </Select>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Login</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+            <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Status</TableHead><TableHead>Last Login</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                            <AvatarImage src={`https://placehold.co/40x40.png?text=${user.name[0]}`} alt={user.name} data-ai-hint="person avatar"/>
-                            <AvatarFallback>{user.name.split(" ").map(n=>n[0]).join("")}</AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{user.name}</span>
-                    </div>
-                  </TableCell>
+                  <TableCell><div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9"><AvatarImage src={`https://placehold.co/40x40.png?text=${user.name[0]}`} alt={user.name} data-ai-hint="person avatar"/><AvatarFallback>{user.name.split(" ").map(n=>n[0]).join("")}</AvatarFallback></Avatar>
+                        <span className="font-medium">{user.name}</span></div></TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell><Badge variant={getRoleBadgeVariant(user.role)} className="capitalize">{user.role.replace("-"," ")}</Badge></TableCell>
-                  <TableCell><Badge variant={getStatusBadgeVariant(user.status)} className={
-                      user.status === "Active" ? "bg-green-100 text-green-700 border-green-300" :
-                      user.status === "Inactive" ? "bg-gray-100 text-gray-700 border-gray-300" :
-                      user.status === "Pending" ? "bg-yellow-100 text-yellow-700 border-yellow-300" : ""
-                  }>{user.status}</Badge></TableCell>
+                  <TableCell><Badge variant={getStatusBadgeVariant(user.status)} className={ user.status === "Active" ? "bg-green-100 text-green-700 border-green-300" : user.status === "Inactive" ? "bg-gray-100 text-gray-700 border-gray-300" : user.status === "Pending" ? "bg-yellow-100 text-yellow-700 border-yellow-300" : "" }>{user.status}</Badge></TableCell>
                   <TableCell>{user.lastLogin}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button>
-                      </DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleAction(user.id, 'edit')}><Edit className="mr-2 h-4 w-4" />Edit User</DropdownMenuItem>
@@ -261,15 +260,52 @@ export default function UserManagementPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredUsers.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center h-24">No users found matching your criteria.</TableCell>
-                </TableRow>
-              )}
+              {filteredUsers.length === 0 && (<TableRow><TableCell colSpan={6} className="text-center h-24">No users found matching your criteria.</TableCell></TableRow>)}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader><DialogTitle>Edit User: {editingUser?.name}</DialogTitle><DialogDescription>Update user details.</DialogDescription></DialogHeader>
+          <Form {...userForm}>
+            <form onSubmit={userForm.handleSubmit(onEditUserSubmit)} className="space-y-4 py-4">
+              <FormField control={userForm.control} name="fullName" render={({ field }) => (
+                  <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              <FormField control={userForm.control} name="email" render={({ field }) => (
+                  <FormItem><FormLabel>Email (Cannot be changed)</FormLabel><FormControl><Input type="email" {...field} readOnly /></FormControl><FormMessage /></FormItem> )}/>
+               {/* Role editing is handled in a separate dialog to keep this one focused */}
+              <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button></DialogClose>
+                <Button type="submit"><Save className="mr-2 h-4 w-4" /> Save Changes</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Role Dialog */}
+      <Dialog open={isChangeRoleDialogOpen} onOpenChange={setIsChangeRoleDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader><DialogTitle>Change Role for: {editingUser?.name}</DialogTitle><DialogDescription>Current Role: <Badge variant={getRoleBadgeVariant(editingUser?.role || USER_ROLES.CANDIDATE)} className="capitalize">{editingUser?.role.replace("-"," ")}</Badge></DialogDescription></DialogHeader>
+          <Form {...changeRoleForm}>
+            <form onSubmit={changeRoleForm.handleSubmit(onChangeRoleSubmit)} className="space-y-4 py-4">
+              <FormField control={changeRoleForm.control} name="newRole" render={({ field }) => (
+                  <FormItem><FormLabel>New Role</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select a new role" /></SelectTrigger></FormControl>
+                      <SelectContent>{Object.values(USER_ROLES).map((roleValue) => (<SelectItem key={roleValue} value={roleValue} className="capitalize">{roleValue.replace('-', ' ')}</SelectItem>))}</SelectContent>
+                    </Select><FormMessage /></FormItem>)}/>
+              <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button></DialogClose>
+                <Button type="submit"><Save className="mr-2 h-4 w-4" /> Update Role</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

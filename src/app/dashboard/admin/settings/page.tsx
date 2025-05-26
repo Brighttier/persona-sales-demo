@@ -14,7 +14,7 @@ import { Save, Bell, Palette, Shield, Zap, Users2, Link2, KeyRound, ListChecks, 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel as RHFFormLabel, FormMessage, FormDescription as RHFFormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel as RHFFormLabel, FormMessage, FormDescription as RHFFormDescription } from "@/components/ui/form"; // RHF specific components
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { useState } from "react";
@@ -474,12 +474,10 @@ export default function SystemSettingsPage() {
             </div>
             <DialogFooter>
                 <DialogClose asChild><Button type="button" variant="outline">Close</Button></DialogClose>
-                <Button type="button" onClick={() => toast({title: "Placeholder Action", description: "Permissions would be saved."})}><Save className="mr-2 h-4 w-4"/> Save Changes (Placeholder)</Button>
+                <Button type="button" onClick={() => toast({title: "Placeholder Action", description: "Permissions would be saved."})}><Save className="mr-2 h-4 w-4"/> Save Permissions (Placeholder)</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-
-    
