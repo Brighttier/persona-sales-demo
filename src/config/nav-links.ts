@@ -131,12 +131,12 @@ export const NAV_LINKS: NavLink[] = [
   },
   {
     href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-approvals`,
-    label: 'Job Approvals',
+    label: 'Job Approvals', // For HMs to approve jobs created by Recruiters for THEIR team.
     icon: CheckSquare,
     roles: [USER_ROLES.HIRING_MANAGER],
     isTourStep: true,
     tourStepId: 'hm-job-approvals-link',
-    tourText: 'Review job postings submitted by Recruiters. Approve or reject them for your team.'
+    tourText: "Review job postings that need your approval (e.g., drafted by recruiters for your team)."
   },
   {
     href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/interviews`,
@@ -217,11 +217,20 @@ export const NAV_LINKS: NavLink[] = [
   {
     href: `/dashboard/${USER_ROLES.INTERVIEWER}/dashboard`,
     label: 'My Schedule',
-    icon: CalendarDays, // Or MessagesSquare for feedback focus
+    icon: CalendarDays,
     roles: [USER_ROLES.INTERVIEWER],
     isTourStep: true,
     tourStepId: 'interviewer-dashboard-link',
     tourText: 'View your upcoming interviews, join them, and submit your feedback and verdict afterwards.'
+  },
+  {
+    href: `/dashboard/${USER_ROLES.INTERVIEWER}/profile`,
+    label: 'My Profile',
+    icon: UserCircle,
+    roles: [USER_ROLES.INTERVIEWER],
+    isTourStep: true,
+    tourStepId: 'interviewer-profile-link',
+    tourText: 'View your interviewer profile details and preferences.'
   },
 ];
 
