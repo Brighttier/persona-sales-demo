@@ -26,14 +26,16 @@ interface MockUser {
   role: UserRole;
   status: string;
   lastLogin: string;
+  companyName?: string; // Added companyName
 }
 
 const initialMockUsers: MockUser[] = [
   { id: "user1", name: "Alex Johnson", email: "alex.johnson@example.com", role: USER_ROLES.CANDIDATE, status: "Active", lastLogin: "2024-07-22" },
-  { id: "user2", name: "Brenda Smith", email: "brenda.smith@example.com", role: USER_ROLES.RECRUITER, status: "Active", lastLogin: "2024-07-23" },
-  { id: "user3", name: "Charles Brown", email: "charles.brown@example.com", role: USER_ROLES.HIRING_MANAGER, status: "Inactive", lastLogin: "2024-06-15" },
+  { id: "user2", name: "Brenda Smith", email: "brenda.smith@example.com", role: USER_ROLES.RECRUITER, status: "Active", lastLogin: "2024-07-23", companyName: "Tech Solutions Inc." },
+  { id: "user3", name: "Charles Brown", email: "charles.brown@example.com", role: USER_ROLES.HIRING_MANAGER, status: "Inactive", lastLogin: "2024-06-15", companyName: "Innovate Hub" },
   { id: "user4", name: "Diana Green", email: "diana.green@example.com", role: USER_ROLES.ADMIN, status: "Active", lastLogin: "2024-07-23" },
   { id: "user5", name: "Edward Black", email: "edward.black@example.com", role: USER_ROLES.CANDIDATE, status: "Pending", lastLogin: "N/A" },
+  { id: "user6", name: "Ian Reviewer", email: "ian.reviewer@example.com", role: USER_ROLES.INTERVIEWER, status: "Active", lastLogin: "2024-07-24", companyName: "Tech Solutions Inc." },
 ];
 
 const userFormSchema = z.object({
@@ -41,6 +43,15 @@ const userFormSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters."),
   email: z.string().email("Invalid email address."),
   role: z.nativeEnum(USER_ROLES, { errorMap: () => ({ message: "Please select a valid role."}) }),
+  companyName: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if ((data.role === USER_ROLES.RECRUITER || data.role === USER_ROLES.HIRING_MANAGER || data.role === USER_ROLES.INTERVIEWER) && (!data.companyName || data.companyName.trim() === "")) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Company name is required for Recruiters, Hiring Managers, and Interviewers.",
+      path: ["companyName"],
+    });
+  }
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
@@ -52,20 +63,33 @@ export default function UserManagementPage() {
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [isChangeRoleDialogOpen, setIsChangeRoleDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<MockUser | null>(null);
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [statusFilter, setStatusFilter] = useState<string | "all">("all");
 
   const userForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
-    defaultValues: { fullName: "", email: "" },
+    defaultValues: { fullName: "", email: "", companyName: "" },
   });
-  
-  const changeRoleForm = useForm<{ newRole: UserRole }>({
-    resolver: zodResolver(z.object({ newRole: z.nativeEnum(USER_ROLES) })),
-  });
+  const watchedRole = userForm.watch("role");
 
+  const changeRoleForm = useForm<{ newRole: UserRole; newCompanyName?: string }>({
+    resolver: zodResolver(z.object({ 
+      newRole: z.nativeEnum(USER_ROLES),
+      newCompanyName: z.string().optional(),
+    }).superRefine((data, ctx) => {
+      if ((data.newRole === USER_ROLES.RECRUITER || data.newRole === USER_ROLES.HIRING_MANAGER || data.newRole === USER_ROLES.INTERVIEWER) && (!data.newCompanyName || data.newCompanyName.trim() === "")) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Company name is required for this role.",
+          path: ["newCompanyName"],
+        });
+      }
+    })),
+    defaultValues: { newCompanyName: "" },
+  });
+  const watchedNewRole = changeRoleForm.watch("newRole");
 
   useEffect(() => {
     if (editingUser && isEditUserDialogOpen) {
@@ -74,16 +98,16 @@ export default function UserManagementPage() {
         fullName: editingUser.name,
         email: editingUser.email,
         role: editingUser.role,
+        companyName: editingUser.companyName || "",
       });
     }
   }, [editingUser, isEditUserDialogOpen, userForm]);
 
   useEffect(() => {
     if (editingUser && isChangeRoleDialogOpen) {
-      changeRoleForm.reset({ newRole: editingUser.role });
+      changeRoleForm.reset({ newRole: editingUser.role, newCompanyName: editingUser.companyName || "" });
     }
   }, [editingUser, isChangeRoleDialogOpen, changeRoleForm]);
-
 
   const handleAction = (userId: string, action: string) => {
     const userToActOn = users.find(u => u.id === userId);
@@ -102,7 +126,6 @@ export default function UserManagementPage() {
       setUsers(prev => prev.map(u => u.id === userId ? {...u, status: "Active"} : u));
       toast({ title: "User Activated", description: `${userToActOn.name} has been activated.` });
     } else if (action === 'delete') {
-      // Placeholder: confirm deletion then filter out user
       toast({ title: "Delete User (Placeholder)", description: `User ${userToActOn.name} would be deleted. This is a placeholder.`});
     }
   };
@@ -113,48 +136,60 @@ export default function UserManagementPage() {
       name: data.fullName,
       email: data.email,
       role: data.role,
-      status: "Pending", // Default status for new users
+      status: "Pending",
       lastLogin: "N/A",
+      companyName: (data.role === USER_ROLES.RECRUITER || data.role === USER_ROLES.HIRING_MANAGER || data.role === USER_ROLES.INTERVIEWER) ? data.companyName : undefined,
     };
     setUsers(prev => [newUser, ...prev]);
     toast({
       title: "User Added (Placeholder)",
-      description: `User "${data.fullName}" with role "${data.role}" has been added.`,
+      description: `User "${data.fullName}" with role "${data.role}" ${newUser.companyName ? `for company "${newUser.companyName}"` : ''} has been added.`,
     });
-    userForm.reset({ fullName: "", email: "" });
+    userForm.reset({ fullName: "", email: "", role: undefined, companyName: "" });
     setIsAddUserDialogOpen(false);
   };
 
   const onEditUserSubmit = (data: UserFormValues) => {
     if (!editingUser) return;
-    setUsers(prev => prev.map(u => u.id === editingUser.id ? {...u, name: data.fullName, email: data.email /* Role change handled separately */} : u));
+    setUsers(prev => prev.map(u => u.id === editingUser.id ? {
+      ...u, 
+      name: data.fullName, 
+      email: data.email, 
+      // Role is changed in a separate dialog. Company name could be edited here if the role requires it.
+      companyName: (data.role === USER_ROLES.RECRUITER || data.role === USER_ROLES.HIRING_MANAGER || data.role === USER_ROLES.INTERVIEWER) ? data.companyName : u.companyName,
+    } : u));
     toast({ title: "User Updated (Placeholder)", description: `Details for ${data.fullName} have been updated.` });
     setIsEditUserDialogOpen(false);
     setEditingUser(null);
   };
 
-  const onChangeRoleSubmit = (data: { newRole: UserRole }) => {
+  const onChangeRoleSubmit = (data: { newRole: UserRole; newCompanyName?: string }) => {
     if (!editingUser) return;
-    setUsers(prev => prev.map(u => u.id === editingUser.id ? {...u, role: data.newRole} : u));
-    toast({ title: "User Role Changed (Placeholder)", description: `${editingUser.name}'s role changed to ${data.newRole}.` });
+    setUsers(prev => prev.map(u => u.id === editingUser.id ? {
+      ...u, 
+      role: data.newRole, 
+      companyName: (data.newRole === USER_ROLES.RECRUITER || data.newRole === USER_ROLES.HIRING_MANAGER || data.newRole === USER_ROLES.INTERVIEWER) ? data.newCompanyName : undefined
+    } : u));
+    toast({ title: "User Role Changed (Placeholder)", description: `${editingUser.name}'s role changed to ${data.newRole}. ${ (data.newRole === USER_ROLES.RECRUITER || data.newRole === USER_ROLES.HIRING_MANAGER || data.newRole === USER_ROLES.INTERVIEWER) && data.newCompanyName ? `Company set to ${data.newCompanyName}.` : '' }` });
     setIsChangeRoleDialogOpen(false);
     setEditingUser(null);
   };
-  
+
   const getRoleBadgeVariant = (role: UserRole) => {
     switch(role) {
         case USER_ROLES.ADMIN: return "destructive";
         case USER_ROLES.RECRUITER: return "default";
         case USER_ROLES.HIRING_MANAGER: return "outline";
+        case USER_ROLES.INTERVIEWER: return "secondary"
         default: return "secondary";
     }
   }
-  
+
   const getStatusBadgeVariant = (status: string) => {
     switch(status) {
-        case "Active": return "default"; 
-        case "Inactive": return "secondary"; 
-        case "Pending": return "outline"; 
+        case "Active": return "default";
+        case "Inactive": return "secondary";
+        case "Pending": return "outline";
         default: return "outline";
     }
   }
@@ -162,7 +197,8 @@ export default function UserManagementPage() {
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
       const searchMatch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
+                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (user.companyName && user.companyName.toLowerCase().includes(searchTerm.toLowerCase()));
       const roleMatch = roleFilter === "all" || user.role === roleFilter;
       const statusMatch = statusFilter === "all" || user.status === statusFilter;
       return searchMatch && roleMatch && statusMatch;
@@ -180,9 +216,9 @@ export default function UserManagementPage() {
           </div>
           <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => userForm.reset({fullName: "", email: ""})}><PlusCircle className="mr-2 h-4 w-4" /> Add New User</Button>
+              <Button onClick={() => userForm.reset({fullName: "", email: "", role: undefined, companyName: ""})}><PlusCircle className="mr-2 h-4 w-4" /> Add New User</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Add New User</DialogTitle>
                 <DialogDescription>
@@ -201,6 +237,10 @@ export default function UserManagementPage() {
                           <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
                           <SelectContent>{Object.values(USER_ROLES).map((roleValue) => (<SelectItem key={roleValue} value={roleValue} className="capitalize">{roleValue.replace('-', ' ')}</SelectItem>))}</SelectContent>
                         </Select><FormMessage /></FormItem>)}/>
+                  {(watchedRole === USER_ROLES.RECRUITER || watchedRole === USER_ROLES.HIRING_MANAGER || watchedRole === USER_ROLES.INTERVIEWER) && (
+                     <FormField control={userForm.control} name="companyName" render={({ field }) => (
+                      <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input placeholder="e.g., Acme Corp" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                  )}
                   <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
                     <Button type="submit"><Save className="mr-2 h-4 w-4" /> Add User</Button>
@@ -217,7 +257,7 @@ export default function UserManagementPage() {
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
             <div className="flex-grow relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search users by name or email..." className="pl-8 w-full md:w-auto" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <Input placeholder="Search users by name, email or company..." className="pl-8 w-full md:w-auto" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
             <div className="flex gap-2">
                  <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value as UserRole | "all")}>
@@ -233,7 +273,7 @@ export default function UserManagementPage() {
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Status</TableHead><TableHead>Last Login</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Company</TableHead><TableHead>Status</TableHead><TableHead>Last Login</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
@@ -242,6 +282,7 @@ export default function UserManagementPage() {
                         <span className="font-medium">{user.name}</span></div></TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell><Badge variant={getRoleBadgeVariant(user.role)} className="capitalize">{user.role.replace("-"," ")}</Badge></TableCell>
+                  <TableCell>{user.companyName || "N/A"}</TableCell>
                   <TableCell><Badge variant={getStatusBadgeVariant(user.status)} className={ user.status === "Active" ? "bg-green-100 text-green-700 border-green-300" : user.status === "Inactive" ? "bg-gray-100 text-gray-700 border-gray-300" : user.status === "Pending" ? "bg-yellow-100 text-yellow-700 border-yellow-300" : "" }>{user.status}</Badge></TableCell>
                   <TableCell>{user.lastLogin}</TableCell>
                   <TableCell className="text-right">
@@ -260,7 +301,7 @@ export default function UserManagementPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredUsers.length === 0 && (<TableRow><TableCell colSpan={6} className="text-center h-24">No users found matching your criteria.</TableCell></TableRow>)}
+              {filteredUsers.length === 0 && (<TableRow><TableCell colSpan={7} className="text-center h-24">No users found matching your criteria.</TableCell></TableRow>)}
             </TableBody>
           </Table>
         </CardContent>
@@ -268,7 +309,7 @@ export default function UserManagementPage() {
 
       {/* Edit User Dialog */}
       <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Edit User: {editingUser?.name}</DialogTitle><DialogDescription>Update user details.</DialogDescription></DialogHeader>
           <Form {...userForm}>
             <form onSubmit={userForm.handleSubmit(onEditUserSubmit)} className="space-y-4 py-4">
@@ -276,9 +317,12 @@ export default function UserManagementPage() {
                   <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )}/>
               <FormField control={userForm.control} name="email" render={({ field }) => (
                   <FormItem><FormLabel>Email (Cannot be changed)</FormLabel><FormControl><Input type="email" {...field} readOnly /></FormControl><FormMessage /></FormItem> )}/>
-               {/* Role editing is handled in a separate dialog to keep this one focused */}
+              {(userForm.getValues("role") === USER_ROLES.RECRUITER || userForm.getValues("role") === USER_ROLES.HIRING_MANAGER || userForm.getValues("role") === USER_ROLES.INTERVIEWER) && (
+                <FormField control={userForm.control} name="companyName" render={({ field }) => (
+                  <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input placeholder="e.g., Acme Corp" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+              )}
               <DialogFooter>
-                <DialogClose asChild><Button type="button" variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button></DialogClose>
+                <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setEditingUser(null); setIsEditUserDialogOpen(false);}}>Cancel</Button></DialogClose>
                 <Button type="submit"><Save className="mr-2 h-4 w-4" /> Save Changes</Button>
               </DialogFooter>
             </form>
@@ -288,7 +332,7 @@ export default function UserManagementPage() {
 
       {/* Change Role Dialog */}
       <Dialog open={isChangeRoleDialogOpen} onOpenChange={setIsChangeRoleDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Change Role for: {editingUser?.name}</DialogTitle><DialogDescription>Current Role: <Badge variant={getRoleBadgeVariant(editingUser?.role || USER_ROLES.CANDIDATE)} className="capitalize">{editingUser?.role.replace("-"," ")}</Badge></DialogDescription></DialogHeader>
           <Form {...changeRoleForm}>
             <form onSubmit={changeRoleForm.handleSubmit(onChangeRoleSubmit)} className="space-y-4 py-4">
@@ -298,8 +342,12 @@ export default function UserManagementPage() {
                       <FormControl><SelectTrigger><SelectValue placeholder="Select a new role" /></SelectTrigger></FormControl>
                       <SelectContent>{Object.values(USER_ROLES).map((roleValue) => (<SelectItem key={roleValue} value={roleValue} className="capitalize">{roleValue.replace('-', ' ')}</SelectItem>))}</SelectContent>
                     </Select><FormMessage /></FormItem>)}/>
+               {(watchedNewRole === USER_ROLES.RECRUITER || watchedNewRole === USER_ROLES.HIRING_MANAGER || watchedNewRole === USER_ROLES.INTERVIEWER) && (
+                     <FormField control={changeRoleForm.control} name="newCompanyName" render={({ field }) => (
+                      <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input placeholder="e.g., Acme Corp" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                  )}
               <DialogFooter>
-                <DialogClose asChild><Button type="button" variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button></DialogClose>
+                <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setEditingUser(null); setIsChangeRoleDialogOpen(false);}}>Cancel</Button></DialogClose>
                 <Button type="submit"><Save className="mr-2 h-4 w-4" /> Update Role</Button>
               </DialogFooter>
             </form>
@@ -309,3 +357,5 @@ export default function UserManagementPage() {
     </div>
   );
 }
+
+    
