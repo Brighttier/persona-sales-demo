@@ -88,16 +88,18 @@ export default function CandidatePoolPage() {
   const handleApplySearchFilters = () => {
     setAppliedKeywords(keywordsInput);
     setAppliedLocation(locationInput);
-    setVisibleCandidatesCount(INITIAL_CANDIDATES_TO_SHOW);
+    setVisibleCandidatesCount(INITIAL_CANDIDATES_TO_SHOW); // Reset pagination on new search/filter
   };
 
   const filteredCandidatesByFolderAndSearch = useMemo(() => {
     let candidates = allMockCandidates;
 
+    // Filter by selected folder first
     if (selectedFolderId !== ALL_CANDIDATES_FOLDER_ID) {
       candidates = candidates.filter(candidate => candidateFolderAssignments[candidate.id] === selectedFolderId);
     }
 
+    // Then filter by applied keywords
     if (appliedKeywords) {
       const lowerKeywords = appliedKeywords.toLowerCase();
       candidates = candidates.filter(candidate =>
@@ -107,6 +109,7 @@ export default function CandidatePoolPage() {
       );
     }
 
+    // Then filter by applied location
     if (appliedLocation) {
       const lowerLocation = appliedLocation.toLowerCase();
       candidates = candidates.filter(candidate =>
@@ -123,6 +126,7 @@ export default function CandidatePoolPage() {
   }, [filteredCandidatesByFolderAndSearch, visibleCandidatesCount]);
 
   useEffect(() => {
+    // Reset pagination whenever the primary filters (folder or search terms) change
     setVisibleCandidatesCount(INITIAL_CANDIDATES_TO_SHOW);
   }, [selectedFolderId, appliedKeywords, appliedLocation]);
 
@@ -174,12 +178,13 @@ export default function CandidatePoolPage() {
   };
 
   const getCandidateCountForFolder = (folderId: string): number => {
-    if (folderId === ALL_CANDIDATES_FOLDER_ID) return allMockCandidates.length;
+    if (folderId === ALL_CANDIDATES_FOLDER_ID) return allMockCandidates.length; // Or potentially filtered length if search applies globally
     return Object.values(candidateFolderAssignments).filter(assignedFolderId => assignedFolderId === folderId).length;
   };
 
   const getFolderNameById = (folderId: string | null): string => {
     if (!folderId) return "Unassigned";
+    if (folderId === ALL_CANDIDATES_FOLDER_ID) return "All Candidates";
     const folder = folders.find(f => f.id === folderId);
     return folder ? folder.name : "Unknown Folder";
   };
@@ -238,7 +243,7 @@ export default function CandidatePoolPage() {
                       <AvatarFallback>{candidate.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <Link href={`/dashboard/${role}/candidate-profile/${candidate.id}`} className="font-medium hover:underline text-primary">{candidate.name}</Link>
+                      <Link href={`/dashboard/${role}/candidate-profile/${candidate.id}`} className="font-semibold hover:underline text-primary">{candidate.name}</Link>
                       <div className="text-xs text-muted-foreground">{candidate.role}</div>
                     </div>
                   </div>
@@ -246,7 +251,14 @@ export default function CandidatePoolPage() {
                 <TableCell>{candidate.experience}</TableCell>
                 <TableCell>{candidate.location}</TableCell>
                 <TableCell>
-                  <Badge variant="default" className={cn("font-semibold", candidate.aiMatchScore > 80 ? "bg-green-100 text-green-700 border-green-300" : "bg-yellow-100 text-yellow-700 border-yellow-300")}>
+                  <Badge 
+                    variant="default" 
+                    className={cn("font-semibold", 
+                        candidate.aiMatchScore > 80 ? "bg-green-100 text-green-700 border-green-300" : 
+                        candidate.aiMatchScore > 60 ? "bg-yellow-100 text-yellow-700 border-yellow-300" :
+                        "bg-red-100 text-red-700 border-red-300"
+                    )}
+                  >
                     <Star className="mr-1 h-3 w-3 fill-current" />{candidate.aiMatchScore}%
                   </Badge>
                 </TableCell>
@@ -255,7 +267,7 @@ export default function CandidatePoolPage() {
                     {getFolderNameById(candidateFolderAssignments[candidate.id] || null)}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {candidate.skills.slice(0, 2).map(skill => (
                       <Badge key={skill} variant="default" className="font-normal text-xs">{skill}</Badge>
@@ -318,7 +330,7 @@ export default function CandidatePoolPage() {
             </CardContent>
           </Card>
             
-          {renderListView()} {/* Default to list view */}
+          {renderListView()}
           
           {filteredCandidatesByFolderAndSearch.length > visibleCandidatesCount && displayedCandidates.length > 0 && (
                 <div className="flex justify-center mt-4">
@@ -357,7 +369,7 @@ export default function CandidatePoolPage() {
                      <ul className="space-y-1">
                         <li 
                             className={cn(
-                                "flex justify-between items-center p-2 rounded-md hover:bg-accent transition-colors cursor-pointer",
+                                "flex justify-between items-center p-2 rounded-md hover:bg-accent/80 transition-colors cursor-pointer",
                                 selectedFolderId === ALL_CANDIDATES_FOLDER_ID && "bg-accent text-accent-foreground font-semibold"
                             )}
                             onClick={() => setSelectedFolderId(ALL_CANDIDATES_FOLDER_ID)}
@@ -374,7 +386,7 @@ export default function CandidatePoolPage() {
                             <li 
                                 key={folder.id} 
                                 className={cn(
-                                    "flex justify-between items-center p-2 rounded-md hover:bg-accent transition-colors group cursor-pointer",
+                                    "flex justify-between items-center p-2 rounded-md hover:bg-accent/80 transition-colors group cursor-pointer",
                                     selectedFolderId === folder.id && "bg-accent text-accent-foreground font-semibold"
                                 )}
                                 onClick={() => setSelectedFolderId(folder.id)}
@@ -446,11 +458,11 @@ export default function CandidatePoolPage() {
             </div>
             <DialogFooter>
                  <Button variant="outline" onClick={() => { setIsMoveToFolderDialogOpen(false); setSelectedCandidateForFolderMove(null); }}>Cancel</Button>
-                 <Button onClick={handleMoveCandidateToFolder} disabled={!targetFolderForMove}>Move Candidate</Button>
+                 <Button onClick={handleMoveCandidateToFolder} disabled={!targetFolderForMove}><Save className="mr-2 h-4 w-4"/> Move Candidate</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-
+    
