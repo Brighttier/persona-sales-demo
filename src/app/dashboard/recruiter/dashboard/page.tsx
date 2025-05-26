@@ -8,12 +8,17 @@ import { Briefcase, Users, CheckSquare, TrendingUp, ArrowRight, MessageSquare, U
 import Link from "next/link";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react"; // Added useState
 
-const recentActivities = [
+const initialRecentActivities = [
   { id: 1, type: "New Applicant", details: "John Doe applied for Software Engineer", time: "2h ago", jobId: "job1", candidateId: "cand1" },
   { id: 2, type: "Job Posted", details: "Senior UX Designer role is now live", time: "5h ago", jobId: "job2" },
   { id: 3, type: "Interview Scheduled", details: "Jane Smith for Product Manager", time: "1 day ago", candidateId: "cand2", jobId: "job3" },
   { id: 4, type: "AI Screening Complete", details: "Screening for 'Backend Developer' finished", time: "2 days ago", jobId: "job4"},
+  { id: 5, type: "New Applicant", details: "Alice Brown applied for Data Scientist", time: "3 days ago", jobId: "job4", candidateId: "cand3" },
+  { id: 6, type: "Job Status Updated", details: "'Product Manager' moved to 'Interviewing'", time: "3 days ago", jobId: "job3" },
+  { id: 7, type: "New Message", details: "Message from Bob on 'Software Engineer' application", time: "4 days ago", candidateId: "cand4", jobId: "job1" },
+  { id: 8, type: "Job Approved", details: "Hiring Manager approved 'Marketing Lead'", time: "5 days ago", jobId: "job5" },
 ];
 
 const hiringPipelineData = [
@@ -24,12 +29,17 @@ const hiringPipelineData = [
   { name: 'Hired', count: 10, fill: 'hsl(var(--chart-5))' },
 ];
 
+const ACTIVITIES_TO_SHOW_INITIALLY = 4;
+
 export default function RecruiterDashboardPage() {
   const { user, role } = useAuth();
+  const [showAllActivities, setShowAllActivities] = useState(false);
 
   if (!user) {
     return <div className="flex h-screen items-center justify-center"><p>Loading user data...</p></div>;
   }
+
+  const displayedActivities = showAllActivities ? initialRecentActivities : initialRecentActivities.slice(0, ACTIVITIES_TO_SHOW_INITIALLY);
 
   return (
     <div className="space-y-8">
@@ -95,13 +105,16 @@ export default function RecruiterDashboardPage() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-4">
-              {recentActivities.map(activity => (
+              {displayedActivities.map(activity => (
                 <li key={activity.id} className="flex items-start space-x-3">
                   <div className="flex-shrink-0 pt-0.5">
                     {activity.type === "New Applicant" && <UserPlus className="h-5 w-5 text-primary" />}
                     {activity.type === "Job Posted" && <Briefcase className="h-5 w-5 text-green-500" />}
                     {activity.type === "Interview Scheduled" && <CheckSquare className="h-5 w-5 text-blue-500" />}
                     {activity.type === "AI Screening Complete" && <Search className="h-5 w-5 text-purple-500" />}
+                    {activity.type === "Job Status Updated" && <TrendingUp className="h-5 w-5 text-orange-500" />}
+                    {activity.type === "New Message" && <MessageSquare className="h-5 w-5 text-teal-500" />}
+                    {activity.type === "Job Approved" && <CheckSquare className="h-5 w-5 text-lime-500" />}
                   </div>
                   <div className="flex-grow">
                     <p className="text-sm font-medium">{activity.details}</p>
@@ -113,7 +126,15 @@ export default function RecruiterDashboardPage() {
             </ul>
           </CardContent>
            <CardFooter>
-            <Button variant="outline" size="sm" className="w-full">View All Activities (Placeholder)</Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full" 
+              onClick={() => setShowAllActivities(!showAllActivities)}
+              disabled={initialRecentActivities.length <= ACTIVITIES_TO_SHOW_INITIALLY && !showAllActivities}
+            >
+              {showAllActivities ? "Show Fewer Activities" : "View All Activities"}
+            </Button>
           </CardFooter>
         </Card>
         <Card className="shadow-lg">
