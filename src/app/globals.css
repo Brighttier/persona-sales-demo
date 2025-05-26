@@ -18,7 +18,7 @@ body {
     --popover: 0 0% 100%;
     --popover-foreground: 210 10% 23%;
 
-    --primary: 145 63% 44%; /* Fiverr Green */
+    --primary: 212 73% 23%; /* New Dark Blue: #0f3464 */
     --primary-foreground: 0 0% 100%; /* White */
 
     --secondary: 0 0% 98%; /* Off-white / Very Light Gray */
@@ -27,7 +27,7 @@ body {
     --muted: 0 0% 96%; /* Light Grey */
     --muted-foreground: 0 0% 45%; /* Medium Grey */
 
-    --accent: 145 63% 44%; /* Fiverr Green */
+    --accent: 212 73% 23%; /* New Dark Blue (same as primary) */
     --accent-foreground: 0 0% 100%; /* White */
 
     --destructive: 0 84% 60%; /* Standard Red */
@@ -35,26 +35,26 @@ body {
 
     --border: 210 10% 85%; /* Lighter Gray for borders */
     --input: 210 10% 85%; /* Lighter Gray for input borders */
-    --ring: 145 63% 44%; /* Primary Green for focus rings */
+    --ring: 212 73% 23%; /* New Dark Blue for focus rings */
 
     --radius: 0.5rem;
 
     /* Sidebar specific theme variables */
     --sidebar-background: 0 0% 100%; /* White Sidebar */
     --sidebar-foreground: 210 10% 23%; /* Dark Gray Text */
-    --sidebar-primary: 145 63% 44%; /* Primary Green for active items */
+    --sidebar-primary: 212 73% 23%; /* New Dark Blue for active items */
     --sidebar-primary-foreground: 0 0% 100%; /* White */
-    --sidebar-accent: 0 0% 96%; /* Light Gray for hover */
-    --sidebar-accent-foreground: 145 63% 44%; /* Primary Green text on hover */
+    --sidebar-accent: 212 73% 90%; /* Lighter tint of the new blue for hover */
+    --sidebar-accent-foreground: 212 73% 23%; /* Dark blue text on light blue hover */
     --sidebar-border: 0 0% 90%; /* Light Gray for sidebar internal borders */
-    --sidebar-ring: 145 63% 44%;
+    --sidebar-ring: 212 73% 23%;
 
     /* Chart Colors */
-    --chart-1: 145 63% 44%; /* Primary Green */
-    --chart-2: 205 65% 50%; /* Steel Blue */
-    --chart-3: 35 85% 60%;  /* Gold/Orange */
-    --chart-4: 175 50% 50%; /* Teal */
-    --chart-5: 210 15% 65%; /* Slate Gray/Blueish Gray */
+    --chart-1: 212 73% 35%; /* Primary Blue variant */
+    --chart-2: 180 50% 45%; /* Teal/Cyan */
+    --chart-3: 45 80% 55%;  /* Yellow/Gold */
+    --chart-4: 260 60% 60%; /* Purple/Violet */
+    --chart-5: 0 0% 55%;   /* Neutral Gray */
   }
 
   .dark {
@@ -67,8 +67,8 @@ body {
     --popover: 210 10% 15%; /* Dark Popover */
     --popover-foreground: 0 0% 95%; 
 
-    --primary: 145 63% 48%; /* Fiverr Green (adjusted slightly for pop on dark) */
-    --primary-foreground: 0 0% 100%; /* White text on Green buttons */
+    --primary: 212 73% 40%; /* Slightly Lighter Blue for dark mode pop */
+    --primary-foreground: 0 0% 100%; /* White text */
 
     --secondary: 210 10% 20%; /* Medium dark cool gray for secondary elements */
     --secondary-foreground: 0 0% 85%; /* Light Grey text on secondary elements */
@@ -76,7 +76,7 @@ body {
     --muted: 210 10% 18%; /* Muted dark cool gray */
     --muted-foreground: 0 0% 60%; /* Medium-Light Grey text on muted */
 
-    --accent: 145 63% 48%; /* Same as Primary for accents */
+    --accent: 212 73% 40%; /* Same as Primary for accents in dark mode */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 70% 55%; /* Red, slightly adjusted for dark */
@@ -84,24 +84,24 @@ body {
 
     --border: 210 10% 30%; /* Darker Gray border in dark mode */
     --input: 210 10% 30%; /* Darker Gray input border in dark mode */
-    --ring: 145 63% 48%; /* Green ring */
+    --ring: 212 73% 40%; /* Lighter Blue ring for dark mode */
 
     /* Sidebar specific theme variables for dark mode */
     --sidebar-background: 210 10% 12%; /* Match page background */
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 145 63% 48%; /* Green active items */
+    --sidebar-primary: 212 73% 40%; /* Lighter Blue active items */
     --sidebar-primary-foreground: 0 0% 100%; /* White text */
-    --sidebar-accent: 210 10% 22%; /* Dark gray hover */
-    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-accent: 212 73% 25%; /* Darker shade of blue for hover on dark bg */
+    --sidebar-accent-foreground: 0 0% 95%; /* Light text on hover */
     --sidebar-border: 210 10% 25%; /* Dark Gray for sidebar internal borders */
-    --sidebar-ring: 145 63% 48%;
+    --sidebar-ring: 212 73% 40%;
 
     /* Chart Colors for Dark Mode */
-    --chart-1: 145 63% 50%; /* Primary Green (lighter) */
-    --chart-2: 205 65% 60%; /* Steel Blue (lighter) */
-    --chart-3: 35 85% 65%;  /* Gold/Orange (lighter) */
-    --chart-4: 175 50% 55%; /* Teal (lighter) */
-    --chart-5: 210 15% 75%; /* Slate Gray (lighter) */
+    --chart-1: 212 73% 50%; /* Lighter Blue */
+    --chart-2: 180 50% 55%; /* Lighter Teal/Cyan */
+    --chart-3: 45 80% 65%;  /* Lighter Yellow/Gold */
+    --chart-4: 260 60% 70%; /* Lighter Purple/Violet */
+    --chart-5: 0 0% 65%;   /* Lighter Neutral Gray */
   }
 }
 
