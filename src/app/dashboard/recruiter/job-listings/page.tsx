@@ -58,15 +58,24 @@ export default function RecruiterJobListingsPage() {
       if (appliedApproval === "Pending Recruiter Approval") approvalStatusCheck = job.approvalStatus === "Pending Recruiter Approval";
       else if (appliedApproval === "Pending Hiring Manager Approval") approvalStatusCheck = job.approvalStatus === "Pending Hiring Manager Approval";
       else if (appliedApproval === "Approved") approvalStatusCheck = job.approvalStatus === "Approved";
-      else if (appliedApproval === "Draft") approvalStatusCheck = job.approvalStatus === "Draft"; // For jobs created by HM directly
+      else if (appliedApproval === "Draft") approvalStatusCheck = job.approvalStatus === "Draft"; 
 
       return searchMatch && statusMatch && approvalStatusCheck;
     });
   }, [appliedSearch, appliedStatus, appliedApproval]);
 
 
-  const handleJobAction = (jobId: string, action: string) => {
-    toast({ title: `Action: ${action}`, description: `Performed ${action} on job ${jobId}. (Simulated)`});
+  const handleJobAction = (jobId: string, jobTitle: string, action: string) => {
+    let message = "";
+    switch(action) {
+        case "edit_job": message = `Editing job "${jobTitle}" (ID: ${jobId}) - Placeholder`; break;
+        case "ai_screen": message = `Initiating AI screening for all applicants of "${jobTitle}" (ID: ${jobId}) - Placeholder`; break;
+        case "pause_job": message = `Pausing job "${jobTitle}" (ID: ${jobId}) - Placeholder`; break;
+        case "activate_job": message = `Activating job "${jobTitle}" (ID: ${jobId}) - Placeholder`; break;
+        case "delete_job": message = `Deleting job "${jobTitle}" (ID: ${jobId}) - Placeholder`; break;
+        default: message = `Performing ${action} on job "${jobTitle}" (ID: ${jobId}) - Placeholder`;
+    }
+    toast({ title: `Action: ${action.replace("_", " ").toUpperCase()}`, description: message});
   };
 
   const getStatusPill = (status: string) => {
@@ -84,8 +93,8 @@ export default function RecruiterJobListingsPage() {
      if (approvalStatus === "Pending Recruiter Approval") return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">Pending Your Approval</Badge>;
      if (approvalStatus === "Pending Hiring Manager Approval") return <Badge className="bg-blue-100 text-blue-700 border-blue-300">Pending HM Approval</Badge>;
      if (approvalStatus === "Approved") return <Badge className="bg-green-100 text-green-700 border-green-300">Approved</Badge>;
-     if (jobStatus === "Draft" && approvalStatus === "Draft") return <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">Draft (by HM)</Badge>; // Clarify HM drafts
-     return <Badge variant="outline">{approvalStatus || jobStatus}</Badge>; // Fallback to job status if no specific approval status
+     if (jobStatus === "Draft" && approvalStatus === "Draft") return <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">Draft (by HM)</Badge>; 
+     return <Badge variant="outline">{approvalStatus || jobStatus}</Badge>; 
   }
 
   return (
@@ -138,7 +147,6 @@ export default function RecruiterJobListingsPage() {
                             <SelectItem value="Draft">Draft (by HM)</SelectItem>
                         </SelectContent>
                     </Select>
-                    {/* Remove explicit "Apply Filters" button for live filtering */}
                 </div>
             </div>
         </CardHeader>
@@ -177,8 +185,10 @@ export default function RecruiterJobListingsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         {(job.approvalStatus === "Pending Recruiter Approval") && (
-                             <DropdownMenuItem onClick={() => router.push(`/dashboard/${role}/job-approvals`)}>
-                                <Check className="mr-2 h-4 w-4" /> Review for Approval
+                             <DropdownMenuItem asChild>
+                                <Link href={`/dashboard/${role}/job-approvals`}>
+                                  <Check className="mr-2 h-4 w-4" /> Review for Approval
+                                </Link>
                              </DropdownMenuItem>
                         )}
                         <DropdownMenuItem asChild>
@@ -186,12 +196,12 @@ export default function RecruiterJobListingsPage() {
                             <Users className="mr-2 h-4 w-4" />View Applicants
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleJobAction(job.id, 'edit_job')}><Edit className="mr-2 h-4 w-4" />Edit Job</DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => handleJobAction(job.id, 'ai_screen')}><ShieldCheck className="mr-2 h-4 w-4" />AI Screen Applicants</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleJobAction(job.id, job.title, 'edit_job')}><Edit className="mr-2 h-4 w-4" />Edit Job</DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => handleJobAction(job.id, job.title, 'ai_screen')}><ShieldCheck className="mr-2 h-4 w-4" />AI Screen Applicants</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {job.status === "Active" && <DropdownMenuItem onClick={() => handleJobAction(job.id, 'pause_job')}><Pause className="mr-2 h-4 w-4" />Pause Job</DropdownMenuItem>}
-                        {job.status === "Paused" && <DropdownMenuItem onClick={() => handleJobAction(job.id, 'activate_job')}><Play className="mr-2 h-4 w-4" />Activate Job</DropdownMenuItem>}
-                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleJobAction(job.id, 'delete_job')}><Trash2 className="mr-2 h-4 w-4" />Delete Job</DropdownMenuItem>
+                        {job.status === "Active" && <DropdownMenuItem onClick={() => handleJobAction(job.id, job.title, 'pause_job')}><Pause className="mr-2 h-4 w-4" />Pause Job</DropdownMenuItem>}
+                        {job.status === "Paused" && <DropdownMenuItem onClick={() => handleJobAction(job.id, job.title, 'activate_job')}><Play className="mr-2 h-4 w-4" />Activate Job</DropdownMenuItem>}
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleJobAction(job.id, job.title, 'delete_job')}><Trash2 className="mr-2 h-4 w-4" />Delete Job</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -210,5 +220,3 @@ export default function RecruiterJobListingsPage() {
     </div>
   );
 }
-
-    
