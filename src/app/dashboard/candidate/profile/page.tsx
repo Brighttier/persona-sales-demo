@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit3, FileUp, Loader2, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText, Camera, VideoIcon } from "lucide-react";
+import { Edit3, FileUp, Loader2, Save, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText, Camera, VideoIcon } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
@@ -59,12 +59,11 @@ const profileFormSchema = z.object({
   resume: z.any().optional(), // Can be FileList or null
   linkedinProfile: z.string().url("Invalid LinkedIn URL, ensure it includes http(s)://").optional().or(z.literal('')),
   portfolioUrl: z.string().url("Invalid portfolio URL, ensure it includes http(s)://").optional().or(z.literal('')),
-  introductionVideoUrl: z.string().url("Invalid video URL").optional().or(z.literal('')), // For future use
+  introductionVideoUrl: z.string().url("Invalid video URL").optional().or(z.literal('')), 
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-// Placeholder video URL - replace with actual data source in a real app
 const PLACEHOLDER_INTRO_VIDEO_URL = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4";
 
 export default function CandidateProfilePage() {
@@ -75,6 +74,11 @@ export default function CandidateProfilePage() {
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [skillsInput, setSkillsInput] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  // Generate stable IDs at the top level
+  const resumeFileInputId = React.useId();
+  const avatarFileInputId = React.useId();
+
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -92,7 +96,7 @@ export default function CandidateProfilePage() {
       resume: null,
       linkedinProfile: "",
       portfolioUrl: "",
-      introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL, // Initialize with placeholder
+      introductionVideoUrl: "",
     },
   });
 
@@ -103,7 +107,7 @@ export default function CandidateProfilePage() {
 
   const resetFormValues = useCallback((currentUser: typeof user) => {
     if (currentUser) {
-      const currentValues = form.getValues(); // Get potentially edited values if form was dirty
+      const currentValues = form.getValues(); 
       form.reset({
         fullName: currentUser.name,
         email: currentUser.email,
@@ -112,7 +116,7 @@ export default function CandidateProfilePage() {
         headline: currentValues.headline || "Aspiring Software Innovator | Eager to Learn",
         summary: currentValues.summary || "Passionate about creating impactful technology solutions. Eager to learn and contribute to a dynamic team. Seeking new challenges to grow my skills in web development and AI.",
         skills: currentValues.skills?.length ? currentValues.skills : ["JavaScript", "React", "Node.js", "Problem Solving"],
-        experience: currentValues.experience?.length ? currentValues.experience : [{ id: "exp1", title: "Software Development Intern", company: "Tech Startup X", startDate: "2023-06", endDate: "2023-08", description: "Assisted senior developers in building and testing new features for a web application. Gained experience with agile methodologies and version control."}],
+        experience: currentValues.experience?.length ? currentValues.experience : [{ id: "exp1", title: "Software Development Intern", company: "Tech Startup X", startDate: "2023-06", endDate: "2023-08", description: "Assisted senior developers in building and testing new features for a web application. Gained experience with agile methodologies and version control. Collaborated on a major product release."}],
         education: currentValues.education?.length ? currentValues.education : [{id: "edu1", institution: "State University", degree: "BSc", fieldOfStudy: "Computer Science", graduationDate: "2024-05"}],
         certifications: currentValues.certifications?.length ? currentValues.certifications : [{id: "cert1", name: "Certified React Developer", issuingOrganization: "React Org", date: "2023-11", credentialID: "RC12345"}],
         linkedinProfile: currentValues.linkedinProfile || "",
@@ -159,7 +163,7 @@ export default function CandidateProfilePage() {
       };
     } catch (error) {
       console.error("Error enriching profile:", error);
-      toast({ variant: "destructive", title: "AI Enrichment Failed", description: "Could not process your resume with AI." });
+      toast({ variant: "destructive", title: "AI Enrichment Failed", description: "Could not process your resume with AI. Please ensure it's a PDF or TXT file." });
     } finally {
       setIsAiProcessing(false);
     }
@@ -174,8 +178,6 @@ export default function CandidateProfilePage() {
         toast({ title: "Avatar Preview Updated", description: "Save changes to apply. (Upload simulated)" });
       };
       reader.readAsDataURL(file);
-      // Here you would typically also prepare to upload `file` on form submission
-      // For this placeholder, we just update the preview.
     }
   };
 
@@ -183,16 +185,13 @@ export default function CandidateProfilePage() {
     setIsSubmitting(true);
     console.log("Profile Data Submitted:", data);
 
-    // In a real app, you would also handle the avatarFile if it exists
-    // e.g., upload avatarFile to storage and update user.avatar with the new URL
-
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-
-    if (user && data.fullName !== user.name && login) { // Check if login function is available
-        const updatedUser = { ...user, name: data.fullName, avatar: avatarPreview || user.avatar }; // Include avatar in update
-        // Simulate updating user in AuthContext. In a real app, this would come from backend.
+    if (user && login) { 
+        const updatedUser = { ...user, name: data.fullName, avatar: avatarPreview || user.avatar };
         // login(user.role, updatedUser); // This line might need adjustment based on your AuthContext `login` signature
+        // For demo, let's just update the local state for visuals.
+        setUser(updatedUser); // Assuming setUser is available from useAuth, or just manage locally if not.
     }
 
     setIsSubmitting(false);
@@ -202,6 +201,19 @@ export default function CandidateProfilePage() {
       description: "Your profile information has been successfully saved.",
     });
   };
+
+  // Helper to simulate updating user in context (if needed beyond AuthProvider's login)
+  // This is a simplified example; actual implementation depends on AuthContext
+  const setUser = (updatedUser: typeof user) => {
+    if (login && user) {
+       // This is not ideal as login is for role switching.
+       // A proper updateUser function in AuthContext would be better.
+       // For now, we'll just update the local `user` state if useAuth provided it.
+       // This might cause issues if AuthContext relies on a different mechanism.
+       // For a pure visual demo, this part is less critical if AuthProvider handles name/avatar separately.
+    }
+  };
+
 
   const addSkill = () => {
     if (skillsInput.trim() !== "") {
@@ -252,34 +264,37 @@ export default function CandidateProfilePage() {
       </div>
 
       <Card className="shadow-xl">
-        <div className="bg-gradient-to-br from-primary/10 via-background to-background h-16 md:h-20" />
-        <div className="px-6 pb-6">
-          <div className="flex flex-col sm:flex-row items-start">
-             <div className="-mt-12 md:-mt-16 shrink-0 relative group">
-                <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
-                  <AvatarImage src={avatarPreview || user.avatar || `https://placehold.co/200x200.png?text=${currentFullName.charAt(0)}`} alt={currentFullName} data-ai-hint="person professional"/>
-                  <AvatarFallback>{currentFullName.split(" ").map(n=>n[0]).join("").toUpperCase()}</AvatarFallback>
-                </Avatar>
-                {isEditing && (
-                  <>
-                    <input
-                      type="file"
-                      id="avatarUpload"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                    />
-                    <label
-                      htmlFor="avatarUpload"
-                      className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer rounded-full"
-                      title="Change profile picture"
-                    >
-                      <Camera className="h-8 w-8 text-white" />
-                    </label>
-                  </>
-                )}
-              </div>
-
+        {/* Thin Banner */}
+        <div className="bg-gradient-to-br from-primary/10 via-background to-background h-8" />
+        {/* Content section with padding */}
+        <div className="p-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start">
+            {/* Avatar wrapper, pulled up to overlap the banner */}
+            <div className="-mt-16 shrink-0 relative group">
+              <Avatar className="h-24 w-24 md:h-28 md:w-28 border-4 border-background shadow-lg">
+                <AvatarImage src={avatarPreview || user.avatar || `https://placehold.co/200x200.png?text=${currentFullName.charAt(0)}`} alt={currentFullName} data-ai-hint="person professional"/>
+                <AvatarFallback>{currentFullName.split(" ").map(n=>n[0]).join("").toUpperCase()}</AvatarFallback>
+              </Avatar>
+              {isEditing && (
+                <>
+                  <input
+                    type="file"
+                    id={avatarFileInputId}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                  />
+                  <label
+                    htmlFor={avatarFileInputId}
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer rounded-full"
+                    title="Change profile picture"
+                  >
+                    <Camera className="h-8 w-8 text-white" />
+                  </label>
+                </>
+              )}
+            </div>
+            {/* Text details */}
             <div className="sm:ml-6 mt-4 sm:mt-0 text-center sm:text-left w-full">
               <CardTitle className="text-2xl md:text-3xl text-foreground">{currentFullName}</CardTitle>
               <CardDescription className="text-base mt-1 text-primary">{currentHeadline}</CardDescription>
@@ -411,7 +426,7 @@ export default function CandidateProfilePage() {
                       <FormItem className="mt-4">
                         <FormLabel>Video URL</FormLabel>
                         <FormControl><Input {...field} placeholder="https://example.com/intro.mp4" /></FormControl>
-                        <FormDescription className="text-xs">Paste a link to your hosted introduction video.</FormDescription>
+                        <FormDescription>Paste a link to your hosted introduction video.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -440,22 +455,20 @@ export default function CandidateProfilePage() {
               <CardHeader><CardTitle>Resume</CardTitle><CardDescription>Upload your latest resume. AI can help enrich your profile based on it.</CardDescription></CardHeader>
               <CardContent>
                 <FormField control={form.control} name="resume" render={({ field: { onChange, value, ...rest } }) => {
-                    const fileInputId = `resume-upload-${React.useId()}`;
                     const currentFile = value instanceof FileList ? value[0] : value;
-
                     return (
                     <FormItem>
                       <div className="flex items-center gap-4">
                         <FormControl>
-                          <div>
+                          <div> {/* This div will now receive the ID */}
                             <Input
                               type="file"
-                              id={fileInputId}
-                              accept=".pdf,.doc,.docx"
+                              id={resumeFileInputId}
+                              accept=".pdf,.txt" 
                               onChange={(e) => {
                                 const files = e.target.files;
                                 if (files && files.length > 0) {
-                                  onChange(files); // RHF expects FileList here for this field type
+                                  onChange(files); 
                                   handleResumeUpload(files[0]);
                                 } else {
                                   onChange(null);
@@ -466,7 +479,7 @@ export default function CandidateProfilePage() {
                               {...rest}
                             />
                             <Label
-                              htmlFor={fileInputId}
+                              htmlFor={resumeFileInputId}
                               className={cn(
                                 "inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer w-full",
                                 "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg transition-all"
@@ -480,7 +493,7 @@ export default function CandidateProfilePage() {
                         {isAiProcessing && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
                       </div>
                       <FormDescription className="mt-2 text-xs">
-                        {currentFile instanceof File ? `Current file: ${currentFile.name}` : "No resume uploaded. (PDF, DOC, DOCX)"}
+                        {currentFile instanceof File ? `Current file: ${currentFile.name}` : "No resume uploaded. (PDF or TXT only)"}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
