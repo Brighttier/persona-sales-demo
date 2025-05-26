@@ -26,8 +26,18 @@ interface MockUser {
   role: UserRole;
   status: string;
   lastLogin: string;
-  companyName?: string; // Added companyName
+  companyName?: string;
 }
+
+// Simplified list of mock companies for selection
+// In a real app, this would be fetched or come from a shared context/store
+const MOCK_COMPANIES_FOR_SELECTION = [
+  { id: "comp1", name: "Tech Solutions Inc." },
+  { id: "comp2", name: "Innovate Hub" },
+  { id: "comp3", name: "Creative Designs Co." },
+  { id: "comp4", name: "Legacy Corp" },
+];
+
 
 const initialMockUsers: MockUser[] = [
   { id: "user1", name: "Alex Johnson", email: "alex.johnson@example.com", role: USER_ROLES.CANDIDATE, status: "Active", lastLogin: "2024-07-22" },
@@ -155,7 +165,6 @@ export default function UserManagementPage() {
       ...u, 
       name: data.fullName, 
       email: data.email, 
-      // Role is changed in a separate dialog. Company name could be edited here if the role requires it.
       companyName: (data.role === USER_ROLES.RECRUITER || data.role === USER_ROLES.HIRING_MANAGER || data.role === USER_ROLES.INTERVIEWER) ? data.companyName : u.companyName,
     } : u));
     toast({ title: "User Updated (Placeholder)", description: `Details for ${data.fullName} have been updated.` });
@@ -239,7 +248,19 @@ export default function UserManagementPage() {
                         </Select><FormMessage /></FormItem>)}/>
                   {(watchedRole === USER_ROLES.RECRUITER || watchedRole === USER_ROLES.HIRING_MANAGER || watchedRole === USER_ROLES.INTERVIEWER) && (
                      <FormField control={userForm.control} name="companyName" render={({ field }) => (
-                      <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input placeholder="e.g., Acme Corp" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                        <FormItem>
+                          <FormLabel>Company Name</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a company" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {MOCK_COMPANIES_FOR_SELECTION.map((company) => (
+                                <SelectItem key={company.id} value={company.name}>{company.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}/>
                   )}
                   <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
@@ -319,7 +340,19 @@ export default function UserManagementPage() {
                   <FormItem><FormLabel>Email (Cannot be changed)</FormLabel><FormControl><Input type="email" {...field} readOnly /></FormControl><FormMessage /></FormItem> )}/>
               {(userForm.getValues("role") === USER_ROLES.RECRUITER || userForm.getValues("role") === USER_ROLES.HIRING_MANAGER || userForm.getValues("role") === USER_ROLES.INTERVIEWER) && (
                 <FormField control={userForm.control} name="companyName" render={({ field }) => (
-                  <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input placeholder="e.g., Acme Corp" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                  <FormItem>
+                    <FormLabel>Company Name</FormLabel>
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select a company" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {MOCK_COMPANIES_FOR_SELECTION.map((company) => (
+                            <SelectItem key={company.id} value={company.name}>{company.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    <FormMessage />
+                  </FormItem> 
+                )}/>
               )}
               <DialogFooter>
                 <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setEditingUser(null); setIsEditUserDialogOpen(false);}}>Cancel</Button></DialogClose>
@@ -343,8 +376,20 @@ export default function UserManagementPage() {
                       <SelectContent>{Object.values(USER_ROLES).map((roleValue) => (<SelectItem key={roleValue} value={roleValue} className="capitalize">{roleValue.replace('-', ' ')}</SelectItem>))}</SelectContent>
                     </Select><FormMessage /></FormItem>)}/>
                {(watchedNewRole === USER_ROLES.RECRUITER || watchedNewRole === USER_ROLES.HIRING_MANAGER || watchedNewRole === USER_ROLES.INTERVIEWER) && (
-                     <FormField control={changeRoleForm.control} name="newCompanyName" render={({ field }) => (
-                      <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input placeholder="e.g., Acme Corp" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                    <FormField control={changeRoleForm.control} name="newCompanyName" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Company Name</FormLabel>
+                             <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select a company" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                {MOCK_COMPANIES_FOR_SELECTION.map((company) => (
+                                    <SelectItem key={company.id} value={company.name}>{company.name}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
                   )}
               <DialogFooter>
                 <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setEditingUser(null); setIsChangeRoleDialogOpen(false);}}>Cancel</Button></DialogClose>
