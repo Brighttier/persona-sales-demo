@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 const mockApplications = [
   { id: "app1", jobId: "job1", jobTitle: "Software Engineer, Frontend", company: "Tech Solutions Inc.", dateApplied: "2024-07-21", status: "Under Review" },
   { id: "app2", jobId: "job2", jobTitle: "Product Manager", company: "Innovate Hub", dateApplied: "2024-07-19", status: "Interview Scheduled" },
-  { id: "app3", jobId: "job3", jobTitle: "UX Designer", company: "Creative Designs Co.", dateApplied: "2024-07-16", status: "Application Submitted" },
+  { id: "app3", jobId: "job3", jobTitle: "UX Designer", company: "Creative Designs Co.", dateApplied: "2024-07-16", status: "Shortlisted" },
   { id: "app4", jobId: "job4", jobTitle: "Data Scientist", company: "Analytics Corp.", dateApplied: "2024-07-23", status: "Offer Extended" },
   { id: "app5", jobId: "job5", jobTitle: "Marketing Specialist", company: "Growth Co.", dateApplied: "2024-07-10", status: "Not Selected" },
   { id: "app6", jobId: "job6", jobTitle: "Backend Developer", company: "Server Systems Ltd.", dateApplied: "2024-06-15", status: "Withdrawn" },
@@ -25,6 +25,8 @@ const getStatusPill = (status: string) => {
         return <Badge className="bg-blue-100 text-blue-700 border-blue-300">{status}</Badge>;
       case "interview scheduled":
         return <Badge className="bg-green-100 text-green-700 border-green-300">{status}</Badge>;
+      case "shortlisted":
+        return <Badge className="bg-cyan-100 text-cyan-700 border-cyan-300">{status}</Badge>;
       case "under review":
         return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">{status}</Badge>;
       case "application submitted":
@@ -130,3 +132,4 @@ export default function CandidateApplicationsPage() {
     </div>
   );
 }
+

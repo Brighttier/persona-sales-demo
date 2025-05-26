@@ -10,13 +10,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlus, UserX, Users, Loader2 } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlus, UserX, Users, Loader2, FileText } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { aiCandidateScreening, type CandidateScreeningInput } from "@/ai/flows/ai-candidate-screening";
+import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 interface Applicant {
   id: string;
@@ -24,7 +26,7 @@ interface Applicant {
   avatar: string;
   applicationDate: string;
   aiMatchScore?: number;
-  status: "New" | "Screening" | "Interview" | "Offer" | "Hired" | "Not Selected" | "Withdrawn";
+  status: "New" | "Screening" | "Shortlisted" | "Interview" | "Offer" | "Hired" | "Not Selected" | "Withdrawn";
   email: string;
   skills: string[];
   resumeText?: string;
@@ -35,9 +37,9 @@ interface Applicant {
 const initialMockApplicants: Applicant[] = [
   { id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", applicationDate: "2024-07-25", aiMatchScore: 92, status: "New", email: "alice@example.com", skills: ["React", "Node.js", "TypeScript"], resumeText: "Highly skilled React developer with 5 years of experience in Node.js and TypeScript.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu"},
   { id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", applicationDate: "2024-07-24", aiMatchScore: 85, status: "Screening", email: "bob@example.com", skills: ["Python", "Django", "SQL"], resumeText: "Data-driven Python developer, proficient in Django and SQL databases.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==" },
-  { id: "app3", name: "Carol Davis", avatar: "https://placehold.co/100x100.png?text=CD", applicationDate: "2024-07-23", aiMatchScore: 78, status: "Interview", email: "carol@example.com", skills: ["Java", "Spring Boot", "Microservices"], resumeText: "Experienced Java engineer specializing in Spring Boot and microservice architectures.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Q2Fyb2wgRGF2aXMnIFJlc3VtZS4gRXhwZXJ0IGphdmEgZW5naW5lZXIgV2l0aCBKYXZhLCBTcHJpbmcgQm9vdCwgYW5kIE1pY3Jvc2VydmljZXMu" },
+  { id: "app3", name: "Carol Davis", avatar: "https://placehold.co/100x100.png?text=CD", applicationDate: "2024-07-23", aiMatchScore: 78, status: "Shortlisted", email: "carol@example.com", skills: ["Java", "Spring Boot", "Microservices"], resumeText: "Experienced Java engineer specializing in Spring Boot and microservice architectures.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Q2Fyb2wgRGF2aXMnIFJlc3VtZS4gRXhwZXJ0IGphdmEgZW5naW5lZXIgV2l0aCBKYXZhLCBTcHJpbmcgQm9vdCwgYW5kIE1pY3Jvc2VydmljZXMu" },
   { id: "app4", name: "David Miller", avatar: "https://placehold.co/100x100.png?text=DM", applicationDate: "2024-07-22", status: "Not Selected", email: "david@example.com", skills: ["PHP", "Laravel"], resumeText: "Full-stack PHP developer with Laravel expertise.", jobTitleAppliedFor: "Software Engineer, Frontend" },
-  { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", applicationDate: "2024-07-26", aiMatchScore: 95, status: "New", email: "eve@example.com", skills: ["JavaScript", "Vue.js", "Firebase"], resumeText: "Creative Vue.js developer with Firebase backend knowledge.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=" },
+  { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", applicationDate: "2024-07-26", aiMatchScore: 95, status: "Interview", email: "eve@example.com", skills: ["JavaScript", "Vue.js", "Firebase"], resumeText: "Creative Vue.js developer with Firebase backend knowledge.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=" },
 ];
 
 const mockJobTitles: { [key: string]: { title: string, description: string } } = {
@@ -48,6 +50,8 @@ const mockJobTitles: { [key: string]: { title: string, description: string } } =
   "job5": { title: "DevOps Engineer", description: "Manage and improve our CI/CD pipelines and cloud infrastructure."},
 };
 
+const ALL_APPLICANT_STATUSES: Applicant["status"][] = ["New", "Screening", "Shortlisted", "Interview", "Offer", "Hired", "Not Selected", "Withdrawn"];
+
 export default function ViewApplicantsPage() {
   const params = useParams();
   const jobId = params.jobId as string;
@@ -57,8 +61,13 @@ export default function ViewApplicantsPage() {
   const [applicants, setApplicants] = useState<Applicant[]>(initialMockApplicants);
   const [selectedApplicantForStatus, setSelectedApplicantForStatus] = useState<Applicant | null>(null);
   const [newStatus, setNewStatus] = useState<Applicant["status"] | "">("");
+  
   const [isScreeningLoading, setIsScreeningLoading] = useState(false);
   const [selectedApplicantForScreening, setSelectedApplicantForScreening] = useState<Applicant | null>(null);
+  const [screeningReports, setScreeningReports] = useState<Record<string, CandidateScreeningOutput | null>>({});
+  const [selectedApplicantForReportView, setSelectedApplicantForReportView] = useState<Applicant | null>(null);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+
   const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false);
   const [applicantToUpdate, setApplicantToUpdate] = useState<Applicant | null>(null);
 
@@ -84,7 +93,7 @@ export default function ViewApplicantsPage() {
   const openStatusUpdateDialog = (applicant: Applicant, targetStatus?: Applicant["status"]) => {
     setApplicantToUpdate(applicant);
     if (targetStatus === "Not Selected") {
-        setNewStatus("Not Selected"); // Pre-fill status for rejection confirmation
+        setNewStatus("Not Selected"); 
         setIsRejectConfirmOpen(true); 
     } else {
         setSelectedApplicantForStatus(applicant); 
@@ -112,6 +121,7 @@ export default function ViewApplicantsPage() {
     }
     setSelectedApplicantForScreening(applicant);
     setIsScreeningLoading(true);
+    setScreeningReports(prev => ({ ...prev, [applicant.id]: null })); // Clear previous report if any
     try {
         const screeningInput: CandidateScreeningInput = {
             jobDetails: jobData.description,
@@ -119,16 +129,11 @@ export default function ViewApplicantsPage() {
             candidateProfile: `Name: ${applicant.name}, Email: ${applicant.email}, Skills: ${applicant.skills.join(', ')}`,
         };
         const result = await aiCandidateScreening(screeningInput);
+        setScreeningReports(prev => ({ ...prev, [applicant.id]: result }));
         toast({
-            title: `AI Screening for ${applicant.name}`,
-            description: (
-                <div className="text-xs">
-                    <p className="font-semibold">Score: {result.suitabilityScore}/100</p>
-                    <p>Summary: {result.summary.substring(0,100)}...</p>
-                    <p>Recommendation: {result.recommendation}</p>
-                </div>
-            ),
-            duration: 10000,
+            title: `AI Screening for ${applicant.name} Complete!`,
+            description: `Suitability Score: ${result.suitabilityScore}/100. View full report for details.`,
+            duration: 7000,
         });
     } catch (error) {
         console.error("AI Screening Error:", error);
@@ -139,10 +144,16 @@ export default function ViewApplicantsPage() {
     }
   };
 
+  const openReportDialog = (applicant: Applicant) => {
+    setSelectedApplicantForReportView(applicant);
+    setIsReportDialogOpen(true);
+  }
+
   const getStatusPill = (status: Applicant["status"]) => {
     switch (status) {
       case "New": return <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-300">{status}</Badge>;
       case "Screening": return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-300">{status}</Badge>;
+      case "Shortlisted": return <Badge variant="secondary" className="bg-cyan-100 text-cyan-700 border-cyan-300">{status}</Badge>;
       case "Interview": return <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-300">{status}</Badge>;
       case "Offer": return <Badge variant="default" className="bg-green-500 text-white border-green-700">Offer</Badge>;
       case "Hired": return <Badge variant="default" className="bg-green-700 text-white border-green-900">Hired</Badge>;
@@ -196,12 +207,11 @@ export default function ViewApplicantsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  {["New", "Screening", "Interview", "Offer", "Hired", "Not Selected", "Withdrawn"].map(s => (
+                  {ALL_APPLICANT_STATUSES.map(s => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {/* Removed "Apply Filters" button for live filtering */}
             </div>
           </div>
         </CardHeader>
@@ -232,14 +242,16 @@ export default function ViewApplicantsPage() {
                     </Link>
                   </TableCell>
                   <TableCell>{applicant.applicationDate}</TableCell>
-                  <TableCell>
-                    {applicant.aiMatchScore ? (
-                      <Badge variant={applicant.aiMatchScore > 80 ? "default" : "secondary"} className={applicant.aiMatchScore > 80 ? "bg-green-100 text-green-700 border-green-300" : ""}>
+                  <TableCell className="space-y-1">
+                    {applicant.aiMatchScore && (
+                      <Badge variant={applicant.aiMatchScore > 80 ? "default" : "secondary"} className={cn(applicant.aiMatchScore > 80 ? "bg-green-100 text-green-700 border-green-300" : applicant.aiMatchScore > 60 ? "bg-yellow-100 text-yellow-700 border-yellow-300" : "bg-red-100 text-red-700 border-red-300", "block w-fit")}>
                         {applicant.aiMatchScore}%
                       </Badge>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">N/A</span>
                     )}
+                     {screeningReports[applicant.id] && (
+                        <Button variant="link" size="xs" className="p-0 h-auto text-xs" onClick={() => openReportDialog(applicant)}>View Report</Button>
+                     )}
+                    {(!applicant.aiMatchScore && !screeningReports[applicant.id]) && <span className="text-xs text-muted-foreground">N/A</span>}
                   </TableCell>
                   <TableCell>{getStatusPill(applicant.status)}</TableCell>
                   <TableCell className="text-right">
@@ -261,6 +273,11 @@ export default function ViewApplicantsPage() {
                           {isScreeningLoading && selectedApplicantForScreening?.id === applicant.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ShieldCheck className="mr-2 h-4 w-4" />}
                           AI Screen
                         </DropdownMenuItem>
+                         {screeningReports[applicant.id] && (
+                            <DropdownMenuItem onClick={() => openReportDialog(applicant)}>
+                                <FileText className="mr-2 h-4 w-4" />View Screening Report
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => openStatusUpdateDialog(applicant)}>
                           <Edit3 className="mr-2 h-4 w-4" />Update Status
                         </DropdownMenuItem>
@@ -288,6 +305,7 @@ export default function ViewApplicantsPage() {
         </CardContent>
       </Card>
 
+      {/* Status Update Dialog */}
       <Dialog open={!!selectedApplicantForStatus && !isRejectConfirmOpen} onOpenChange={(open) => !open && setSelectedApplicantForStatus(null)}>
         <DialogContent>
           <DialogHeader>
@@ -302,7 +320,7 @@ export default function ViewApplicantsPage() {
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {["New", "Screening", "Interview", "Offer", "Hired", "Not Selected", "Withdrawn"].map(s => (
+                  {ALL_APPLICANT_STATUSES.map(s => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
@@ -316,20 +334,62 @@ export default function ViewApplicantsPage() {
         </DialogContent>
       </Dialog>
 
-        <Dialog open={isRejectConfirmOpen} onOpenChange={setIsRejectConfirmOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Confirm Status: Not Selected</DialogTitle>
-                    <DialogDescription>
-                        Are you sure you want to mark {applicantToUpdate?.name} as "Not Selected"?
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => { setIsRejectConfirmOpen(false); setApplicantToUpdate(null); }}>Cancel</Button>
-                    <Button variant="destructive" onClick={() => confirmStatusUpdateToAction("Not Selected")}>Confirm: Not Selected</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+      {/* Reject Confirmation Dialog */}
+      <Dialog open={isRejectConfirmOpen} onOpenChange={setIsRejectConfirmOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Confirm Status: Not Selected</DialogTitle>
+                  <DialogDescription>
+                      Are you sure you want to mark {applicantToUpdate?.name} as "Not Selected"?
+                  </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                  <Button variant="outline" onClick={() => { setIsRejectConfirmOpen(false); setApplicantToUpdate(null); }}>Cancel</Button>
+                  <Button variant="destructive" onClick={() => confirmStatusUpdateToAction("Not Selected")}>Confirm: Not Selected</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
+      {/* Screening Report Dialog */}
+      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>AI Screening Report for {selectedApplicantForReportView?.name}</DialogTitle>
+            <DialogDescription>Job: {jobData.title}</DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+            {screeningReports[selectedApplicantForReportView?.id || ""] ? (
+              <>
+                <Alert variant="default" className={cn("shadow-sm", (screeningReports[selectedApplicantForReportView!.id]!.suitabilityScore > 70 ? "bg-green-50 border-green-200 text-green-700" : screeningReports[selectedApplicantForReportView!.id]!.suitabilityScore > 50 ? "bg-yellow-50 border-yellow-200 text-yellow-700" : "bg-red-50 border-red-200 text-red-700"))}>
+                    <ShieldCheck className="h-4 w-4" />
+                    <AlertTitle className="font-semibold">Suitability Score: {screeningReports[selectedApplicantForReportView!.id]!.suitabilityScore}/100</AlertTitle>
+                </Alert>
+                 <Card className="shadow-sm">
+                    <CardHeader className="p-3"><CardTitle className="text-sm">Summary</CardTitle></CardHeader>
+                    <CardContent className="p-3 text-xs">{screeningReports[selectedApplicantForReportView!.id]!.summary}</CardContent>
+                </Card>
+                <Card className="shadow-sm">
+                    <CardHeader className="p-3"><CardTitle className="text-sm">Strengths</CardTitle></CardHeader>
+                    <CardContent className="p-3 text-xs whitespace-pre-line">{screeningReports[selectedApplicantForReportView!.id]!.strengths}</CardContent>
+                </Card>
+                <Card className="shadow-sm">
+                    <CardHeader className="p-3"><CardTitle className="text-sm">Areas for Improvement</CardTitle></CardHeader>
+                    <CardContent className="p-3 text-xs whitespace-pre-line">{screeningReports[selectedApplicantForReportView!.id]!.areasForImprovement}</CardContent>
+                </Card>
+                <Card className="shadow-sm">
+                    <CardHeader className="p-3"><CardTitle className="text-sm">Recommendation</CardTitle></CardHeader>
+                    <CardContent className="p-3 text-xs whitespace-pre-line">{screeningReports[selectedApplicantForReportView!.id]!.recommendation}</CardContent>
+                </Card>
+              </>
+            ) : <p>No screening report available for this candidate.</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReportDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+    
