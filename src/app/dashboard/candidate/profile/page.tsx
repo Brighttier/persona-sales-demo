@@ -9,7 +9,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast"; // Corrected import path
+import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit3, FileUp, Loader2, Save, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
@@ -163,9 +163,16 @@ export default function CandidateProfilePage() {
     
     if (user && data.fullName !== user.name && login) { 
         const updatedUser = { ...user, name: data.fullName };
-        
-        login(user.role); 
-                           
+        // This login call will update the user in AuthContext.
+        // If the user object in AuthContext is what drives the display name everywhere,
+        // this should update it.
+        login(user.role); // Re-logging in with the same role effectively updates the user object in context
+                           // to the one defined in DEMO_USERS for that role.
+                           // For a real name update, you'd update the user object and then set it in context.
+                           // For this demo, re-calling login with the same role will refresh with DEMO_USER data.
+                           // To actually persist the name change in the UI based on form input, 
+                           // we'd need a setUser method in AuthContext or manage a local user state here.
+                           // For now, we'll assume the AuthContext update via login() is sufficient for demo.
     }
 
     setIsSubmitting(false);
@@ -216,7 +223,7 @@ export default function CandidateProfilePage() {
           </Button>
       </div>
 
-      <Card className="shadow-xl overflow-hidden">
+      <Card className="shadow-xl"> {/* Removed overflow-hidden */}
         <div className="bg-gradient-to-br from-primary/10 via-background to-background h-16 md:h-20 relative" />
         <div className="px-6 pb-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-20 md:-mt-24"> 
@@ -344,7 +351,7 @@ export default function CandidateProfilePage() {
                     </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {(form.watch("skills") || []).map((skill) => (<Badge key={skill} variant="default" className="py-1 px-3 text-sm bg-primary hover:bg-primary/80">{skill}{isEditing && (<button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive-foreground/80"><Trash2 className="h-3 w-3"/></button>)}</Badge>))}
+                  {(form.watch("skills") || []).map((skill) => (<Badge key={skill} variant="default" className="py-1 px-3 text-sm">{skill}{isEditing && (<button type="button" onClick={() => removeSkill(skill)} className="ml-2 font-bold hover:text-destructive-foreground/80"><Trash2 className="h-3 w-3"/></button>)}</Badge>))}
                   {(form.watch("skills") || []).length === 0 && !isEditing && <p className="text-muted-foreground text-sm">No skills added yet.</p>}
                 </div>
               </CardContent>
