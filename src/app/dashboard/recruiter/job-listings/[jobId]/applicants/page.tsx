@@ -10,24 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlus, UserX, Users, Loader2, FileText, CalendarIcon } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlus, UserX, Users, Loader2, FileText } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"; // Keep Dialog for other modals
 import { Label } from "@/components/ui/label";
 import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { Textarea } from "@/components/ui/textarea";
-
+import { ScheduleInterviewModal } from "./components/ScheduleInterviewModal"; // Import the new modal
 
 interface Applicant {
   id: string;
@@ -61,17 +53,6 @@ const mockJobTitles: { [key: string]: { title: string, description: string } } =
 
 const ALL_APPLICANT_STATUSES: Applicant["status"][] = ["New", "Screening", "Shortlisted", "Interview", "Offer", "Hired", "Not Selected", "Withdrawn"];
 
-const scheduleInterviewFormSchema = z.object({
-  interviewDate: z.date({ required_error: "Interview date is required." }),
-  interviewTime: z.string().min(1, "Interview time is required (e.g., 10:00 AM)."),
-  interviewType: z.enum(["Technical Screen", "Behavioral", "Panel Interview", "Final Round"], { required_error: "Interview type is required." }),
-  interviewers: z.string().min(1, "Interviewer name(s) required."),
-  meetingLink: z.string().url("Invalid URL format.").optional().or(z.literal('')),
-  notes: z.string().optional(),
-});
-type ScheduleInterviewFormValues = z.infer<typeof scheduleInterviewFormSchema>;
-
-
 export default function ViewApplicantsPage() {
   const params = useParams();
   const jobId = params.jobId as string;
@@ -96,18 +77,6 @@ export default function ViewApplicantsPage() {
 
   const [isScheduleInterviewDialogOpen, setIsScheduleInterviewDialogOpen] = useState(false);
   const [selectedApplicantForInterview, setSelectedApplicantForInterview] = useState<Applicant | null>(null);
-
-  const scheduleForm = useForm<ScheduleInterviewFormValues>({
-    resolver: zodResolver(scheduleInterviewFormSchema),
-    defaultValues: {
-      interviewDate: undefined,
-      interviewTime: "",
-      interviewType: undefined,
-      interviewers: "",
-      meetingLink: "",
-      notes: "",
-    },
-  });
 
   const jobData = mockJobTitles[jobId] || { title: `Job ID: ${jobId}`, description: "Details for this job are not available."};
 
@@ -186,20 +155,8 @@ export default function ViewApplicantsPage() {
 
   const openScheduleInterviewDialog = (applicant: Applicant) => {
     setSelectedApplicantForInterview(applicant);
-    scheduleForm.reset(); // Reset form for new scheduling
     setIsScheduleInterviewDialogOpen(true);
   };
-
-  const onScheduleInterviewSubmit = (values: ScheduleInterviewFormValues) => {
-    console.log("Schedule Interview Data:", values);
-    toast({
-      title: "Interview Scheduled (Placeholder)",
-      description: `Interview for ${selectedApplicantForInterview?.name} on ${format(values.interviewDate, "PPP")} at ${values.interviewTime} has been scheduled.`,
-    });
-    setIsScheduleInterviewDialogOpen(false);
-    setSelectedApplicantForInterview(null);
-  };
-
 
   const getStatusPill = (status: Applicant["status"]) => {
     switch (status) {
@@ -357,7 +314,7 @@ export default function ViewApplicantsPage() {
         </CardContent>
       </Card>
 
-      {/* Status Update Dialog */}
+      {/* Status Update Dialog (Generic) */}
       <Dialog open={!!selectedApplicantForStatus && !isRejectConfirmOpen} onOpenChange={(open) => !open && setSelectedApplicantForStatus(null)}>
         <DialogContent>
           <DialogHeader>
@@ -441,135 +398,20 @@ export default function ViewApplicantsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Schedule Interview Dialog */}
-      <Dialog open={isScheduleInterviewDialogOpen} onOpenChange={setIsScheduleInterviewDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Schedule Interview for {selectedApplicantForInterview?.name}</DialogTitle>
-            <DialogDescription>For job: {jobData.title}</DialogDescription>
-          </DialogHeader>
-          <Form {...scheduleForm}>
-            <form onSubmit={scheduleForm.handleSubmit(onScheduleInterviewSubmit)} className="space-y-4 py-4">
-              <FormField
-                control={scheduleForm.control}
-                name="interviewDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Interview Date *</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} // Disable past dates
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={scheduleForm.control}
-                name="interviewTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Interview Time *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., 10:30 AM" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={scheduleForm.control}
-                name="interviewType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Interview Type *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select interview type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Technical Screen">Technical Screen</SelectItem>
-                        <SelectItem value="Behavioral">Behavioral Interview</SelectItem>
-                        <SelectItem value="Panel Interview">Panel Interview</SelectItem>
-                        <SelectItem value="Final Round">Final Round</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={scheduleForm.control}
-                name="interviewers"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Interviewer(s) *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., John Doe, Jane Smith" {...field} />
-                    </FormControl>
-                     <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={scheduleForm.control}
-                name="meetingLink"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Meeting Link (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., https://zoom.us/j/..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={scheduleForm.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Any additional notes for the interview..." {...field} rows={3} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsScheduleInterviewDialogOpen(false)}>Cancel</Button>
-                <Button type="submit">Schedule Interview</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+     {selectedApplicantForInterview && (
+        <ScheduleInterviewModal
+          isOpen={isScheduleInterviewDialogOpen}
+          onClose={() => {
+            setIsScheduleInterviewDialogOpen(false);
+            setSelectedApplicantForInterview(null);
+          }}
+          candidateId={selectedApplicantForInterview.id}
+          candidateName={selectedApplicantForInterview.name}
+          candidateEmail={selectedApplicantForInterview.email}
+          jobTitle={jobData.title}
+        />
+      )}
     </div>
   );
 }
-
     
