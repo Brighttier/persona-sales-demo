@@ -5,23 +5,20 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input"; // Keep if used by other parts, remove if not (it's not after this change)
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, FileUp, Loader2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, UserCircle, BrainCircuit, Star, Award, Building, ShieldCheck, BarChart, VideoIcon } from "lucide-react";
+import { ArrowLeft, Loader2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, UserCircle, BrainCircuit, Star, Award, Building, ShieldCheck, BarChart, VideoIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+// Removed useForm and zodResolver as resumeForm is removed
+// Removed Form, FormControl, FormField, FormItem, FormLabel, FormMessage imports
 import { enrichProfile, type EnrichProfileOutput } from "@/ai/flows/profile-enrichment";
 import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
-
+// Label removed as it was only for the resumeForm file input
 
 // Data structures for profile sections
 interface ExperienceItem {
@@ -41,7 +38,7 @@ interface EducationItem {
 interface CertificationItem {
   name: string;
   issuingOrganization: string;
-  date: string; 
+  date: string;
   credentialID?: string;
 }
 
@@ -54,12 +51,12 @@ interface ApplicantDetail {
   linkedin?: string;
   portfolio?: string;
   headline?: string;
-  mockResumeDataUri?: string; 
-  resumeText: string; 
+  mockResumeDataUri?: string;
+  resumeText: string;
   mockExperience?: ExperienceItem[];
   mockEducation?: EducationItem[];
   mockCertifications?: CertificationItem[];
-  introductionVideoUrl?: string; // Added for introduction video
+  introductionVideoUrl?: string;
 }
 
 const PLACEHOLDER_INTRO_VIDEO_URL = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4";
@@ -97,7 +94,7 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
     ],
     introductionVideoUrl: "",
   },
-  "app5": { 
+  "app5": {
     id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", email: "eve@example.com", headline: "Creative Vue.js Developer",
     mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=",
     resumeText: "Eve Brown - Creative Vue.js Developer. Expertise in Vue.js, Vuex, Vuetify, and Firebase. Designed and implemented UIs at Web Creations. BA Graphic Design.",
@@ -150,11 +147,6 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
   }
 };
 
-const resumeUploadSchema = z.object({
-  resumeFile: z.any().refine(fileList => fileList && fileList.length === 1, "Resume file is required."),
-});
-type ResumeUploadFormValues = z.infer<typeof resumeUploadSchema>;
-
 const mockQuickScreenJobs = [
     { id: "job1", title: "Software Engineer, Frontend", description: "Develop user-facing features using React and Next.js. 5+ years experience needed." },
     { id: "job2", title: "Senior Backend Developer (Python)", description: "Lead Python backend development, design APIs, manage databases. 7+ years experience in Python, Django/Flask." },
@@ -171,16 +163,12 @@ export default function CandidateProfilePage() {
   const [candidate, setCandidate] = useState<ApplicantDetail | null>(null);
   const [enrichedData, setEnrichedData] = useState<EnrichProfileOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEnriching, setIsEnriching] = useState(false);
-  
+  const [isEnriching, setIsEnriching] = useState(false); // For initial page load enrichment
+
   const [selectedJobIdForScreening, setSelectedJobIdForScreening] = useState<string | undefined>(undefined);
   const [quickScreenResult, setQuickScreenResult] = useState<CandidateScreeningOutput | null>(null);
   const [isQuickScreeningLoading, setIsQuickScreeningLoading] = useState(false);
 
-
-  const resumeForm = useForm<ResumeUploadFormValues>({
-    resolver: zodResolver(resumeUploadSchema),
-  });
 
   const fetchAndEnrichCandidate = useCallback(async (id: string) => {
     setIsLoading(true);
@@ -210,41 +198,7 @@ export default function CandidateProfilePage() {
     }
   }, [candidateId, fetchAndEnrichCandidate]);
 
-  const handleResumeEnrichment = async (data: ResumeUploadFormValues) => {
-    const file = data.resumeFile[0];
-    if (!file) return;
 
-    setIsEnriching(true);
-    setQuickScreenResult(null); 
-    toast({ title: "Processing New Resume...", description: "AI is analyzing the uploaded file." });
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onloadend = async () => {
-        const resumeDataUri = reader.result as string;
-        
-        let newResumeText = "Uploaded resume content." 
-        if (resumeDataUri.startsWith('data:application/pdf;base64,') || resumeDataUri.startsWith('data:text/plain;base64,')){
-            newResumeText = atob(resumeDataUri.split(',')[1]);
-        }
-
-        const result = await enrichProfile({ resumeDataUri });
-        setEnrichedData(result);
-        if (candidate) setCandidate({...candidate, mockResumeDataUri: "New resume uploaded", resumeText: newResumeText }); 
-        toast({ title: "New Resume Enriched!", description: "Profile updated with new resume data." });
-        resumeForm.reset();
-      };
-      reader.onerror = () => {
-        toast({ variant: "destructive", title: "File Read Error", description: "Could not read the resume file."});
-      }
-    } catch (error) {
-      console.error("Error enriching profile with new resume:", error);
-      toast({ variant: "destructive", title: "AI Enrichment Failed", description: "Could not process the new resume." });
-    } finally {
-      setIsEnriching(false);
-    }
-  };
-  
   const handleQuickScreen = async () => {
     if (!candidate || !candidate.resumeText || !selectedJobIdForScreening) {
         toast({ variant: "destructive", title: "Missing Data", description: "Candidate resume or selected job is missing for screening." });
@@ -291,8 +245,7 @@ export default function CandidateProfilePage() {
   }
 
   const skillsToDisplay = enrichedData?.skills || [];
-  const summaryToDisplay = enrichedData?.experienceSummary || "No AI summary available. Upload a resume to generate one.";
-  const currentResumeFile = resumeForm.watch("resumeFile")?.[0] as File | undefined;
+  const summaryToDisplay = enrichedData?.experienceSummary || "No AI summary available. Candidate's resume might not have been processed by AI.";
 
 
   return (
@@ -347,8 +300,8 @@ export default function CandidateProfilePage() {
                 <div key={index} className="pb-4 mb-4 border-b border-border last:border-b-0 last:pb-0 last:mb-0">
                   <h4 className="font-semibold text-md">{exp.title}</h4>
                   <div className="flex items-center text-sm text-muted-foreground">
-                    <Building className="mr-1.5 h-3.5 w-3.5"/>{exp.company} 
-                    <span className="mx-2">|</span> 
+                    <Building className="mr-1.5 h-3.5 w-3.5"/>{exp.company}
+                    <span className="mx-2">|</span>
                     {exp.duration}
                   </div>
                   <p className="text-sm mt-1 text-foreground/80 whitespace-pre-line">{exp.description}</p>
@@ -386,7 +339,7 @@ export default function CandidateProfilePage() {
 
         {/* Right Column */}
         <div className="space-y-6">
-          <Card className="shadow-lg">
+           <Card className="shadow-lg">
             <CardHeader><CardTitle className="text-lg flex items-center"><VideoIcon className="mr-2 h-5 w-5 text-primary"/> Introduction Video</CardTitle></CardHeader>
             <CardContent>
               {candidate.introductionVideoUrl ? (
@@ -403,68 +356,22 @@ export default function CandidateProfilePage() {
             <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
             <CardContent>
               {(isEnriching || isLoading) && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
-              {!isEnriching && !isLoading && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted. Upload resume.</p>}
+              {!isEnriching && !isLoading && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted from resume.</p>}
               <div className="flex flex-wrap gap-2">
                 {skillsToDisplay.map(skill => <Badge key={skill} variant="default" className="text-sm py-1 px-2">{skill}</Badge>)}
               </div>
             </CardContent>
           </Card>
           <Card className="shadow-lg">
-            <CardHeader><CardTitle className="text-lg">Resume</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-lg">Resume Status</CardTitle></CardHeader>
             <CardContent>
-                <p className="text-sm text-muted-foreground mb-2">
-                    {candidate.mockResumeDataUri === "New resume uploaded"
-                      ? "New resume has been processed."
-                      : candidate.mockResumeDataUri?.startsWith("data:")
-                        ? "Original mock resume on file."
-                        : "No resume on file or not a data URI."}
+                <p className="text-sm text-muted-foreground">
+                    {candidate.mockResumeDataUri?.startsWith("data:")
+                      ? "Candidate's resume has been processed by AI."
+                      : "No resume data available for AI processing."}
                 </p>
-                <Form {...resumeForm}>
-                    <form onSubmit={resumeForm.handleSubmit(handleResumeEnrichment)} className="space-y-3">
-                        <FormField
-                            control={resumeForm.control}
-                            name="resumeFile"
-                            render={({ field: { onChange, value, ...rest }}) => {
-                                const resumeFileInputId = `recruiter-candidate-resume-${React.useId()}`;
-                                const currentFile = value?.[0] as File | undefined;
-                                return (
-                                <FormItem>
-                                    <FormLabel htmlFor={resumeFileInputId} className="sr-only">New Resume</FormLabel>
-                                    <FormControl>
-                                      <div>
-                                        <Input 
-                                            type="file"
-                                            id={resumeFileInputId}
-                                            accept=".pdf,.txt" 
-                                            onChange={(e) => onChange(e.target.files)}
-                                            className="sr-only"
-                                            disabled={isEnriching || isLoading}
-                                            {...rest} 
-                                        />
-                                        <Label
-                                            htmlFor={resumeFileInputId}
-                                            className={cn(
-                                                "inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer w-full",
-                                                "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg transition-all"
-                                            )}
-                                        >
-                                            <FileUp className="mr-2 h-4 w-4" />
-                                            {currentFile?.name ? "Change Resume" : "Upload & Re-Enrich"}
-                                        </Label>
-                                      </div>
-                                    </FormControl>
-                                     {currentFile?.name && <p className="text-xs text-muted-foreground mt-1">Selected: {currentFile.name}</p>}
-                                    <FormMessage className="text-xs"/>
-                                </FormItem>
-                                );
-                            }}
-                        />
-                        <Button type="submit" size="sm" className="w-full" disabled={isEnriching || isLoading || !currentResumeFile}>
-                            {isEnriching ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileUp className="mr-2 h-4 w-4"/>}
-                            Process New Resume
-                        </Button>
-                    </form>
-                </Form>
+                {/* Placeholder if a download link were available */}
+                {/* <Button variant="outline" size="sm" className="mt-2">Download Resume (Placeholder)</Button> */}
             </CardContent>
           </Card>
            <Card className="shadow-lg">
@@ -509,3 +416,4 @@ export default function CandidateProfilePage() {
   );
 }
 
+    
