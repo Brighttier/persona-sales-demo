@@ -33,8 +33,8 @@ body {
     --destructive: 0 84% 60%; /* Standard Red */
     --destructive-foreground: 0 0% 98%; /* White */
 
-    --border: 142 50% 70%; /* Lighter Green for borders */
-    --input: 142 50% 70%; /* Lighter Green for input borders */
+    --border: 142 50% 80%; /* Lighter Green for borders - adjusted from 70% to 80% for less intensity */
+    --input: 142 50% 80%; /* Lighter Green for input borders - adjusted */
     --ring: 142 71% 35%; /* Fiverr Green for focus rings */
 
     --radius: 0.5rem;
@@ -82,8 +82,8 @@ body {
     --destructive: 0 70% 55%; /* Red, slightly adjusted for dark */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 142 50% 50%; /* Greenish border for dark mode (slightly darker than light mode accent for borders) */
-    --input: 142 50% 50%; /* Greenish input border for dark mode */
+    --border: 142 50% 60%; /* Greenish border for dark mode - adjusted */
+    --input: 142 50% 60%; /* Greenish input border for dark mode - adjusted */
     --ring: 142 71% 45%; /* Lighter Green ring for dark mode */
 
     /* Sidebar specific theme variables for dark mode */
@@ -114,27 +114,26 @@ body {
   }
 }
 
-/* Updated Speaking Orb CSS */
 @layer components {
   .ai-speaking-orb {
-    @apply inline-block w-6 h-6 rounded-full bg-accent transition-all duration-300 ease-in-out; /* Slightly smaller than before, more standard */
-    box-shadow: 0 0 5px hsl(var(--accent) / 0.7); /* More subtle shadow */
+    @apply inline-block w-6 h-6 rounded-full transition-all duration-300 ease-in-out;
+    background-color: #6DB035; /* Specific green from user request */
+    box-shadow: 0 0 8px 0px #6DB03566; /* Subtle matching glow */
   }
   .ai-speaking-orb.speaking {
     animation: speaking-pulse-subtle 1.2s infinite ease-in-out;
   }
 }
 
-@keyframes speaking-pulse-subtle { /* Renamed from speaking-pulse-neon */
+@keyframes speaking-pulse-subtle {
   0%, 100% {
     transform: scale(0.9);
-    opacity: 0.7;
-    box-shadow: 0 0 3px hsl(var(--accent) / 0.6);
+    opacity: 0.8;
+    box-shadow: 0 0 6px 0px #6DB0354D; /* Softer shadow for non-speaking state */
   }
   50% {
     transform: scale(1);
     opacity: 1;
-    box-shadow: 0 0 6px hsl(var(--accent) / 0.8);
+    box-shadow: 0 0 12px 2px #6DB035B3; /* More pronounced shadow for speaking pulse */
   }
 }
-
