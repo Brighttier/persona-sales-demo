@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit3, FileUp, Loader2, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText, Camera } from "lucide-react";
+import { Edit3, FileUp, Loader2, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText, Camera, VideoIcon } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
@@ -56,12 +56,16 @@ const profileFormSchema = z.object({
   experience: z.array(experienceSchema).optional(),
   education: z.array(educationSchema).optional(),
   certifications: z.array(certificationSchema).optional(),
-  resume: z.any().optional(),
+  resume: z.any().optional(), // Can be FileList or null
   linkedinProfile: z.string().url("Invalid LinkedIn URL, ensure it includes http(s)://").optional().or(z.literal('')),
   portfolioUrl: z.string().url("Invalid portfolio URL, ensure it includes http(s)://").optional().or(z.literal('')),
+  introductionVideoUrl: z.string().url("Invalid video URL").optional().or(z.literal('')), // For future use
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
+
+// Placeholder video URL - replace with actual data source in a real app
+const PLACEHOLDER_INTRO_VIDEO_URL = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4";
 
 export default function CandidateProfilePage() {
   const { user, isLoading: authLoading, login } = useAuth();
@@ -88,6 +92,7 @@ export default function CandidateProfilePage() {
       resume: null,
       linkedinProfile: "",
       portfolioUrl: "",
+      introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL, // Initialize with placeholder
     },
   });
 
@@ -98,7 +103,7 @@ export default function CandidateProfilePage() {
 
   const resetFormValues = useCallback((currentUser: typeof user) => {
     if (currentUser) {
-      const currentValues = form.getValues();
+      const currentValues = form.getValues(); // Get potentially edited values if form was dirty
       form.reset({
         fullName: currentUser.name,
         email: currentUser.email,
@@ -113,6 +118,7 @@ export default function CandidateProfilePage() {
         linkedinProfile: currentValues.linkedinProfile || "",
         portfolioUrl: currentValues.portfolioUrl || "",
         resume: currentValues.resume || null,
+        introductionVideoUrl: currentValues.introductionVideoUrl || PLACEHOLDER_INTRO_VIDEO_URL,
       });
       setAvatarPreview(currentUser.avatar || null);
     }
@@ -176,16 +182,17 @@ export default function CandidateProfilePage() {
   const onSubmit = async (data: ProfileFormValues) => {
     setIsSubmitting(true);
     console.log("Profile Data Submitted:", data);
+
     // In a real app, you would also handle the avatarFile if it exists
     // e.g., upload avatarFile to storage and update user.avatar with the new URL
 
     await new Promise(resolve => setTimeout(resolve, 1500));
 
 
-    if (user && data.fullName !== user.name && login) {
+    if (user && data.fullName !== user.name && login) { // Check if login function is available
         const updatedUser = { ...user, name: data.fullName, avatar: avatarPreview || user.avatar }; // Include avatar in update
         // Simulate updating user in AuthContext. In a real app, this would come from backend.
-        // login(user.role, updatedUser); // Assuming login can take an updated user object
+        // login(user.role, updatedUser); // This line might need adjustment based on your AuthContext `login` signature
     }
 
     setIsSubmitting(false);
@@ -220,6 +227,7 @@ export default function CandidateProfilePage() {
   const currentLocation = form.watch("location");
   const currentLinkedin = form.watch("linkedinProfile");
   const currentPortfolio = form.watch("portfolioUrl");
+  const currentIntroductionVideoUrl = form.watch("introductionVideoUrl");
 
 
   return (
@@ -384,6 +392,35 @@ export default function CandidateProfilePage() {
           {/* Right Column */}
           <div className="lg:col-span-1 space-y-6">
             <Card className="shadow-lg">
+              <CardHeader><CardTitle className="flex items-center"><VideoIcon className="mr-2 h-5 w-5 text-primary"/> My Introduction Video</CardTitle></CardHeader>
+              <CardContent>
+                {currentIntroductionVideoUrl ? (
+                  <video src={currentIntroductionVideoUrl} controls className="w-full rounded-md aspect-video shadow-inner bg-muted"></video>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <VideoIcon className="mx-auto h-10 w-10 mb-2" />
+                    <p className="text-sm">No introduction video uploaded yet.</p>
+                    {isEditing && <p className="text-xs mt-1">You can add a video URL below.</p>}
+                  </div>
+                )}
+                {isEditing && (
+                  <FormField
+                    control={form.control}
+                    name="introductionVideoUrl"
+                    render={({ field }) => (
+                      <FormItem className="mt-4">
+                        <FormLabel>Video URL</FormLabel>
+                        <FormControl><Input {...field} placeholder="https://example.com/intro.mp4" /></FormControl>
+                        <FormDescription className="text-xs">Paste a link to your hosted introduction video.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg">
               <CardHeader><CardTitle>Skills</CardTitle></CardHeader>
               <CardContent>
                 {isEditing && (
@@ -418,7 +455,7 @@ export default function CandidateProfilePage() {
                               onChange={(e) => {
                                 const files = e.target.files;
                                 if (files && files.length > 0) {
-                                  onChange(files);
+                                  onChange(files); // RHF expects FileList here for this field type
                                   handleResumeUpload(files[0]);
                                 } else {
                                   onChange(null);
