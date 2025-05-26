@@ -9,9 +9,9 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast"; 
+import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit3, FileUp, Loader2, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText } from "lucide-react";
+import { Edit3, FileUp, Loader2, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText, Camera } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
@@ -70,15 +70,16 @@ export default function CandidateProfilePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [skillsInput, setSkillsInput] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      fullName: "", 
-      email: "", 
-      phone: "", 
-      location: "", 
-      headline: "", 
+      fullName: "",
+      email: "",
+      phone: "",
+      location: "",
+      headline: "",
       summary: "",
       skills: [],
       experience: [],
@@ -97,11 +98,11 @@ export default function CandidateProfilePage() {
 
   const resetFormValues = useCallback((currentUser: typeof user) => {
     if (currentUser) {
-      const currentValues = form.getValues(); 
+      const currentValues = form.getValues();
       form.reset({
         fullName: currentUser.name,
         email: currentUser.email,
-        phone: currentValues.phone || "123-456-7890", 
+        phone: currentValues.phone || "123-456-7890",
         location: currentValues.location || "Anytown, USA",
         headline: currentValues.headline || "Aspiring Software Innovator | Eager to Learn",
         summary: currentValues.summary || "Passionate about creating impactful technology solutions. Eager to learn and contribute to a dynamic team. Seeking new challenges to grow my skills in web development and AI.",
@@ -113,14 +114,18 @@ export default function CandidateProfilePage() {
         portfolioUrl: currentValues.portfolioUrl || "",
         resume: currentValues.resume || null,
       });
+      setAvatarPreview(currentUser.avatar || null);
     }
   }, [form]);
 
   useEffect(() => {
-    if (user && !form.formState.isDirty) { 
+    if (user && !form.formState.isDirty) {
       resetFormValues(user);
     }
-  }, [user, resetFormValues, form.formState.isDirty]);
+    if (user && !avatarPreview) {
+        setAvatarPreview(user.avatar || null);
+    }
+  }, [user, resetFormValues, form.formState.isDirty, avatarPreview]);
 
 
   const handleResumeUpload = async (file: File) => {
@@ -154,16 +159,33 @@ export default function CandidateProfilePage() {
     }
   };
 
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+        toast({ title: "Avatar Preview Updated", description: "Save changes to apply. (Upload simulated)" });
+      };
+      reader.readAsDataURL(file);
+      // Here you would typically also prepare to upload `file` on form submission
+      // For this placeholder, we just update the preview.
+    }
+  };
+
   const onSubmit = async (data: ProfileFormValues) => {
     setIsSubmitting(true);
     console.log("Profile Data Submitted:", data);
-    
+    // In a real app, you would also handle the avatarFile if it exists
+    // e.g., upload avatarFile to storage and update user.avatar with the new URL
+
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    
-    if (user && data.fullName !== user.name && login) { 
-        const updatedUser = { ...user, name: data.fullName };
-        login(user.role); 
+
+    if (user && data.fullName !== user.name && login) {
+        const updatedUser = { ...user, name: data.fullName, avatar: avatarPreview || user.avatar }; // Include avatar in update
+        // Simulate updating user in AuthContext. In a real app, this would come from backend.
+        // login(user.role, updatedUser); // Assuming login can take an updated user object
     }
 
     setIsSubmitting(false);
@@ -193,6 +215,13 @@ export default function CandidateProfilePage() {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">Loading profile...</p></div>;
   }
 
+  const currentFullName = form.watch("fullName") || user.name;
+  const currentHeadline = form.watch("headline");
+  const currentLocation = form.watch("location");
+  const currentLinkedin = form.watch("linkedinProfile");
+  const currentPortfolio = form.watch("portfolioUrl");
+
+
   return (
     <div className="space-y-6">
       <div className="flex justify-end mb-4">
@@ -215,28 +244,41 @@ export default function CandidateProfilePage() {
       </div>
 
       <Card className="shadow-xl">
-        {/* Banner Area */}
         <div className="bg-gradient-to-br from-primary/10 via-background to-background h-16 md:h-20" />
-        
-        {/* Content Area: Avatar + Text Details */}
         <div className="px-6 pb-6">
-          <div className="flex flex-col sm:flex-row items-start"> {/* Align items to start for text alignment */}
-            {/* Wrapper for Avatar to apply negative margin */}
-            <div className="-mt-12 md:-mt-16 shrink-0"> 
-              <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
-                <AvatarImage src={user.avatar || `https://placehold.co/200x200.png?text=${(form.watch("fullName") || user.name).charAt(0)}`} alt={form.watch("fullName") || user.name} data-ai-hint="person professional"/>
-                <AvatarFallback>{(form.watch("fullName") || user.name).split(" ").map(n=>n[0]).join("").toUpperCase()}</AvatarFallback>
-              </Avatar>
-            </div>
-            
-            {/* Text Details - these will now be on the white background of the card */}
+          <div className="flex flex-col sm:flex-row items-start">
+             <div className="-mt-12 md:-mt-16 shrink-0 relative group">
+                <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
+                  <AvatarImage src={avatarPreview || user.avatar || `https://placehold.co/200x200.png?text=${currentFullName.charAt(0)}`} alt={currentFullName} data-ai-hint="person professional"/>
+                  <AvatarFallback>{currentFullName.split(" ").map(n=>n[0]).join("").toUpperCase()}</AvatarFallback>
+                </Avatar>
+                {isEditing && (
+                  <>
+                    <input
+                      type="file"
+                      id="avatarUpload"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                    />
+                    <label
+                      htmlFor="avatarUpload"
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer rounded-full"
+                      title="Change profile picture"
+                    >
+                      <Camera className="h-8 w-8 text-white" />
+                    </label>
+                  </>
+                )}
+              </div>
+
             <div className="sm:ml-6 mt-4 sm:mt-0 text-center sm:text-left w-full">
-              <CardTitle className="text-2xl md:text-3xl text-foreground">{form.watch("fullName")}</CardTitle>
-              <CardDescription className="text-base mt-1 text-primary">{form.watch("headline")}</CardDescription>
-              <p className="text-sm text-muted-foreground mt-1">{form.watch("location")}</p>
+              <CardTitle className="text-2xl md:text-3xl text-foreground">{currentFullName}</CardTitle>
+              <CardDescription className="text-base mt-1 text-primary">{currentHeadline}</CardDescription>
+              <p className="text-sm text-muted-foreground mt-1">{currentLocation}</p>
               <div className="flex gap-2 mt-2 justify-center sm:justify-start">
-                {form.watch("linkedinProfile") && <Button variant="ghost" size="sm" asChild><Link href={form.watch("linkedinProfile")!} target="_blank"><Linkedin className="h-4 w-4 mr-1"/> LinkedIn</Link></Button>}
-                {form.watch("portfolioUrl") && <Button variant="ghost" size="sm" asChild><Link href={form.watch("portfolioUrl")!} target="_blank"><ExternalLink className="h-4 w-4 mr-1"/> Portfolio</Link></Button>}
+                {currentLinkedin && <Button variant="ghost" size="sm" asChild><Link href={currentLinkedin} target="_blank"><Linkedin className="h-4 w-4 mr-1"/> LinkedIn</Link></Button>}
+                {currentPortfolio && <Button variant="ghost" size="sm" asChild><Link href={currentPortfolio} target="_blank"><ExternalLink className="h-4 w-4 mr-1"/> Portfolio</Link></Button>}
               </div>
             </div>
           </div>
@@ -376,8 +418,8 @@ export default function CandidateProfilePage() {
                               onChange={(e) => {
                                 const files = e.target.files;
                                 if (files && files.length > 0) {
-                                  onChange(files); 
-                                  handleResumeUpload(files[0]); 
+                                  onChange(files);
+                                  handleResumeUpload(files[0]);
                                 } else {
                                   onChange(null);
                                 }
@@ -412,7 +454,7 @@ export default function CandidateProfilePage() {
           </div>
 
           {isEditing && (
-            <CardFooter className="lg:col-span-3 flex justify-end gap-2 pt-8 border-t mt-0"> 
+            <CardFooter className="lg:col-span-3 flex justify-end gap-2 pt-8 border-t mt-0">
               <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if(user) resetFormValues(user); }} disabled={isSubmitting || isAiProcessing}>Cancel</Button>
               <Button type="button" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting || isAiProcessing}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
