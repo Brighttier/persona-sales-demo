@@ -52,19 +52,23 @@ export default function RecruiterJobApprovalsPage() {
 
   const getStatusPill = (status: JobForRecruiterApproval["status"]) => {
     switch(status) {
-        case "Pending Recruiter Approval": return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-300"><Clock className="mr-1 h-3 w-3"/>{status}</Badge>;
-        case "Approved by Recruiter": return <Badge className="bg-green-100 text-green-700 border-green-300"><Check className="mr-1 h-3 w-3"/>Approved</Badge>;
-        case "Rejected by Recruiter": return <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-300"><X className="mr-1 h-3 w-3"/>Rejected</Badge>;
-        default: return <Badge>{status}</Badge>;
+        case "Pending Recruiter Approval": return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-100 py-1"><Clock className="mr-1 h-3 w-3"/>{status}</Badge>;
+        case "Approved by Recruiter": return <Badge className="bg-green-100 text-green-800 border-green-300 hover:bg-green-100 py-1"><Check className="mr-1 h-3 w-3"/>Approved</Badge>;
+        case "Rejected by Recruiter": return <Badge className="bg-red-100 text-red-800 border-red-300 hover:bg-red-100 py-1"><X className="mr-1 h-3 w-3"/>Rejected</Badge>;
+        default: return <Badge className="py-1">{status}</Badge>;
     }
   };
 
   const openDetailsDialog = (job: JobForRecruiterApproval) => {
     setSelectedJob(job);
+    // If rejecting, ensure rejectionReason is cleared for the new dialog instance
+    if (job.status === "Pending Recruiter Approval") {
+        setRejectionReason("");
+    }
   };
 
   return (
-    <Dialog onOpenChange={(open) => !open && setSelectedJob(null)}>
+    <Dialog onOpenChange={(open) => { if (!open) setSelectedJob(null); }}>
       <div className="space-y-6">
         <Card className="shadow-xl">
           <CardHeader>
@@ -74,10 +78,10 @@ export default function RecruiterJobApprovalsPage() {
         </Card>
 
         <Card className="shadow-lg">
-          <CardHeader className="border-b">
-             <div className="flex items-center space-x-2">
-                <SearchIcon className="h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search job titles or departments..." className="max-w-sm"/>
+          <CardHeader className="border-b py-4">
+             <div className="relative max-w-xs">
+                <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search job titles or departments..." className="pl-8"/>
              </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -100,22 +104,24 @@ export default function RecruiterJobApprovalsPage() {
                     <TableCell>{job.hiringManager}</TableCell>
                     <TableCell>{job.dateSubmitted}</TableCell>
                     <TableCell>{getStatusPill(job.status)}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" onClick={() => openDetailsDialog(job)}><Eye className="mr-1 h-4 w-4"/> View & Optimize</Button>
-                      </DialogTrigger>
-                      {job.status === "Pending Recruiter Approval" && (
-                        <>
-                          <DialogTrigger asChild>
-                             <Button variant="outline" size="sm" className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700" onClick={() => setSelectedJob(job)}>
-                                <ThumbsDown className="mr-1 h-4 w-4" /> Reject
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" onClick={() => openDetailsDialog(job)}><Eye className="mr-1 h-4 w-4"/> View & Optimize</Button>
+                        </DialogTrigger>
+                        {job.status === "Pending Recruiter Approval" && (
+                          <>
+                            <DialogTrigger asChild>
+                               <Button variant="outline" size="sm" className="text-red-600 border-red-400 hover:bg-red-50 hover:text-red-700 focus-visible:ring-red-400" onClick={() => openDetailsDialog(job)}>
+                                  <ThumbsDown className="mr-1 h-3.5 w-3.5" /> Reject
+                              </Button>
+                            </DialogTrigger>
+                            <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 text-white focus-visible:ring-green-500" onClick={() => handleAction(job.id, 'approve')}>
+                              <ThumbsUp className="mr-1 h-3.5 w-3.5" /> Approve & Post
                             </Button>
-                          </DialogTrigger>
-                          <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleAction(job.id, 'approve')}>
-                            <ThumbsUp className="mr-1 h-4 w-4" /> Approve & Post
-                          </Button>
-                        </>
-                      )}
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -163,7 +169,13 @@ export default function RecruiterJobApprovalsPage() {
             <Button type="button" variant="outline" onClick={() => setSelectedJob(null)}>Close</Button>
             {selectedJob.status === "Pending Recruiter Approval" && (
                 <>
-                <Button type="button" variant="destructive" onClick={() => handleAction(selectedJob.id, 'reject', rejectionReason)}>
+                <Button type="button" variant="destructive" onClick={() => {
+                    if (!rejectionReason.trim()) {
+                        toast({title: "Reason Required", description: "Please provide a reason for rejection.", variant: "destructive"});
+                        return;
+                    }
+                    handleAction(selectedJob.id, 'reject', rejectionReason);
+                }}>
                     Confirm Rejection
                 </Button>
                  <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleAction(selectedJob.id, 'approve')}>
@@ -177,4 +189,3 @@ export default function RecruiterJobApprovalsPage() {
     </Dialog>
   );
 }
-    
