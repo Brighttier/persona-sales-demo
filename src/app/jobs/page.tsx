@@ -8,10 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Briefcase, MapPin, Search, Eye, Clock, ArrowRight, Star } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
-// Expanded Mock job data
-const allMockJobListings = [
+interface JobListing {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  type: string;
+  postedDate: string;
+  skills: string[];
+  shortDescription: string;
+  experienceLevel: string;
+  salary?: string;
+  isFeatured?: boolean;
+}
+
+const allMockJobListings: JobListing[] = [
   {
     id: "1",
     title: "Senior SAP Basis Consultant",
@@ -110,13 +123,50 @@ const JOBS_INCREMENT_COUNT = 2;
 
 
 export default function JobBoardPage() {
-  const [displayedJobs, setDisplayedJobs] = useState(allMockJobListings.slice(0, INITIAL_JOBS_TO_SHOW));
+  const [keywordsInput, setKeywordsInput] = useState("");
+  const [locationInput, setLocationInput] = useState("");
+  const [jobTypeFilter, setJobTypeFilter] = useState<string | "all">("all");
+
+  const [appliedKeywords, setAppliedKeywords] = useState("");
+  const [appliedLocation, setAppliedLocation] = useState("");
+  const [appliedJobType, setAppliedJobType] = useState<string | "all">("all");
+  
   const [visibleJobsCount, setVisibleJobsCount] = useState(INITIAL_JOBS_TO_SHOW);
 
+  const handleSearchJobs = () => {
+    setAppliedKeywords(keywordsInput);
+    setAppliedLocation(locationInput);
+    setAppliedJobType(jobTypeFilter);
+    setVisibleJobsCount(INITIAL_JOBS_TO_SHOW); // Reset pagination on new search
+  };
+  
+  const filteredJobs = useMemo(() => {
+    return allMockJobListings.filter(job => {
+      const keywordsLower = appliedKeywords.toLowerCase();
+      const locationLower = appliedLocation.toLowerCase();
+
+      const titleMatch = job.title.toLowerCase().includes(keywordsLower);
+      const companyMatch = job.company.toLowerCase().includes(keywordsLower);
+      const skillsMatch = job.skills.some(skill => skill.toLowerCase().includes(keywordsLower));
+      const descriptionMatch = job.shortDescription.toLowerCase().includes(keywordsLower);
+      
+      const keywordsCondition = !appliedKeywords || titleMatch || companyMatch || skillsMatch || descriptionMatch;
+      
+      const locationCondition = !appliedLocation || job.location.toLowerCase().includes(locationLower);
+      
+      const jobTypeCondition = appliedJobType === "all" || job.type.toLowerCase() === appliedJobType.toLowerCase();
+
+      return keywordsCondition && locationCondition && jobTypeCondition;
+    });
+  }, [appliedKeywords, appliedLocation, appliedJobType]);
+
+  const displayedJobs = useMemo(() => {
+    return filteredJobs.slice(0, visibleJobsCount);
+  }, [filteredJobs, visibleJobsCount]);
+
   const handleLoadMore = () => {
-    const newVisibleCount = Math.min(visibleJobsCount + JOBS_INCREMENT_COUNT, allMockJobListings.length);
+    const newVisibleCount = Math.min(visibleJobsCount + JOBS_INCREMENT_COUNT, filteredJobs.length);
     setVisibleJobsCount(newVisibleCount);
-    setDisplayedJobs(allMockJobListings.slice(0, newVisibleCount));
   };
 
   const renderJobCard = (job: typeof allMockJobListings[0]) => (
@@ -188,28 +238,40 @@ export default function JobBoardPage() {
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end pt-6 border-t">
           <div className="md:col-span-2 space-y-2">
             <label htmlFor="keywords" className="text-sm font-medium">Keywords</label>
-            <Input id="keywords" placeholder="Job title, skills, or company" className="w-full" />
+            <Input 
+              id="keywords" 
+              placeholder="Job title, skills, or company" 
+              className="w-full" 
+              value={keywordsInput}
+              onChange={(e) => setKeywordsInput(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <label htmlFor="location" className="text-sm font-medium">Location</label>
-            <Input id="location" placeholder="City, state, or remote" className="w-full" />
+            <Input 
+              id="location" 
+              placeholder="City, state, or remote" 
+              className="w-full" 
+              value={locationInput}
+              onChange={(e) => setLocationInput(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
              <label htmlFor="jobType" className="text-sm font-medium">Job Type</label>
-            <Select>
+            <Select value={jobTypeFilter} onValueChange={(value) => setJobTypeFilter(value)}>
               <SelectTrigger id="jobType">
                 <SelectValue placeholder="All Job Types" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Job Types</SelectItem>
-                <SelectItem value="full-time">Full-time</SelectItem>
-                <SelectItem value="part-time">Part-time</SelectItem>
-                <SelectItem value="contract">Contract</SelectItem>
-                <SelectItem value="internship">Internship</SelectItem>
+                <SelectItem value="Full-time">Full-time</SelectItem>
+                <SelectItem value="Part-time">Part-time</SelectItem>
+                <SelectItem value="Contract">Contract</SelectItem>
+                <SelectItem value="Internship">Internship</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Button className="md:col-start-4">
+          <Button className="md:col-start-4" onClick={handleSearchJobs}>
             <Search className="mr-2 h-4 w-4" /> Search Jobs
           </Button>
         </CardContent>
@@ -221,12 +283,12 @@ export default function JobBoardPage() {
           <Card className="text-center py-10 shadow-lg">
             <CardContent>
                 <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No job listings found. Try adjusting your search filters.</p>
+                <p className="text-muted-foreground">No job listings found matching your criteria.</p>
             </CardContent>
           </Card>
         )}
       </div>
-      {visibleJobsCount < allMockJobListings.length && (
+      {visibleJobsCount < filteredJobs.length && (
         <div className="flex justify-center mt-8">
             <Button variant="outline" onClick={handleLoadMore}>Load More Jobs</Button>
         </div>

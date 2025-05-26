@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 const mockUsers = [
   { id: "user1", name: "Alex Johnson", email: "alex.johnson@example.com", role: USER_ROLES.CANDIDATE, status: "Active", lastLogin: "2024-07-22" },
@@ -38,19 +38,20 @@ type AddUserFormValues = z.infer<typeof addUserFormSchema>;
 export default function UserManagementPage() {
   const { toast } = useToast();
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<string | "all">("all");
 
   const form = useForm<AddUserFormValues>({
     resolver: zodResolver(addUserFormSchema),
     defaultValues: {
       fullName: "",
       email: "",
-      // role: undefined, // Will be set by Select placeholder
     },
   });
 
   const handleAction = (userId: string, action: string) => {
     toast({ title: `Action: ${action}`, description: `Performed ${action} on user ${userId}. (Simulated)`});
-    // API call would happen here
   };
 
   const onAddUserSubmit = (data: AddUserFormValues) => {
@@ -74,12 +75,22 @@ export default function UserManagementPage() {
   
   const getStatusBadgeVariant = (status: string) => {
     switch(status) {
-        case "Active": return "default"; // green-ish
-        case "Inactive": return "secondary"; // grey
-        case "Pending": return "outline"; // yellow-ish
+        case "Active": return "default"; 
+        case "Inactive": return "secondary"; 
+        case "Pending": return "outline"; 
         default: return "outline";
     }
   }
+
+  const filteredUsers = useMemo(() => {
+    return mockUsers.filter(user => {
+      const searchMatch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const roleMatch = roleFilter === "all" || user.role === roleFilter;
+      const statusMatch = statusFilter === "all" || user.status === statusFilter;
+      return searchMatch && roleMatch && statusMatch;
+    });
+  }, [searchTerm, roleFilter, statusFilter]);
 
 
   return (
@@ -173,23 +184,28 @@ export default function UserManagementPage() {
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
             <div className="flex-grow relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search users by name or email..." className="pl-8 w-full md:w-auto" />
+                <Input 
+                  placeholder="Search users by name or email..." 
+                  className="pl-8 w-full md:w-auto" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
             </div>
             <div className="flex gap-2">
-                 <Select>
+                 <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value as UserRole | "all")}>
                     <SelectTrigger className="w-full md:w-[180px]"> <SelectValue placeholder="Filter by Role" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Roles</SelectItem>
                         {Object.values(USER_ROLES).map(r => <SelectItem key={r} value={r} className="capitalize">{r.replace("-", " ")}</SelectItem>)}
                     </SelectContent>
                 </Select>
-                <Select>
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value)}>
                     <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Filter by Status" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Inactive">Inactive</SelectItem>
+                        <SelectItem value="Pending">Pending</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -208,7 +224,7 @@ export default function UserManagementPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockUsers.map((user) => (
+              {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -245,6 +261,11 @@ export default function UserManagementPage() {
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredUsers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center h-24">No users found matching your criteria.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

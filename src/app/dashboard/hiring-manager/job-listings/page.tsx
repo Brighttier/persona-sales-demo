@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
 
 const mockHMJobListings = [
   { id: "hmjob1", title: "Lead Software Architect", status: "Pending Approval", applicants: 0, department: "Engineering", location: "Remote", dateCreated: "2024-07-28" },
@@ -24,6 +25,26 @@ export default function HiringManagerJobListingsPage() {
   const { user, role } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+
+  const [searchInputVal, setSearchInputVal] = useState("");
+  const [statusFilterVal, setStatusFilterVal] = useState<string | "all">("all");
+
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [appliedStatus, setAppliedStatus] = useState<string | "all">("all");
+
+  const handleApplyFilters = () => {
+    setAppliedSearch(searchInputVal);
+    setAppliedStatus(statusFilterVal);
+  };
+
+  const filteredJobs = useMemo(() => {
+    return mockHMJobListings.filter(job => {
+      const searchMatch = job.title.toLowerCase().includes(appliedSearch.toLowerCase()) ||
+                          job.department.toLowerCase().includes(appliedSearch.toLowerCase());
+      const statusMatch = appliedStatus === "all" || job.status === appliedStatus;
+      return searchMatch && statusMatch;
+    });
+  }, [appliedSearch, appliedStatus]);
 
   const handleJobAction = (jobId: string, action: string) => {
     toast({ title: `Action: ${action}`, description: `Performed ${action} on job ${jobId}. (Simulated)`});
@@ -60,20 +81,25 @@ export default function HiringManagerJobListingsPage() {
             <div className="flex flex-col md:flex-row gap-2 justify-between items-center">
                  <div className="relative flex-grow w-full md:w-auto">
                     <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search by title, department..." className="pl-8 w-full" />
+                    <Input 
+                      placeholder="Search by title, department..." 
+                      className="pl-8 w-full" 
+                      value={searchInputVal}
+                      onChange={(e) => setSearchInputVal(e.target.value)}
+                    />
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
-                    <Select>
+                    <Select value={statusFilterVal} onValueChange={(value) => setStatusFilterVal(value)}>
                         <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Filter by Status" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Statuses</SelectItem>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="pending-approval">Pending Approval</SelectItem>
-                            <SelectItem value="draft">Draft</SelectItem>
-                            <SelectItem value="closed">Closed</SelectItem>
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="Pending Approval">Pending Approval</SelectItem>
+                            <SelectItem value="Draft">Draft</SelectItem>
+                            <SelectItem value="Closed">Closed</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button variant="outline">Apply Filters</Button>
+                    <Button variant="outline" onClick={handleApplyFilters}>Apply Filters</Button>
                 </div>
             </div>
         </CardHeader>
@@ -91,7 +117,7 @@ export default function HiringManagerJobListingsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockHMJobListings.map((job) => (
+              {filteredJobs.map((job) => (
                 <TableRow key={job.id}>
                   <TableCell className="font-medium">
                     <Link href={`/dashboard/recruiter/job-listings/${job.id}/applicants`} className="hover:underline text-primary">
@@ -127,8 +153,8 @@ export default function HiringManagerJobListingsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {mockHMJobListings.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No job postings created yet.</TableCell></TableRow>
+              {filteredJobs.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No job postings found matching your criteria.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

@@ -13,10 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlus, UserX, Users, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-// AI Screening Flow
 import { aiCandidateScreening, type CandidateScreeningInput } from "@/ai/flows/ai-candidate-screening";
 
 interface Applicant {
@@ -61,7 +60,10 @@ export default function ViewApplicantsPage() {
   const [isScreeningLoading, setIsScreeningLoading] = useState(false);
   const [selectedApplicantForScreening, setSelectedApplicantForScreening] = useState<Applicant | null>(null);
   const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false);
-  const [applicantToUpdate, setApplicantToUpdate] = useState<Applicant | null>(null); // Changed from applicantToReject to be more generic
+  const [applicantToUpdate, setApplicantToUpdate] = useState<Applicant | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<Applicant["status"] | "all">("all");
 
   const jobData = mockJobTitles[jobId] || { title: `Job ID: ${jobId}`, description: "Details for this job are not available."};
 
@@ -73,8 +75,8 @@ export default function ViewApplicantsPage() {
         description: `${applicantToUpdate.name}'s status changed to ${newStatus}.`,
       });
       setApplicantToUpdate(null);
-      setSelectedApplicantForStatus(null); // Close main dialog if separate
-      setIsRejectConfirmOpen(false); // Close confirmation dialog
+      setSelectedApplicantForStatus(null); 
+      setIsRejectConfirmOpen(false); 
       setNewStatus("");
     }
   };
@@ -82,16 +84,17 @@ export default function ViewApplicantsPage() {
   const openStatusUpdateDialog = (applicant: Applicant, targetStatus?: Applicant["status"]) => {
     setApplicantToUpdate(applicant);
     if (targetStatus === "Not Selected") {
-        setIsRejectConfirmOpen(true); // Use this for confirmation
+        setNewStatus("Not Selected"); // Pre-fill status for rejection confirmation
+        setIsRejectConfirmOpen(true); 
     } else {
-        setSelectedApplicantForStatus(applicant); // Open the main status update dialog
-        setNewStatus(targetStatus || applicant.status); // Pre-fill if a specific status is targeted
+        setSelectedApplicantForStatus(applicant); 
+        setNewStatus(targetStatus || applicant.status); 
     }
   };
   
   const confirmStatusUpdateToAction = (status: Applicant["status"]) => {
      if (!applicantToUpdate) return;
-     setNewStatus(status); // Set the new status
+     setNewStatus(status); 
      setApplicants(prev => prev.map(app => app.id === applicantToUpdate!.id ? {...app, status: status} : app));
      toast({
         title: `Candidate Status Updated`,
@@ -101,7 +104,6 @@ export default function ViewApplicantsPage() {
       setIsRejectConfirmOpen(false);
       setApplicantToUpdate(null);
   };
-
 
   const handleAIScreen = async (applicant: Applicant) => {
     if (!applicant.resumeText || !jobData.description) {
@@ -150,6 +152,15 @@ export default function ViewApplicantsPage() {
     }
   };
 
+  const filteredApplicants = useMemo(() => {
+    return applicants.filter(applicant => {
+      const searchLower = searchTerm.toLowerCase();
+      const nameMatch = applicant.name.toLowerCase().includes(searchLower);
+      const skillsMatch = applicant.skills.some(skill => skill.toLowerCase().includes(searchLower));
+      const statusMatch = statusFilter === "all" || applicant.status === statusFilter;
+      return (nameMatch || skillsMatch) && statusMatch;
+    });
+  }, [applicants, searchTerm, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -171,10 +182,15 @@ export default function ViewApplicantsPage() {
           <div className="flex flex-col md:flex-row gap-2 justify-between items-center">
             <div className="relative flex-grow w-full md:w-auto">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search applicants by name or skills..." className="pl-8 w-full" />
+              <Input 
+                placeholder="Search applicants by name or skills..." 
+                className="pl-8 w-full" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
             <div className="flex gap-2 w-full md:w-auto">
-              <Select>
+              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as Applicant["status"] | "all")}>
                 <SelectTrigger className="w-full md:w-[180px]">
                   <SelectValue placeholder="Filter by Status" />
                 </SelectTrigger>
@@ -185,7 +201,7 @@ export default function ViewApplicantsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline">Apply Filters</Button>
+              {/* Removed "Apply Filters" button for live filtering */}
             </div>
           </div>
         </CardHeader>
@@ -201,7 +217,7 @@ export default function ViewApplicantsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {applicants.map((applicant) => (
+              {filteredApplicants.map((applicant) => (
                 <TableRow key={applicant.id}>
                   <TableCell>
                     <Link href={`/dashboard/recruiter/candidate-profile/${applicant.id}`} className="flex items-center gap-3 group hover:underline">
@@ -260,10 +276,10 @@ export default function ViewApplicantsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {applicants.length === 0 && (
+              {filteredApplicants.length === 0 && (
                  <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                        No applicants found for this job.
+                        No applicants found matching your criteria.
                     </TableCell>
                 </TableRow>
               )}
@@ -272,7 +288,6 @@ export default function ViewApplicantsPage() {
         </CardContent>
       </Card>
 
-      {/* Dialog for Update Status */}
       <Dialog open={!!selectedApplicantForStatus && !isRejectConfirmOpen} onOpenChange={(open) => !open && setSelectedApplicantForStatus(null)}>
         <DialogContent>
           <DialogHeader>
@@ -296,12 +311,11 @@ export default function ViewApplicantsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedApplicantForStatus(null)}>Cancel</Button>
-            <Button onClick={() => {applicantToUpdate && handleUpdateStatus()}}>Save Changes</Button>
+            <Button onClick={() => {if (applicantToUpdate) handleUpdateStatus()}}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for "Not Selected" Confirmation */}
         <Dialog open={isRejectConfirmOpen} onOpenChange={setIsRejectConfirmOpen}>
             <DialogContent>
                 <DialogHeader>

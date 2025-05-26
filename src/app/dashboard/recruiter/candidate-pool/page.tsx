@@ -50,8 +50,8 @@ const allMockCandidates: Candidate[] = [
   { id: "cand9", name: "Indiana Jones", role: "Data Explorer", experience: "10 Yrs", location: "Global (Remote)", skills: ["SQL", "NoSQL", "Data Mining", "Archaeology"], topSkill: "SQL", avatar: "https://placehold.co/100x100.png?text=IJ", aiMatchScore: 93, lastActive: "Today", interestedIn: ["Big Data", "Historical Data Analysis"] },
 ];
 
-const INITIAL_CANDIDATES_TO_SHOW = 6; // Increased initial show for list view
-const CANDIDATES_INCREMENT_COUNT = 4; // Increased increment for list view
+const INITIAL_CANDIDATES_TO_SHOW = 6; 
+const CANDIDATES_INCREMENT_COUNT = 4; 
 const ALL_CANDIDATES_FOLDER_ID = "all-candidates-folder";
 
 
@@ -78,25 +78,64 @@ export default function CandidatePoolPage() {
   const [selectedCandidateForFolderMove, setSelectedCandidateForFolderMove] = useState<Candidate | null>(null);
   const [targetFolderForMove, setTargetFolderForMove] = useState<string>("");
 
-  const filteredCandidates = useMemo(() => {
-    if (selectedFolderId === ALL_CANDIDATES_FOLDER_ID) {
-      return allMockCandidates;
+  // States for search/filter inputs
+  const [keywordsInput, setKeywordsInput] = useState("");
+  const [locationInput, setLocationInput] = useState("");
+
+  // States for applied filters
+  const [appliedKeywords, setAppliedKeywords] = useState("");
+  const [appliedLocation, setAppliedLocation] = useState("");
+
+
+  const handleApplySearchFilters = () => {
+    setAppliedKeywords(keywordsInput);
+    setAppliedLocation(locationInput);
+    // Reset pagination when new filters are applied
+    setVisibleCandidatesCount(INITIAL_CANDIDATES_TO_SHOW);
+  };
+
+  const filteredCandidatesByFolderAndSearch = useMemo(() => {
+    let candidates = allMockCandidates;
+
+    // Filter by folder
+    if (selectedFolderId !== ALL_CANDIDATES_FOLDER_ID) {
+      candidates = candidates.filter(candidate => candidateFolderAssignments[candidate.id] === selectedFolderId);
     }
-    return allMockCandidates.filter(candidate => candidateFolderAssignments[candidate.id] === selectedFolderId);
-  }, [selectedFolderId, candidateFolderAssignments]);
+
+    // Filter by applied keywords
+    if (appliedKeywords) {
+      const lowerKeywords = appliedKeywords.toLowerCase();
+      candidates = candidates.filter(candidate =>
+        candidate.name.toLowerCase().includes(lowerKeywords) ||
+        candidate.role.toLowerCase().includes(lowerKeywords) ||
+        candidate.skills.some(skill => skill.toLowerCase().includes(lowerKeywords))
+      );
+    }
+
+    // Filter by applied location
+    if (appliedLocation) {
+      const lowerLocation = appliedLocation.toLowerCase();
+      candidates = candidates.filter(candidate =>
+        candidate.location.toLowerCase().includes(lowerLocation)
+      );
+    }
+    return candidates;
+  }, [selectedFolderId, candidateFolderAssignments, appliedKeywords, appliedLocation]);
 
   const [visibleCandidatesCount, setVisibleCandidatesCount] = useState(INITIAL_CANDIDATES_TO_SHOW);
+  
   const displayedCandidates = useMemo(() => {
-    return filteredCandidates.slice(0, visibleCandidatesCount);
-  }, [filteredCandidates, visibleCandidatesCount]);
+    return filteredCandidatesByFolderAndSearch.slice(0, visibleCandidatesCount);
+  }, [filteredCandidatesByFolderAndSearch, visibleCandidatesCount]);
 
   useEffect(() => {
+    // Reset pagination when folder or applied filters change
     setVisibleCandidatesCount(INITIAL_CANDIDATES_TO_SHOW);
-  }, [selectedFolderId]);
+  }, [selectedFolderId, appliedKeywords, appliedLocation]);
 
 
   const handleLoadMoreCandidates = () => {
-    const newVisibleCount = Math.min(visibleCandidatesCount + CANDIDATES_INCREMENT_COUNT, filteredCandidates.length);
+    const newVisibleCount = Math.min(visibleCandidatesCount + CANDIDATES_INCREMENT_COUNT, filteredCandidatesByFolderAndSearch.length);
     setVisibleCandidatesCount(newVisibleCount);
   };
 
@@ -236,6 +275,13 @@ export default function CandidatePoolPage() {
                 </TableCell>
               </TableRow>
             ))}
+            {displayedCandidates.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                     {appliedKeywords || appliedLocation ? "No candidates found matching your search/filters." : "No candidates in this folder."}
+                  </TableCell>
+                </TableRow>
+              )}
           </TableBody>
         </Table>
       </CardContent>
@@ -256,34 +302,32 @@ export default function CandidatePoolPage() {
             <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border-t pt-6">
               <div className="md:col-span-2 space-y-1.5">
                 <Label htmlFor="keywords" className="text-xs font-medium">Search by Name, Skills, Role...</Label>
-                <Input id="keywords" placeholder="e.g., Alice, React, Product Manager..." />
+                <Input 
+                  id="keywords" 
+                  placeholder="e.g., Alice, React, Product Manager..." 
+                  value={keywordsInput}
+                  onChange={(e) => setKeywordsInput(e.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="locationFilter" className="text-xs font-medium">Location</Label>
-                <Input id="locationFilter" placeholder="City or Remote" />
+                <Input 
+                  id="locationFilter" 
+                  placeholder="City or Remote" 
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value)}
+                />
               </div>
               <div className="flex gap-2">
-                <Button className="flex-grow"><Search className="mr-2 h-4 w-4" /> Search</Button>
+                <Button className="flex-grow" onClick={handleApplySearchFilters}><Search className="mr-2 h-4 w-4" /> Search</Button>
                 <Button variant="outline" size="icon" aria-label="Advanced Filters"><Filter className="h-4 w-4" /></Button>
               </div>
             </CardContent>
           </Card>
-
-          {displayedCandidates.length === 0 && (
-              <Card className="col-span-full text-center py-10 shadow-lg">
-                <CardContent>
-                    <UsersIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">
-                        {selectedFolderId === ALL_CANDIDATES_FOLDER_ID ? "No candidates in the pool yet." : `No candidates found in "${folders.find(f => f.id === selectedFolderId)?.name || 'this folder'}".`}
-                    </p>
-                    {selectedFolderId !== ALL_CANDIDATES_FOLDER_ID && <Button variant="link" onClick={() => setSelectedFolderId(ALL_CANDIDATES_FOLDER_ID)}>View All Candidates</Button>}
-                </CardContent>
-              </Card>
-            )}
             
-            {displayedCandidates.length > 0 && renderListView()}
+          {renderListView()}
           
-          {filteredCandidates.length > visibleCandidatesCount && displayedCandidates.length > 0 && (
+          {filteredCandidatesByFolderAndSearch.length > visibleCandidatesCount && displayedCandidates.length > 0 && (
                 <div className="flex justify-center mt-4">
                     <Button variant="outline" onClick={handleLoadMoreCandidates}>Load More Candidates</Button>
                 </div>
@@ -367,6 +411,7 @@ export default function CandidatePoolPage() {
                                                 });
                                                 return updated;
                                             });
+                                            if (selectedFolderId === folder.id) setSelectedFolderId(ALL_CANDIDATES_FOLDER_ID); // Reset if active folder deleted
                                             toast({title: "Folder Deleted"});
                                         }}
                                     >
@@ -383,7 +428,6 @@ export default function CandidatePoolPage() {
         </div>
       </div>
 
-      {/* Dialog for Move to Folder */}
       <Dialog open={isMoveToFolderDialogOpen} onOpenChange={setIsMoveToFolderDialogOpen}>
         <DialogContent className="sm:max-w-md">
             <DialogHeader>

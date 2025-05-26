@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 const mockCompanies = [
   { id: "comp1", name: "Tech Solutions Inc.", plan: "Enterprise", users: 150, jobsPosted: 25, status: "Active", logo: "https://placehold.co/40x40.png?text=TS" },
@@ -25,7 +25,6 @@ const mockCompanies = [
 
 const addCompanyFormSchema = z.object({
   companyName: z.string().min(2, "Company name must be at least 2 characters."),
-  // Add more fields as needed for a real implementation, e.g., plan, admin user email
 });
 
 type AddCompanyFormValues = z.infer<typeof addCompanyFormSchema>;
@@ -33,6 +32,7 @@ type AddCompanyFormValues = z.infer<typeof addCompanyFormSchema>;
 export default function CompanyManagementPage() {
   const { toast } = useToast();
   const [isAddCompanyDialogOpen, setIsAddCompanyDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const form = useForm<AddCompanyFormValues>({
     resolver: zodResolver(addCompanyFormSchema),
@@ -43,7 +43,6 @@ export default function CompanyManagementPage() {
 
   const handleAction = (companyId: string, action: string) => {
     toast({ title: `Action: ${action}`, description: `Performed ${action} on company ${companyId}. (Simulated)`});
-    // API call would happen here
   };
 
   const onAddCompanySubmit = (data: AddCompanyFormValues) => {
@@ -55,6 +54,12 @@ export default function CompanyManagementPage() {
     form.reset();
     setIsAddCompanyDialogOpen(false);
   };
+
+  const filteredCompanies = useMemo(() => {
+    return mockCompanies.filter(company =>
+      company.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm]);
 
   return (
     <div className="space-y-6">
@@ -90,7 +95,6 @@ export default function CompanyManagementPage() {
                       </FormItem>
                     )}
                   />
-                  {/* Add more fields here for a real form */}
                   <DialogFooter>
                     <DialogClose asChild>
                        <Button type="button" variant="outline">Cancel</Button>
@@ -111,7 +115,12 @@ export default function CompanyManagementPage() {
             <div className="flex justify-between items-center">
                  <div className="relative flex-grow max-w-xs">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search companies..." className="pl-8" />
+                    <Input 
+                      placeholder="Search companies..." 
+                      className="pl-8" 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </div>
             </div>
         </CardHeader>
@@ -128,7 +137,7 @@ export default function CompanyManagementPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockCompanies.map((company) => (
+              {filteredCompanies.map((company) => (
                 <TableRow key={company.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -164,6 +173,11 @@ export default function CompanyManagementPage() {
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredCompanies.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center h-24">No companies found matching your search.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
