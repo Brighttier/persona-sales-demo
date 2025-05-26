@@ -131,12 +131,12 @@ export default function HiringManagerProfilePage() {
 
           <Card className="shadow-lg">
             <CardHeader>
-                <CardTitle className="flex items-center"><Settings className="mr-2 h-5 w-5 text-primary"/>Account Settings (Placeholder)</CardTitle>
-                <CardDescription>Manage your account preferences.</CardDescription>
+                <CardTitle className="flex items-center"><Settings className="mr-2 h-5 w-5 text-primary"/>Account Settings</CardTitle>
+                <CardDescription>Manage your account preferences and notifications.</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Configure your notification preferences for job approvals, new applicants for your roles, and interview reminders.
+                Configure notification preferences for new applicants for your roles, interview reminders for your team, and updates on job posting statuses. You can also manage integrations with your calendar or other team tools here (feature coming soon).
               </p>
             </CardContent>
           </Card>
