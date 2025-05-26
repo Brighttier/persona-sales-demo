@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, FileUp, Loader2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, UserCircle, BrainCircuit, Star, Award, Building, ShieldCheck, BarChart } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react"; // Added React import
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +19,8 @@ import { enrichProfile, type EnrichProfileOutput } from "@/ai/flows/profile-enri
 import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils"; // Added cn import
+import { Label } from "@/components/ui/label"; // Added Label import for custom file input
 
 
 // Data structures for profile sections
@@ -52,7 +54,7 @@ interface ApplicantDetail {
   linkedin?: string;
   portfolio?: string;
   headline?: string;
-  mockResumeDataUri?: string;
+  mockResumeDataUri?: string; // Can be the actual data URI or a placeholder string
   resumeText: string; 
   mockExperience?: ExperienceItem[];
   mockEducation?: EducationItem[];
@@ -139,7 +141,7 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
 };
 
 const resumeUploadSchema = z.object({
-  resumeFile: z.any().refine(file => file && file.length > 0, "Resume file is required."),
+  resumeFile: z.any().refine(file => file && file.length > 0, "Resume file is required."), // Expects a FileList
 });
 type ResumeUploadFormValues = z.infer<typeof resumeUploadSchema>;
 
@@ -180,7 +182,7 @@ export default function CandidateProfilePage() {
       try {
         const result = await enrichProfile({ resumeDataUri: foundCandidate.mockResumeDataUri });
         setEnrichedData(result);
-        toast({ title: "Profile Enriched", description: "AI has analyzed the resume." });
+        // toast({ title: "Profile Enriched", description: "AI has analyzed the resume." });
       } catch (error) {
         console.error("Initial enrichment error:", error);
         toast({ variant: "destructive", title: "AI Enrichment Failed", description: "Could not process the mock resume." });
@@ -219,7 +221,7 @@ export default function CandidateProfilePage() {
 
         const result = await enrichProfile({ resumeDataUri });
         setEnrichedData(result);
-        if (candidate) setCandidate({...candidate, mockResumeDataUri: "New resume uploaded", resumeText: newResumeText });
+        if (candidate) setCandidate({...candidate, mockResumeDataUri: "New resume uploaded", resumeText: newResumeText }); // Update resume text
         toast({ title: "New Resume Enriched!", description: "Profile updated with new resume data." });
         resumeForm.reset();
       };
@@ -281,6 +283,8 @@ export default function CandidateProfilePage() {
 
   const skillsToDisplay = enrichedData?.skills || [];
   const summaryToDisplay = enrichedData?.experienceSummary || "No AI summary available. Upload a resume to generate one.";
+  const currentResumeFile = resumeForm.watch("resumeFile")?.[0] as File | undefined;
+
 
   return (
     <div className="space-y-6">
@@ -385,32 +389,55 @@ export default function CandidateProfilePage() {
             <CardHeader><CardTitle className="text-lg">Resume</CardTitle></CardHeader>
             <CardContent>
                 <p className="text-sm text-muted-foreground mb-2">
-                    {candidate.mockResumeDataUri === "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu"
-                    ? "Original Mock Resume on file for Alice."
-                    : candidate.mockResumeDataUri === "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg=="
-                    ? "Original Mock Resume on file for Bob."
-                    : candidate.mockResumeDataUri === "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4="
-                    ? "Original Mock Resume on file for Eve."
-                    : candidate.mockResumeDataUri ? "New resume processed." : "No resume on file."}
+                    {candidate.mockResumeDataUri === "New resume uploaded"
+                      ? "New resume has been processed."
+                      : candidate.mockResumeDataUri?.startsWith("data:")
+                        ? "Original mock resume on file."
+                        : "No resume on file or not a data URI."}
                 </p>
                 <Form {...resumeForm}>
                     <form onSubmit={resumeForm.handleSubmit(handleResumeEnrichment)} className="space-y-3">
                         <FormField
                             control={resumeForm.control}
                             name="resumeFile"
-                            render={({ field: { onChange, value, ...rest }}) => (
+                            render={({ field: { onChange, value, ...rest }}) => {
+                                const fileInputId = `recruiter-resume-upload-${React.useId()}`;
+                                return (
                                 <FormItem>
-                                    <FormLabel className="sr-only">New Resume</FormLabel>
+                                    <FormLabel htmlFor={fileInputId} className="sr-only">New Resume</FormLabel>
                                     <FormControl>
-                                        <Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => onChange(e.target.files)} {...rest} className="text-xs"/>
+                                        <>
+                                            <Input
+                                                type="file"
+                                                id={fileInputId}
+                                                accept=".pdf,.doc,.docx"
+                                                onChange={(e) => onChange(e.target.files)} // RHF expects FileList
+                                                className="sr-only"
+                                                disabled={isEnriching || isLoading}
+                                                {...rest}
+                                            />
+                                            <Label
+                                                htmlFor={fileInputId}
+                                                className={cn(
+                                                "inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer w-full",
+                                                "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg transition-all",
+                                                (isEnriching || isLoading) && "opacity-50 cursor-not-allowed"
+                                                )}
+                                            >
+                                                <FileUp className="mr-2 h-4 w-4" />
+                                                {currentResumeFile?.name ? "Change Resume" : "Upload & Re-Enrich"}
+                                            </Label>
+                                        </>
                                     </FormControl>
+                                     {currentResumeFile?.name && <p className="text-xs text-muted-foreground mt-1">Selected: {currentResumeFile.name}</p>}
                                     <FormMessage className="text-xs"/>
                                 </FormItem>
-                            )}
+                                );
+                            }}
                         />
-                        <Button type="submit" size="sm" className="w-full" disabled={isEnriching || isLoading}>
+                        <Button type="submit" size="sm" className="w-full" disabled={isEnriching || isLoading || !currentResumeFile}>
                             {isEnriching ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileUp className="mr-2 h-4 w-4"/>}
-                            Upload & Re-Enrich
+                            Process New Resume
                         </Button>
                     </form>
                 </Form>
@@ -439,7 +466,7 @@ export default function CandidateProfilePage() {
                     </div>
                 )}
                 {quickScreenResult && !isQuickScreeningLoading && (
-                     <Alert variant={quickScreenResult.suitabilityScore > 70 ? "default" : "destructive"} className={quickScreenResult.suitabilityScore > 70 ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}>
+                     <Alert variant={quickScreenResult.suitabilityScore > 70 ? "default" : "destructive"} className={cn("shadow-sm", quickScreenResult.suitabilityScore > 70 ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200")}>
                         <ShieldCheck className={`h-4 w-4 ${quickScreenResult.suitabilityScore > 70 ? "!text-green-600" : "!text-red-600"}`} />
                         <AlertTitle className={quickScreenResult.suitabilityScore > 70 ? "text-green-700" : "text-red-700"}>
                             Suitability Score: {quickScreenResult.suitabilityScore}/100
@@ -457,4 +484,3 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
-

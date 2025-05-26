@@ -10,19 +10,18 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, CheckCircle, FileUp, Loader2, Video } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useParams } from "next/navigation"; // Import useParams
-import { useState, useRef, useCallback } from "react";
+import { useRouter, useParams } from "next/navigation";
+import React, { useState, useRef, useCallback } from "react"; // Added React import
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-// Placeholder for AI flow import, assuming it's available
-// import { enrichProfile } from "@/ai/flows/profile-enrichment";
+import { Label } from "@/components/ui/label"; // Added Label import
 
 const applicationFormSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters."),
   email: z.string().email("Invalid email address."),
   phone: z.string().optional(),
-  resume: z.any().refine(fileList => fileList && fileList.length === 1, "Resume is required."),
+  resume: z.any().refine(fileList => fileList && fileList.length === 1, "Resume is required."), // Expects a FileList
   coverLetter: z.string().optional(),
   linkedinProfile: z.string().url("Invalid LinkedIn URL.").optional().or(z.literal('')),
   portfolioUrl: z.string().url("Invalid portfolio URL.").optional().or(z.literal('')),
@@ -33,10 +32,10 @@ type ApplicationFormValues = z.infer<typeof applicationFormSchema>;
 // Mock job title for the application page
 const jobTitle = "Software Engineer, Frontend"; // Would be fetched in a real app
 
-export default function JobApplicationPage() { // Removed params from props
+export default function JobApplicationPage() {
   const router = useRouter();
-  const params = useParams(); // Use the hook
-  const jobId = params.id as string; // Get id from the hook's return value
+  const params = useParams();
+  const jobId = params.id as string;
 
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,6 +58,7 @@ export default function JobApplicationPage() { // Removed params from props
       coverLetter: "",
       linkedinProfile: "",
       portfolioUrl: "",
+      // resume default will be handled by the input
     },
   });
 
@@ -69,21 +69,6 @@ export default function JobApplicationPage() { // Removed params from props
       title: "Resume Parsing (Simulated)",
       description: `${file.name} is being processed by AI to enrich your profile.`,
     });
-    // In a real app:
-    // const reader = new FileReader();
-    // reader.readAsDataURL(file);
-    // reader.onloadend = async () => {
-    //   try {
-    //     const resumeDataUri = reader.result as string;
-    //     const enrichmentResult = await enrichProfile({ resumeDataUri });
-    //     console.log("Enrichment Result:", enrichmentResult);
-    //     toast({ title: "Profile Enriched!", description: "Your skills and experience have been updated."});
-    //     // Update candidate profile state or store data
-    //   } catch (error) {
-    //     console.error("Error enriching profile:", error);
-    //     toast({ variant: "destructive", title: "AI Enrichment Failed", description: "Could not process your resume." });
-    //   }
-    // };
   };
 
   const startRecording = async () => {
@@ -92,13 +77,11 @@ export default function JobApplicationPage() { // Removed params from props
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         if (videoRef.current) videoRef.current.srcObject = stream; // Show live preview
 
-        // Start countdown
         setCountdown(5);
         const countdownInterval = setInterval(() => {
           setCountdown(prev => {
             if (prev === null || prev <= 1) {
               clearInterval(countdownInterval);
-              // Actual recording start after countdown
               mediaRecorderRef.current = new MediaRecorder(stream);
               recordedChunksRef.current = [];
               mediaRecorderRef.current.ondataavailable = (event) => {
@@ -111,12 +94,11 @@ export default function JobApplicationPage() { // Removed params from props
                 const url = URL.createObjectURL(blob);
                 setVideoBlobUrl(url);
                 setIsVideoRecorded(true);
-                if (videoRef.current) videoRef.current.srcObject = null; // Stop live preview
-                stream.getTracks().forEach(track => track.stop()); // Stop camera after recording
+                if (videoRef.current) videoRef.current.srcObject = null;
+                stream.getTracks().forEach(track => track.stop());
               };
               mediaRecorderRef.current.start();
               setIsRecording(true);
-              // Max 10 seconds recording
               setTimeout(() => {
                 if (mediaRecorderRef.current?.state === 'recording') {
                   mediaRecorderRef.current.stop();
@@ -147,15 +129,10 @@ export default function JobApplicationPage() { // Removed params from props
   const onSubmit = async (data: ApplicationFormValues) => {
     setIsSubmitting(true);
     console.log("Application Data:", data);
-    if (data.resume && data.resume.length > 0) {
-      // await handleResumeUpload(data.resume[0]); // Called directly in onChange of input for now
-    }
     if (videoBlobUrl) {
       console.log("Video Recorded URL:", videoBlobUrl);
-      // Here you would typically upload the videoBlobUrl (or the Blob itself) to a server
     }
 
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     setIsSubmitting(false);
@@ -164,13 +141,13 @@ export default function JobApplicationPage() { // Removed params from props
       description: `Your application for ${jobTitle} has been successfully submitted.`,
       action: <CheckCircle className="text-green-500" />,
     });
-    router.push(`/dashboard/candidate/applications`); // Or a thank you page
+    router.push(`/dashboard/candidate/applications`);
   };
 
   return (
     <div className="max-w-2xl mx-auto">
       <Button variant="ghost" asChild className="mb-4">
-        <Link href={`/jobs/${jobId}`}> {/* Use jobId from useParams */}
+        <Link href={`/jobs/${jobId}`}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Job Details
         </Link>
       </Button>
@@ -224,26 +201,44 @@ export default function JobApplicationPage() { // Removed params from props
               <FormField
                 control={form.control}
                 name="resume"
-                render={({ field: { onChange, value, ...rest } }) => (
+                render={({ field: { onChange, value, ...rest } }) => {
+                  const fileInputId = `resume-apply-${React.useId()}`;
+                  const currentFile = value?.[0] as File | undefined;
+                  return (
                   <FormItem>
                     <FormLabel>Resume (PDF, DOC, DOCX) *</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="file" 
-                        accept=".pdf,.doc,.docx" 
-                        onChange={(e) => {
-                          onChange(e.target.files);
-                          if (e.target.files && e.target.files.length > 0) {
-                            handleResumeUpload(e.target.files[0]); 
-                          }
-                        }}
-                        {...rest} 
-                        className="pt-2"
-                      />
+                      <>
+                        <Input 
+                          type="file"
+                          id={fileInputId}
+                          accept=".pdf,.doc,.docx" 
+                          onChange={(e) => {
+                            onChange(e.target.files); // RHF expects FileList for this schema
+                            if (e.target.files && e.target.files.length > 0) {
+                              handleResumeUpload(e.target.files[0]); 
+                            }
+                          }}
+                          className="sr-only"
+                          {...rest} 
+                        />
+                        <Label
+                          htmlFor={fileInputId}
+                          className={cn(
+                            "inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer w-full",
+                            "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg transition-all"
+                          )}
+                        >
+                          <FileUp className="mr-2 h-4 w-4" />
+                          {currentFile?.name ? "Change Resume" : "Choose Resume"}
+                        </Label>
+                      </>
                     </FormControl>
+                    {currentFile?.name && <p className="text-xs text-muted-foreground mt-1">Selected: {currentFile.name}</p>}
                     <FormMessage />
                   </FormItem>
-                )}
+                  );
+                }}
               />
                <FormField
                 control={form.control}
@@ -336,4 +331,3 @@ export default function JobApplicationPage() { // Removed params from props
     </div>
   );
 }
-

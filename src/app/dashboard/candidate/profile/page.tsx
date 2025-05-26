@@ -12,11 +12,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit3, FileUp, Loader2, Save, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react"; // Added React import
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 // Placeholder for AI flow import
 import { enrichProfile, type EnrichProfileOutput } from "@/ai/flows/profile-enrichment";
+import { cn } from "@/lib/utils"; // Added cn import
+import { Label } from "@/components/ui/label"; // Added Label import for custom file input
 
 const experienceSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -52,7 +54,7 @@ const profileFormSchema = z.object({
   experience: z.array(experienceSchema).optional(),
   education: z.array(educationSchema).optional(),
   certifications: z.array(certificationSchema).optional(),
-  resume: z.any().optional(),
+  resume: z.any().optional(), // Can be File object or null
   linkedinProfile: z.string().url("Invalid LinkedIn URL, ensure it includes http(s)://").optional().or(z.literal('')),
   portfolioUrl: z.string().url("Invalid portfolio URL, ensure it includes http(s)://").optional().or(z.literal('')),
 });
@@ -336,15 +338,52 @@ export default function CandidateProfilePage() {
             <Card className="shadow-lg">
               <CardHeader><CardTitle>Resume</CardTitle><CardDescription>Upload your latest resume. AI can help enrich your profile based on it.</CardDescription></CardHeader>
               <CardContent>
-                <FormField control={form.control} name="resume" render={({ field: { onChange, value, ...rest } }) => (
+                <FormField control={form.control} name="resume" render={({ field: { onChange, value, ...rest } }) => {
+                    const fileInputId = `resume-upload-${React.useId()}`;
+                    return (
                     <FormItem>
-                      <FormLabel className="sr-only">Upload Resume (PDF, DOCX)</FormLabel>
                       <div className="flex items-center gap-4">
-                        <FormControl><Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { onChange(e.target.files[0]); handleResumeUpload(e.target.files[0]); } }} {...rest} className="flex-grow" disabled={!isEditing || isAiProcessing} /></FormControl>
+                        <FormControl>
+                          <>
+                            <Input
+                              type="file"
+                              id={fileInputId}
+                              accept=".pdf,.doc,.docx"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                  const file = e.target.files[0];
+                                  onChange(file);
+                                  handleResumeUpload(file);
+                                } else {
+                                  onChange(null); // Handle case where selection is cleared
+                                }
+                              }}
+                              className="sr-only"
+                              disabled={!isEditing || isAiProcessing}
+                              {...rest}
+                            />
+                            <Label
+                              htmlFor={fileInputId}
+                              className={cn(
+                                "inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer w-full",
+                                "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg transition-all",
+                                (!isEditing || isAiProcessing) && "opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              <FileUp className="mr-2 h-4 w-4" />
+                              {value?.name ? "Change Resume" : "Upload Resume"}
+                            </Label>
+                          </>
+                        </FormControl>
                         {isAiProcessing && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
                       </div>
-                      <FormDescription>{typeof value === 'object' && value?.name ? `Current file: ${value.name}` : "No resume uploaded."}</FormDescription><FormMessage />
-                    </FormItem>)}/>
+                      <FormDescription className="mt-2 text-xs">
+                        {typeof value === 'object' && value?.name ? `Current file: ${value.name}` : "No resume uploaded. (PDF, DOC, DOCX)"}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                    );
+                  }}/>
               </CardContent>
             </Card>
           </div>
