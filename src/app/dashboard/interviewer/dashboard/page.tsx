@@ -4,13 +4,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { CalendarDays, CheckCircle, Clock, Edit3, MessageSquare, Video, UserCircle as UserIcon, Check, Send, Briefcase, ShieldCheck, WandSparkles, Lightbulb, Loader2, TrendingUp, ListChecks, Hourglass, PieChart } from "lucide-react"; // Added KPI icons
+import { CalendarDays, CheckCircle, Clock, Edit3, MessageSquare, Video, UserCircle as UserIcon, Check, Send, Briefcase, ShieldCheck, WandSparkles, Lightbulb, Loader2, TrendingUp, ListChecks, Hourglass, PieChart } from "lucide-react"; 
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import { format, parseISO, isValid } from "date-fns";
@@ -108,8 +108,8 @@ export default function InterviewerDashboardPage() {
   const interviewerKpis = {
     upcoming: upcomingInterviews.length,
     feedbackDue: feedbackDueCount,
-    avgFeedbackTime: "24h", // Mock data
-    completionRate: "95%",   // Mock data
+    avgFeedbackTime: "24h", 
+    completionRate: "95%",   
   };
 
   const groupedUpcomingInterviews = useMemo(() => {
@@ -199,7 +199,14 @@ export default function InterviewerDashboardPage() {
     <Dialog 
       onOpenChange={(open) => {
         if (!open) {
+          // Reset states for all dialogs when any dialog closes
           setSelectedInterviewForFeedback(null);
+          setSelectedInterviewForReport(null);
+          setSelectedInterviewForStrategy(null);
+          // We don't want to close specific dialogs if another is open,
+          // so we rely on the individual DialogTrigger to set its open state.
+          // This onOpenChange is for the outermost Dialog that wraps everything,
+          // effectively acting as a reset when any interaction closes its specific trigger.
         }
       }}
     >
@@ -244,7 +251,7 @@ export default function InterviewerDashboardPage() {
           </Card>
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">Interview Completion Rate</CardTitle>
               <PieChart className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -291,14 +298,18 @@ export default function InterviewerDashboardPage() {
                                     </div>
                                      <div className="flex gap-2 w-full">
                                         {interview.screeningSuitabilityScore !== undefined && (
-                                            <Button size="sm" variant="outline" className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => openScreeningReportDialog(interview)}>
-                                                <ShieldCheck className="mr-1 h-3 w-3"/> Screening Report
-                                            </Button>
+                                            <DialogTrigger asChild>
+                                                <Button size="sm" variant="outline" className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => openScreeningReportDialog(interview)}>
+                                                    <ShieldCheck className="mr-1 h-3 w-3"/> Screening Report
+                                                </Button>
+                                            </DialogTrigger>
                                         )}
                                         {(interview.jobDescription && interview.candidateResumeSummary) && (
-                                            <Button size="sm" variant="outline" className="flex-1 border-purple-500 text-purple-600 hover:bg-purple-50" onClick={() => openStrategyDialog(interview)}>
-                                                <WandSparkles className="mr-1 h-3 w-3"/> AI Interview Strategy
-                                            </Button>
+                                            <DialogTrigger asChild>
+                                                <Button size="sm" variant="outline" className="flex-1 border-purple-500 text-purple-600 hover:bg-purple-50" onClick={() => openStrategyDialog(interview)}>
+                                                    <WandSparkles className="mr-1 h-3 w-3"/> AI Interview Strategy
+                                                </Button>
+                                            </DialogTrigger>
                                         )}
                                     </div>
                                 </CardFooter>
@@ -375,47 +386,49 @@ export default function InterviewerDashboardPage() {
 
       {/* Feedback Dialog */}
       {selectedInterviewForFeedback && (
-        <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-                <DialogTitle>Submit Feedback: {selectedInterviewForFeedback.candidateName}</DialogTitle>
-                <DialogDescription>For job: {selectedInterviewForFeedback.jobTitle}</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                    <Label htmlFor="feedbackText" className="font-medium">Feedback Notes</Label>
-                    <Textarea
-                        id="feedbackText"
-                        value={feedbackText}
-                        onChange={(e) => setFeedbackText(e.target.value)}
-                        placeholder="Strengths, weaknesses, technical ability, communication skills, overall impression..."
-                        rows={6}
-                    />
+        <Dialog open={!!selectedInterviewForFeedback} onOpenChange={(open) => !open && setSelectedInterviewForFeedback(null)}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Submit Feedback: {selectedInterviewForFeedback.candidateName}</DialogTitle>
+                    <DialogDescription>For job: {selectedInterviewForFeedback.jobTitle}</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="feedbackText" className="font-medium">Feedback Notes</Label>
+                        <Textarea
+                            id="feedbackText"
+                            value={feedbackText}
+                            onChange={(e) => setFeedbackText(e.target.value)}
+                            placeholder="Strengths, weaknesses, technical ability, communication skills, overall impression..."
+                            rows={6}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="font-medium">Overall Verdict *</Label>
+                        <RadioGroup value={verdict} onValueChange={(value: VerdictOption) => setVerdict(value)}>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Recommend for Next Round" id="verdict-recommend" />
+                                <Label htmlFor="verdict-recommend">Recommend for Next Round</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Hold" id="verdict-hold" />
+                                <Label htmlFor="verdict-hold">Hold / Needs Further Discussion</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Do Not Recommend" id="verdict-reject" />
+                                <Label htmlFor="verdict-reject">Do Not Recommend</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
                 </div>
-                <div className="space-y-2">
-                    <Label className="font-medium">Overall Verdict *</Label>
-                    <RadioGroup value={verdict} onValueChange={(value: VerdictOption) => setVerdict(value)}>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Recommend for Next Round" id="verdict-recommend" />
-                            <Label htmlFor="verdict-recommend">Recommend for Next Round</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Hold" id="verdict-hold" />
-                            <Label htmlFor="verdict-hold">Hold / Needs Further Discussion</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Do Not Recommend" id="verdict-reject" />
-                            <Label htmlFor="verdict-reject">Do Not Recommend</Label>
-                        </div>
-                    </RadioGroup>
-                </div>
-            </div>
-            <DialogFooter>
-                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                <Button type="button" onClick={handleSubmitFeedback} disabled={!feedbackText.trim() || !verdict}>
-                    <Send className="mr-2 h-4 w-4" /> Submit Feedback & Verdict
-                </Button>
-            </DialogFooter>
-        </DialogContent>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                    <Button type="button" onClick={handleSubmitFeedback} disabled={!feedbackText.trim() || !verdict}>
+                        <Send className="mr-2 h-4 w-4" /> Submit Feedback & Verdict
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
       )}
 
       {/* Screening Report Dialog */}
