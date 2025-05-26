@@ -4,13 +4,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { CalendarDays, CheckCircle, Clock, Edit3, MessageSquare, Video, UserCircle as UserIcon, Check, Send, Briefcase, ShieldCheck, WandSparkles, Lightbulb, Loader2 } from "lucide-react";
+import { CalendarDays, CheckCircle, Clock, Edit3, MessageSquare, Video, UserCircle as UserIcon, Check, Send, Briefcase, ShieldCheck, WandSparkles, Lightbulb, Loader2, TrendingUp, ListChecks, Hourglass, PieChart } from "lucide-react"; // Added KPI icons
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import { format, parseISO, isValid } from "date-fns";
@@ -103,6 +103,14 @@ export default function InterviewerDashboardPage() {
 
   const upcomingInterviews = interviews.filter(i => i.status === "Upcoming");
   const pastInterviews = interviews.filter(i => i.status === "Completed");
+  const feedbackDueCount = pastInterviews.filter(i => !i.feedbackProvided).length;
+
+  const interviewerKpis = {
+    upcoming: upcomingInterviews.length,
+    feedbackDue: feedbackDueCount,
+    avgFeedbackTime: "24h", // Mock data
+    completionRate: "95%",   // Mock data
+  };
 
   const groupedUpcomingInterviews = useMemo(() => {
     return upcomingInterviews.reduce((acc, interview) => {
@@ -192,7 +200,6 @@ export default function InterviewerDashboardPage() {
       onOpenChange={(open) => {
         if (!open) {
           setSelectedInterviewForFeedback(null);
-          // Note: We don't reset other dialog states here as they are separate dialogs.
         }
       }}
     >
@@ -203,6 +210,49 @@ export default function InterviewerDashboardPage() {
             <CardDescription>Welcome, {user?.name?.split(" ")[0]}! View your scheduled interviews, submit feedback, and prepare with AI tools.</CardDescription>
           </CardHeader>
         </Card>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Upcoming Interviews</CardTitle>
+              <CalendarDays className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{interviewerKpis.upcoming}</div>
+              <p className="text-xs text-muted-foreground">Scheduled sessions</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Feedback Due</CardTitle>
+              <ListChecks className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{interviewerKpis.feedbackDue}</div>
+              <p className="text-xs text-muted-foreground">Interviews awaiting your feedback</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Avg. Feedback Time</CardTitle>
+              <Hourglass className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{interviewerKpis.avgFeedbackTime}</div>
+              <p className="text-xs text-muted-foreground">From interview completion (mock)</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+              <PieChart className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{interviewerKpis.completionRate}</div>
+              <p className="text-xs text-muted-foreground">Of assigned interviews (mock)</p>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card className="shadow-lg">
             <CardHeader>
@@ -438,3 +488,6 @@ export default function InterviewerDashboardPage() {
     </Dialog>
   );
 }
+
+
+    
