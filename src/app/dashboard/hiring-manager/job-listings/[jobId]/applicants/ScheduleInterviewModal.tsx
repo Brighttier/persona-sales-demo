@@ -36,9 +36,10 @@ const MOCK_AI_AGENTS_HM = [
 ];
 
 const MOCK_COMMON_INTERVIEWERS_HM = [
-    "Charles Brown (Hiring Manager)",
+    "Charles Brown (Hiring Manager)", // Self
     "Brenda Smith (Recruiter)",
-    "Diana Green (Admin Lead)",
+    "John Smith - Sr. Engineer",
+    "Alice Brown - Team Lead",
 ];
 
 const TIME_SLOTS_HM = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"];
@@ -198,7 +199,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
               <div className="space-y-1">
                 <Label htmlFor="interviewers-hm">Interviewer(s) *</Label>
                 <Input id="interviewers-hm" placeholder="e.g., John Doe, Jane Smith" value={interviewers} onChange={(e) => setInterviewers(e.target.value)} />
-                <p className="text-xs text-muted-foreground">Manually type names, or click a common interviewer below.</p>
+                <p className="text-xs text-muted-foreground">Manually type names, or click a common interviewer below to add them.</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                     {MOCK_COMMON_INTERVIEWERS_HM.map(name => (
                         <Badge

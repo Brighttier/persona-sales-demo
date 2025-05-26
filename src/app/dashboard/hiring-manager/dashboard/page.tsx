@@ -4,16 +4,24 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Briefcase, Users, UserCheck, BarChart3 as BarChartIcon, ArrowRight, CalendarCheck, PieChart as PieChartIcon, MessageSquare, UserPlus, FileText } from "lucide-react"; // Added FileText
+import { Briefcase, Users, UserCheck, BarChart3 as BarChartIcon, ArrowRight, CalendarCheck, PieChart as PieChartIcon, FileText, UserPlus, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 const teamStats = {
   openPositions: 5,
   candidatesInPipeline: 45,
   interviewsToday: 3,
-  avgTimeToFill: "28 days", // This might come from analytics
+  avgTimeToFill: "28 days",
   pendingApprovals: 2,
   feedbackDue: 8,
 };
@@ -29,21 +37,55 @@ const candidateSourceData = [
   { name: 'LinkedIn', value: 20, fill: 'hsl(var(--chart-3))' }, { name: 'Career Site', value: 10, fill: 'hsl(var(--chart-4))' },
 ];
 
-const mockInterviewers = [
-    { id: "interviewerA", name: "John Smith - Sr. Engineer" },
-    { id: "interviewerB", name: "Alice Brown - Team Lead" },
-    { id: "interviewerC", name: "Bob Green - Architect" },
-];
+interface TeamInterviewer {
+    id: string;
+    name: string;
+    email: string;
+    specializations: string;
+}
+
+const addInterviewerFormSchema = z.object({
+  name: z.string().min(2, "Interviewer name must be at least 2 characters."),
+  email: z.string().email("Invalid email address."),
+  specializations: z.string().min(5, "Please list at least one specialization (e.g., Java, Behavioral).").optional(),
+});
+
+type AddInterviewerFormValues = z.infer<typeof addInterviewerFormSchema>;
+
 
 export default function HiringManagerDashboardPage() {
   const { user, role } = useAuth();
   const { toast } = useToast();
+  const [isAddInterviewerDialogOpen, setIsAddInterviewerDialogOpen] = useState(false);
+  const [teamInterviewers, setTeamInterviewers] = useState<TeamInterviewer[]>([
+    { id: "interviewerA", name: "John Smith - Sr. Engineer", email: "john.s@example.com", specializations: "Java, System Design" },
+    { id: "interviewerB", name: "Alice Brown - Team Lead", email: "alice.b@example.com", specializations: "React, Frontend Architecture, Behavioral" },
+    { id: "interviewerC", name: "Bob Green - Architect", email: "bob.g@example.com", specializations: "Cloud Infrastructure, Python, Scalability" },
+  ]);
 
-  const handleAddInterviewer = () => {
+  const form = useForm<AddInterviewerFormValues>({
+    resolver: zodResolver(addInterviewerFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      specializations: "",
+    },
+  });
+
+  const handleAddInterviewerSubmit = (data: AddInterviewerFormValues) => {
+    const newInterviewer: TeamInterviewer = {
+        id: `interviewer-${Date.now()}`,
+        name: data.name,
+        email: data.email,
+        specializations: data.specializations || "General",
+    };
+    setTeamInterviewers(prev => [...prev, newInterviewer]);
     toast({
-        title: "Add Interviewer (Placeholder)",
-        description: "Full user management for interviewers by Hiring Managers is a future enhancement. For now, you would coordinate with your Admin/Recruiter."
+        title: "Interviewer Added (Placeholder)",
+        description: `${data.name} has been added to your team's interviewer list.`,
     });
+    form.reset();
+    setIsAddInterviewerDialogOpen(false);
   };
 
   if (!user) {
@@ -77,7 +119,7 @@ export default function HiringManagerDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{teamStats.pendingApprovals}</div>
-             <Link href={`/dashboard/${role}/job-approvals`} className="text-xs text-primary hover:underline mt-1 block">Approve Now</Link>
+             <Link href={`/dashboard/${role}/job-approvals`} className="text-xs text-primary hover:underline mt-1 block">Review Jobs</Link>
           </CardContent>
         </Card>
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
@@ -127,23 +169,80 @@ export default function HiringManagerDashboardPage() {
 
       <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
         <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">My Team's Interviewers (Placeholder)</CardTitle>
-            <Button variant="outline" size="sm" onClick={handleAddInterviewer}><UserPlus className="mr-2 h-4 w-4"/>Add Interviewer</Button>
+            <CardTitle className="text-lg">My Team's Interviewers</CardTitle>
+            <Dialog open={isAddInterviewerDialogOpen} onOpenChange={setIsAddInterviewerDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={() => form.reset()}><UserPlus className="mr-2 h-4 w-4"/>Add Interviewer</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Add New Interviewer to Your Team</DialogTitle>
+                        <DialogDescription>
+                            Define the interviewer's details and their areas of specialization.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleAddInterviewerSubmit)} className="space-y-4 py-4">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Interviewer Full Name</FormLabel>
+                                        <FormControl><Input placeholder="e.g., Dr. Jane Smith" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Interviewer Email</FormLabel>
+                                        <FormControl><Input type="email" placeholder="e.g., jane.smith@company.com" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="specializations"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Specializations / Focus Areas</FormLabel>
+                                        <FormControl><Textarea placeholder="e.g., Java Backend, System Design, Behavioral Interviews, React Frontend" {...field} rows={3}/></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter className="pt-4">
+                                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                                <Button type="submit">Add Interviewer</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
         </CardHeader>
         <CardContent>
-            {mockInterviewers.length > 0 ? (
+            {teamInterviewers.length > 0 ? (
                 <ul className="space-y-2">
-                    {mockInterviewers.map(interviewer => (
-                        <li key={interviewer.id} className="text-sm p-2 bg-secondary/50 rounded-md flex justify-between items-center">
-                            <span>{interviewer.name}</span>
-                            <Button variant="ghost" size="xs" onClick={() => toast({title: "Manage Interviewer (Placeholder)"})}>Manage</Button>
+                    {teamInterviewers.map(interviewer => (
+                        <li key={interviewer.id} className="text-sm p-3 bg-secondary/50 rounded-md flex justify-between items-center">
+                            <div>
+                                <span className="font-medium">{interviewer.name}</span>
+                                <p className="text-xs text-muted-foreground">Email: {interviewer.email}</p>
+                                <p className="text-xs text-muted-foreground">Specializations: {interviewer.specializations}</p>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => toast({title: "Manage Interviewer (Placeholder)", description: `Further actions for ${interviewer.name} would be here.`})}>Manage</Button>
                         </li>
                     ))}
                 </ul>
             ) : (
                 <p className="text-sm text-muted-foreground">No interviewers added for your team yet.</p>
             )}
-            <p className="text-xs text-muted-foreground mt-3">This section will allow you to manage users from your company who can conduct interviews.</p>
+            <p className="text-xs text-muted-foreground mt-3">Hiring Managers can add and manage interviewers from their company who can conduct interviews. This is a placeholder for that functionality.</p>
         </CardContent>
       </Card>
 

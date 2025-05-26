@@ -40,6 +40,8 @@ const MOCK_COMMON_INTERVIEWERS = [
     "Brenda Smith (Recruiter)",
     "Charles Brown (Hiring Manager)",
     "Diana Green (Admin Lead)",
+    "John Smith - Sr. Engineer", // Added from HM's perspective
+    "Alice Brown - Team Lead",  // Added from HM's perspective
 ];
 
 const TIME_SLOTS = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"];
@@ -75,7 +77,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
     if (interviewType === "ai") {
       setInterviewDate(undefined);
       setTimeSlot("10:00");
-      // Keep interviewers if needed for AI instructions, or clear: setInterviewers("");
+      setInterviewers("");
       setMeetingLink("");
     } else {
       setInterviewDate(new Date());
@@ -199,7 +201,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
               <div className="space-y-1">
                 <Label htmlFor="interviewers">Interviewer(s) *</Label>
                 <Input id="interviewers" placeholder="e.g., John Doe, Jane Smith" value={interviewers} onChange={(e) => setInterviewers(e.target.value)} />
-                <p className="text-xs text-muted-foreground">Manually type names, or click a common interviewer below.</p>
+                 <p className="text-xs text-muted-foreground">Manually type names, or click a common interviewer below to add them.</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                     {MOCK_COMMON_INTERVIEWERS.map(name => (
                         <Badge
