@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
-import { Eye, Filter, Mail, Search, UserPlus, ExternalLink, Star, Briefcase, MapPin, Users as UsersIcon, LayoutGrid, List, FolderPlus, FolderOpen, MoveUpRight, Trash2, Save, GripVertical } from "lucide-react";
+import { Eye, Filter, Mail, Search, UserPlus, ExternalLink, Star, Briefcase, MapPin, Users as UsersIcon, FolderPlus, FolderOpen, MoveUpRight, Trash2, Save, GripVertical } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo } from "react";
@@ -50,22 +50,25 @@ const allMockCandidates: Candidate[] = [
   { id: "cand9", name: "Indiana Jones", role: "Data Explorer", experience: "10 Yrs", location: "Global (Remote)", skills: ["SQL", "NoSQL", "Data Mining", "Archaeology"], topSkill: "SQL", avatar: "https://placehold.co/100x100.png?text=IJ", aiMatchScore: 93, lastActive: "Today", interestedIn: ["Big Data", "Historical Data Analysis"] },
 ];
 
-const INITIAL_CANDIDATES_TO_SHOW = 4;
-const CANDIDATES_INCREMENT_COUNT = 2;
+const INITIAL_CANDIDATES_TO_SHOW = 6; // Increased initial show for list view
+const CANDIDATES_INCREMENT_COUNT = 4; // Increased increment for list view
 const ALL_CANDIDATES_FOLDER_ID = "all-candidates-folder";
 
 
 export default function CandidatePoolPage() {
   const { user, role } = useAuth();
   const { toast } = useToast();
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
   const [folders, setFolders] = useState<FolderType[]>([
     { id: "folder1", name: "Shortlisted - Engineering" },
     { id: "folder2", name: "Future Prospects" },
     { id: "folder3", name: "Tech Review Pending" },
   ]);
-  const [candidateFolderAssignments, setCandidateFolderAssignments] = useState<Record<string, string | null>>({}); // candidateId -> folderId | null
+  const [candidateFolderAssignments, setCandidateFolderAssignments] = useState<Record<string, string | null>>({
+    "cand1": "folder1",
+    "cand5": "folder1",
+    "cand3": "folder3",
+  });
   const [selectedFolderId, setSelectedFolderId] = useState<string>(ALL_CANDIDATES_FOLDER_ID);
 
   const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] = useState(false);
@@ -88,7 +91,6 @@ export default function CandidatePoolPage() {
   }, [filteredCandidates, visibleCandidatesCount]);
 
   useEffect(() => {
-    // Reset visible count when filter changes
     setVisibleCandidatesCount(INITIAL_CANDIDATES_TO_SHOW);
   }, [selectedFolderId]);
 
@@ -133,7 +135,7 @@ export default function CandidatePoolPage() {
         ...prev,
         [selectedCandidateForFolderMove.id]: targetFolderForMove === "unassign" ? null : targetFolderForMove,
     }));
-    const folderName = targetFolderForMove === "unassign" ? "unassigned" : folders.find(f => f.id === targetFolderForMove)?.name;
+    const folderName = targetFolderForMove === "unassign" ? "Unassigned" : folders.find(f => f.id === targetFolderForMove)?.name;
     toast({ title: "Candidate Moved", description: `${selectedCandidateForFolderMove.name} moved to folder "${folderName || 'N/A'}".` });
     setIsMoveToFolderDialogOpen(false);
     setSelectedCandidateForFolderMove(null);
@@ -142,6 +144,12 @@ export default function CandidatePoolPage() {
   const getCandidateCountForFolder = (folderId: string): number => {
     if (folderId === ALL_CANDIDATES_FOLDER_ID) return allMockCandidates.length;
     return Object.values(candidateFolderAssignments).filter(assignedFolderId => assignedFolderId === folderId).length;
+  };
+
+  const getFolderNameById = (folderId: string | null): string => {
+    if (!folderId) return "Unassigned";
+    const folder = folders.find(f => f.id === folderId);
+    return folder ? folder.name : "Unknown Folder";
   };
 
   const renderCandidateActions = (candidate: Candidate) => (
@@ -173,59 +181,6 @@ export default function CandidatePoolPage() {
     </DropdownMenu>
   );
 
-  const renderCardView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6"> {/* Changed to 3 columns for wider screens */}
-      {displayedCandidates.map((candidate) => (
-        <Card key={candidate.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg overflow-hidden">
-          <CardHeader className="items-center text-center p-6 bg-secondary/30">
-            <div className="relative">
-                <Avatar className="h-24 w-24 mb-3 ring-2 ring-primary/30 ring-offset-2 ring-offset-background">
-                <AvatarImage src={candidate.avatar} alt={candidate.name} data-ai-hint="person professional" />
-                <AvatarFallback>{candidate.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
-                </Avatar>
-                 <div className="absolute top-1 right-1">
-                    {renderCandidateActions(candidate)}
-                </div>
-            </div>
-            <CardTitle className="text-xl">{candidate.name}</CardTitle>
-            <CardDescription className="text-primary">{candidate.role}</CardDescription>
-             <Badge variant="default" className="mt-2 bg-accent text-accent-foreground font-semibold">
-              <Star className="mr-1.5 h-3.5 w-3.5 fill-current" /> AI Match: {candidate.aiMatchScore}%
-            </Badge>
-          </CardHeader>
-          <CardContent className="flex-grow p-6 space-y-3 text-sm">
-            <div className="flex items-center text-muted-foreground"><Briefcase className="mr-2 h-4 w-4"/> Experience: {candidate.experience}</div>
-            <div className="flex items-center text-muted-foreground"><MapPin className="mr-2 h-4 w-4"/> {candidate.location}</div>
-            
-            <div className="pt-1">
-              <p className="text-xs font-semibold mb-1.5 text-muted-foreground">TOP SKILLS:</p>
-              <div className="flex flex-wrap gap-1.5">
-                  {candidate.skills.slice(0,3).map(skill => (
-                      <Badge key={skill} variant="default" className="font-normal">{skill}</Badge>
-                  ))}
-                  {candidate.skills.length > 3 && <Badge variant="outline" className="font-normal">+{candidate.skills.length - 3} more</Badge>}
-              </div>
-            </div>
-             <div className="pt-1">
-              <p className="text-xs font-semibold mb-1.5 text-muted-foreground">INTERESTED IN:</p>
-              <div className="flex flex-wrap gap-1.5">
-                  {candidate.interestedIn.map(interest => (
-                      <Badge key={interest} variant="outline" className="font-normal border-primary/50 text-primary/90">{interest}</Badge>
-                  ))}
-              </div>
-            </div>
-             <p className="text-xs text-muted-foreground text-right pt-2">Last active: {candidate.lastActive}</p>
-          </CardContent>
-          <CardFooter className="p-4 border-t">
-            <Button variant="outline" size="sm" className="w-full" onClick={() => handleContact(candidate.name)}>
-              <Mail className="mr-1.5 h-4 w-4" /> Contact Candidate
-            </Button>
-          </CardFooter>
-        </Card>
-      ))}
-    </div>
-  );
-
   const renderListView = () => (
     <Card className="shadow-lg">
       <CardContent className="p-0">
@@ -237,6 +192,7 @@ export default function CandidatePoolPage() {
               <TableHead>Location</TableHead>
               <TableHead>Top Skills</TableHead>
               <TableHead>AI Match</TableHead>
+              <TableHead>Assigned Folder</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -270,6 +226,11 @@ export default function CandidatePoolPage() {
                     <Star className="mr-1 h-3 w-3 fill-current" />{candidate.aiMatchScore}%
                   </Badge>
                 </TableCell>
+                <TableCell>
+                  <Badge variant="secondary" className="font-normal text-xs">
+                    {getFolderNameById(candidateFolderAssignments[candidate.id] || null)}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-right">
                   {renderCandidateActions(candidate)}
                 </TableCell>
@@ -284,20 +245,12 @@ export default function CandidatePoolPage() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 space-y-6"> {/* Main content area expanded */}
+        <div className="lg:col-span-3 space-y-6">
           <Card className="shadow-xl">
             <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between">
               <div>
                 <CardTitle className="text-2xl">Talent Discovery</CardTitle>
                 <CardDescription>Browse, filter, and discover talented individuals for your open roles.</CardDescription>
-              </div>
-              <div className="flex items-center gap-2 mt-4 md:mt-0">
-                <Button variant={viewMode === 'card' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('card')} aria-label="Card View">
-                  <LayoutGrid className="mr-2 h-4 w-4"/> Card View
-                </Button>
-                <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('list')} aria-label="List View">
-                  <List className="mr-2 h-4 w-4"/> List View
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border-t pt-6">
@@ -328,7 +281,7 @@ export default function CandidatePoolPage() {
               </Card>
             )}
             
-            {displayedCandidates.length > 0 && (viewMode === 'card' ? renderCardView() : renderListView())}
+            {displayedCandidates.length > 0 && renderListView()}
           
           {filteredCandidates.length > visibleCandidatesCount && displayedCandidates.length > 0 && (
                 <div className="flex justify-center mt-4">
@@ -338,7 +291,7 @@ export default function CandidatePoolPage() {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-            <Card className="shadow-lg sticky top-24"> {/* Added sticky positioning */}
+            <Card className="shadow-lg sticky top-24"> 
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
                     <CardTitle className="text-lg flex items-center"><FolderOpen className="mr-2 h-5 w-5 text-primary"/>Candidate Folders</CardTitle>
                     <Dialog open={isCreateFolderDialogOpen} onOpenChange={setIsCreateFolderDialogOpen}>
@@ -363,7 +316,7 @@ export default function CandidatePoolPage() {
                         </DialogContent>
                     </Dialog>
                 </CardHeader>
-                <CardContent className="pt-0 max-h-[calc(100vh-200px)] overflow-y-auto"> {/* Added max-height and overflow */}
+                <CardContent className="pt-0 max-h-[calc(100vh-200px)] overflow-y-auto"> 
                      <ul className="space-y-1">
                         <li 
                             className={cn(
@@ -403,13 +356,13 @@ export default function CandidatePoolPage() {
                                         size="xs" 
                                         className="text-muted-foreground hover:text-destructive h-6 w-6 p-0 opacity-50 group-hover:opacity-100" 
                                         onClick={(e) => { 
-                                            e.stopPropagation(); // Prevent folder selection
+                                            e.stopPropagation(); 
                                             setFolders(f => f.filter(item => item.id !== folder.id));
                                             setCandidateFolderAssignments(prev => {
                                                 const updated = {...prev};
                                                 Object.keys(updated).forEach(candidateId => {
                                                     if (updated[candidateId] === folder.id) {
-                                                        updated[candidateId] = null; // Unassign candidates from deleted folder
+                                                        updated[candidateId] = null; 
                                                     }
                                                 });
                                                 return updated;
@@ -463,6 +416,3 @@ export default function CandidatePoolPage() {
     </div>
   );
 }
-
-
-    
