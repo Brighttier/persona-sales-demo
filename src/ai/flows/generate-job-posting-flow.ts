@@ -36,10 +36,9 @@ const prompt = ai.definePrompt({
   name: 'generateJobPostingPrompt',
   input: {schema: GenerateJobPostingInputSchema},
   output: {schema: GenerateJobPostingOutputSchema},
-  prompt: `You are an AI assistant helping a **Hiring Manager** draft the initial, core details for a new job posting.
-The Hiring Manager best understands the role's responsibilities, required skills, how it fits into the team, and what success looks like.
-Your task is to take their initial input (job title, and optionally company, experience level, location) and generate well-structured, clear content for the job posting sections.
-Focus on accurately capturing the essence of the role based on the Hiring Manager's perspective.
+  prompt: `You are an AI assistant helping draft the initial, core details for a new job posting.
+Your task is to take initial input (job title, and optionally company, experience level, location) and generate well-structured, clear content for the job posting sections.
+Focus on accurately capturing the essence of the role.
 
 Core Role Information:
 Job Title: {{{jobTitle}}}
@@ -49,13 +48,13 @@ Job Title: {{{jobTitle}}}
 
 Follow these specific constraints for each section:
 
-1.  **Job Description**: Generate a concise and engaging job description as a single paragraph. It MUST be strictly between 4 and 5 lines long. This section should capture the essence of the role and the company from the Hiring Manager's viewpoint. If a company name ({{{company}}}) is provided, weave in factual details about the company culture and mission. If location ({{{location}}}) is specified as 'Remote', emphasize remote work aspects if appropriate for the role.
-2.  **Responsibilities**: List key responsibilities for this role, as defined by the Hiring Manager. Provide a minimum of 7 and a maximum of 15 distinct responsibilities. Each responsibility MUST start with a bullet character and a space ('• ') on a new line.
-3.  **Qualifications**: List essential qualifications and experience required for this role – the "must-haves" from the Hiring Manager's perspective. Provide a minimum of 5 and a maximum of 10 distinct qualifications. Each qualification MUST start with a bullet character and a space ('• ') on a new line.
-4.  **Skills**: Identify the top 5 to 10 most relevant technical and soft skills for this job title and context. These are key skills the Hiring Manager is looking for. Return these as an array of skill strings.
+1.  **Job Description**: Generate a concise and engaging job description as a single paragraph. It MUST be strictly between 4 and 5 lines long. This section should capture the essence of the role and the company. If a company name ({{{company}}}) is provided, weave in factual details about the company culture and mission. If location ({{{location}}}) is specified as 'Remote', emphasize remote work aspects if appropriate for the role.
+2.  **Responsibilities**: List key responsibilities for this role. Provide a minimum of 7 and a maximum of 15 distinct responsibilities. Each responsibility MUST start with a bullet character and a space ('• ') on a new line.
+3.  **Qualifications**: List essential qualifications and experience required for this role – the "must-haves". Provide a minimum of 5 and a maximum of 10 distinct qualifications. Each qualification MUST start with a bullet character and a space ('• ') on a new line.
+4.  **Skills**: Identify the top 5 to 10 most relevant technical and soft skills for this job title and context. Return these as an array of skill strings.
 5.  **Company Benefits**: List 3 to 5 common company benefits relevant to a professional role, formatted as newline-separated bullet points (each starting with '• '). If a location ({{{location}}}) is provided, try to suggest benefits that are commonly valued or offered in that region or for remote roles, while still keeping them generally professional. Examples: Health Insurance, Paid Time Off, 401(k) Plan, Professional Development, Flexible Work Hours, Home Office Stipend (for remote).
 
-The generated content should be professional and clear, ready for the Hiring Manager to review and then submit for Recruiter approval and optimization.
+The generated content should be professional and clear, ready for review and then submission for approval.
 `,
 });
 

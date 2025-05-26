@@ -1,7 +1,7 @@
 
 import type { UserRole } from '@/config/roles';
 import { USER_ROLES } from '@/config/roles';
-import { LayoutDashboard, Briefcase, Users, CalendarDays, UserCircle, Settings, Building, CreditCard, BotMessageSquare, ShieldCheck, BarChart3, CheckSquare, Search, FileText, BarChartHorizontalBig } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Users, CalendarDays, UserCircle, Settings, Building, CreditCard, BotMessageSquare, ShieldCheck, BarChart3, CheckSquare, Search, FileText, BarChartHorizontalBig, PlusCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavLink {
@@ -80,15 +80,15 @@ export const NAV_LINKS: NavLink[] = [
     roles: [USER_ROLES.RECRUITER],
     isTourStep: true,
     tourStepId: 'recruiter-job-listings-link',
-    tourText: 'Oversee all job postings. View applicants, manage statuses, and track job performance.'
+    tourText: 'Oversee all job postings, create new ones, and track applicants. The "Create New Job" button is on this page.'
   },
   {
-    href: `/dashboard/${USER_ROLES.RECRUITER}/job-approvals`, // New link for Recruiter
+    href: `/dashboard/${USER_ROLES.RECRUITER}/job-approvals`,
     label: 'Job Approvals',
     icon: CheckSquare,
     roles: [USER_ROLES.RECRUITER],
     isTourStep: true,
-    tourStepId: 'recruiter-job-approvals-link',
+    tourStepId: 'recruiter-job-approvals-link', // Reusing ID, ensure text is updated
     tourText: 'Review job postings submitted by Hiring Managers. Optimize, approve, or reject them to ensure quality and consistency.'
   },
   {
@@ -121,13 +121,22 @@ export const NAV_LINKS: NavLink[] = [
     tourText: "Hiring Manager's hub. Get an overview of your team's hiring activities, open positions, and key metrics."
   },
   {
-    href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-listings`, // New link for HM
+    href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-listings`, 
     label: 'My Job Postings',
-    icon: FileText, // Changed icon
+    icon: FileText, 
     roles: [USER_ROLES.HIRING_MANAGER],
     isTourStep: true,
     tourStepId: 'hm-my-job-postings-link',
-    tourText: 'Create, draft, and manage job postings for your team. Submit them for Recruiter approval.'
+    tourText: 'Create, draft, and manage job postings for your team. Submit them for Recruiter approval. The "Create New Job" button is on this page.'
+  },
+  {
+    href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-approvals`, // New link for HM
+    label: 'Job Approvals',
+    icon: CheckSquare,
+    roles: [USER_ROLES.HIRING_MANAGER],
+    isTourStep: true,
+    tourStepId: 'hm-job-approvals-link',
+    tourText: 'Review and approve job postings submitted by your Recruiters.'
   },
   {
     href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/interviews`,
