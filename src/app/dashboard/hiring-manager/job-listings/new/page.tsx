@@ -45,7 +45,7 @@ export default function HMCreateNewJobPage() {
     resolver: zodResolver(jobPostingSchema),
     defaultValues: {
       jobTitle: "",
-      company: "Persona AI", // Assuming this is often the company
+      company: "Persona AI", 
       department: "",
       location: "",
       experienceRequired: "",
@@ -60,18 +60,18 @@ export default function HMCreateNewJobPage() {
   });
 
   const handleSaveAsDraft = (data: JobPostingFormValues) => {
-    console.log("Save as Draft (Placeholder):", data);
+    console.log("Save as Draft (Placeholder by Hiring Manager):", data);
     toast({
       title: "Job Saved as Draft (Placeholder)",
       description: `Job posting "${data.jobTitle}" has been saved as a draft by Hiring Manager.`,
     });
   };
 
-  const handleSubmitForApproval = (data: JobPostingFormValues) => {
-    console.log("Submit for Approval (Placeholder):", data);
+  const handleSubmitForRecruiterApproval = (data: JobPostingFormValues) => {
+    console.log("Submit for Recruiter Approval (Placeholder by Hiring Manager):", data);
     toast({
-      title: "Job Submitted for Approval (Placeholder)",
-      description: `Job posting "${data.jobTitle}" by Hiring Manager submitted to Recruiter for approval.`,
+      title: "Job Submitted to Recruiter",
+      description: `Job posting "${data.jobTitle}" submitted to Recruiter for review and posting.`,
     });
     router.push("/dashboard/hiring-manager/job-listings");
   };
@@ -338,10 +338,10 @@ export default function HMCreateNewJobPage() {
                       <Button type="button" variant="outline" onClick={addSkill}>Add Skill</Button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {field.value?.map((skill) => (
-                        <Badge key={skill} variant="default" className="py-1 px-3 text-sm">
+                      {(field.value || []).map((skill) => (
+                        <Badge key={skill} variant="default" className="py-1 px-3 text-sm bg-primary text-primary-foreground">
                           {skill}
-                          <button type="button" onClick={() => removeSkill(skill)} className="ml-2 hover:text-destructive-foreground/80">
+                          <button type="button" onClick={() => removeSkill(skill)} className="ml-2 hover:text-primary-foreground/80">
                             <Trash2 className="h-3 w-3"/>
                           </button>
                         </Badge>
@@ -380,8 +380,8 @@ export default function HMCreateNewJobPage() {
             <Button type="button" variant="secondary" onClick={form.handleSubmit(handleSaveAsDraft)} disabled={isAiGenerating}>
               <Save className="mr-2 h-4 w-4" /> Save as Draft
             </Button>
-            <Button type="button" onClick={form.handleSubmit(handleSubmitForApproval)} disabled={isAiGenerating}>
-              <Send className="mr-2 h-4 w-4" /> Submit for Approval
+            <Button type="button" onClick={form.handleSubmit(handleSubmitForRecruiterApproval)} disabled={isAiGenerating}>
+              <Send className="mr-2 h-4 w-4" /> Submit for Recruiter Approval
             </Button>
           </CardFooter>
         </form>
@@ -389,4 +389,6 @@ export default function HMCreateNewJobPage() {
     </div>
   );
 }
+
+
     

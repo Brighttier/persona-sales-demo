@@ -88,8 +88,8 @@ export const NAV_LINKS: NavLink[] = [
     icon: CheckSquare,
     roles: [USER_ROLES.RECRUITER],
     isTourStep: true,
-    tourStepId: 'recruiter-job-approvals-link', // Reusing ID, ensure text is updated
-    tourText: 'Review job postings submitted by Hiring Managers. Optimize, approve, or reject them to ensure quality and consistency.'
+    tourStepId: 'recruiter-job-approvals-link', 
+    tourText: 'Review job postings submitted by Hiring Managers. Optimize, approve, or reject them to ensure quality and consistency before publishing.'
   },
   {
     href: `/dashboard/${USER_ROLES.RECRUITER}/candidate-pool`,
@@ -129,15 +129,7 @@ export const NAV_LINKS: NavLink[] = [
     tourStepId: 'hm-my-job-postings-link',
     tourText: 'Create, draft, and manage job postings for your team. Submit them for Recruiter approval. The "Create New Job" button is on this page.'
   },
-  {
-    href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-approvals`, // New link for HM
-    label: 'Job Approvals',
-    icon: CheckSquare,
-    roles: [USER_ROLES.HIRING_MANAGER],
-    isTourStep: true,
-    tourStepId: 'hm-job-approvals-link',
-    tourText: 'Review and approve job postings submitted by your Recruiters.'
-  },
+  // Removed Job Approvals for HM as per new workflow
   {
     href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/interviews`,
     label: 'Team Interviews',
@@ -223,4 +215,6 @@ export const getTourStepsForRole = (role: UserRole | null): NavLink[] => {
   if (!role) return [];
   return NAV_LINKS.filter(link => link.isTourStep && link.roles.includes(role) && link.tourStepId);
 }
+    
+
     

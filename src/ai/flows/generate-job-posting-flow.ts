@@ -38,7 +38,7 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateJobPostingOutputSchema},
   prompt: `You are an AI assistant helping draft the initial, core details for a new job posting.
 Your task is to take initial input (job title, and optionally company, experience level, location) and generate well-structured, clear content for the job posting sections.
-Focus on accurately capturing the essence of the role.
+Focus on accurately capturing the essence of the role for either a Hiring Manager or a Recruiter to review.
 
 Core Role Information:
 Job Title: {{{jobTitle}}}
@@ -67,7 +67,6 @@ const generateJobPostingFlow = ai.defineFlow(
   async input => {
     const {output} = await prompt(input);
     if (!output) {
-        // Basic fallback if AI completely fails structured output
         console.warn("AI failed to generate structured output for job posting. Using fallback.");
         return {
             jobDescription: "Failed to generate job description. Please write one manually.",
@@ -77,7 +76,6 @@ const generateJobPostingFlow = ai.defineFlow(
             companyBenefits: "• Benefit A\n• Benefit B\n• Benefit C",
         };
     }
-    // Ensure skills is an array even if AI messes up (though Zod schema should handle it)
     if (!Array.isArray(output.skills)) {
         output.skills = typeof output.skills === 'string' ? [output.skills] : [];
     }
@@ -87,4 +85,6 @@ const generateJobPostingFlow = ai.defineFlow(
     return output;
   }
 );
+    
+
     

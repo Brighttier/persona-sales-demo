@@ -17,7 +17,7 @@ interface JobForHMApproval {
   id: string;
   title: string;
   department: string;
-  submittedBy: string; // Recruiter's name
+  submittedBy: string; // Recruiter's name who might have created it
   dateSubmitted: string;
   status: "Pending Hiring Manager Approval" | "Approved by Hiring Manager" | "Rejected by Hiring Manager";
   jobDescription?: string;
@@ -25,10 +25,9 @@ interface JobForHMApproval {
 }
 
 const mockJobsForHMApproval: JobForHMApproval[] = [
-  { id: "recJob1", title: "Senior Frontend Developer", department: "Engineering", submittedBy: "Brenda Smith (Recruiter)", dateSubmitted: "2024-07-29", status: "Pending Hiring Manager Approval", jobDescription: "Seeking an experienced frontend developer to lead UI/UX initiatives...", salaryRange: "$125k - $155k" },
-  { id: "recJob2", title: "Digital Marketing Specialist", department: "Marketing", submittedBy: "Brenda Smith (Recruiter)", dateSubmitted: "2024-07-27", status: "Pending Hiring Manager Approval", jobDescription: "Drive our digital marketing campaigns across various channels...", salaryRange: "$70k - $90k" },
-  { id: "recJob3", title: "AI Research Scientist", department: "Research & Development", submittedBy: "Brenda Smith (Recruiter)", dateSubmitted: "2024-07-25", status: "Approved by Hiring Manager", jobDescription: "Conduct cutting-edge research in machine learning...", salaryRange: "$130k - $160k" },
-  { id: "recJob4", title: "Customer Success Manager", department: "Customer Relations", submittedBy: "Brenda Smith (Recruiter)", dateSubmitted: "2024-07-22", status: "Rejected by Hiring Manager", jobDescription: "Ensure our enterprise clients achieve their desired outcomes...", salaryRange: "$90k - $110k" },
+  // This page is no longer used per the new workflow.
+  // Keeping one example for structure if it were to be reactivated for a different purpose.
+  // { id: "recJob1", title: "Senior Frontend Developer", department: "Engineering", submittedBy: "Brenda Smith (Recruiter)", dateSubmitted: "2024-07-29", status: "Pending Hiring Manager Approval", jobDescription: "Seeking an experienced frontend developer to lead UI/UX initiatives...", salaryRange: "$125k - $155k" },
 ];
 
 export default function HMJobApprovalsPage() {
@@ -80,7 +79,7 @@ export default function HMJobApprovalsPage() {
         <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center"><Users className="mr-2 h-6 w-6 text-primary" /> Hiring Manager: Job Posting Approvals</CardTitle>
-            <CardDescription>As a Hiring Manager, review job postings submitted by Recruiters, and approve or reject them.</CardDescription>
+            <CardDescription>This page is currently not in use. Job approvals are handled by Recruiters.</CardDescription>
           </CardHeader>
         </Card>
 
@@ -93,6 +92,7 @@ export default function HMJobApprovalsPage() {
                   className="pl-8"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  disabled
                 />
              </div>
           </CardHeader>
@@ -109,7 +109,7 @@ export default function HMJobApprovalsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredJobs.map((job) => (
+                {filteredJobs.length > 0 ? filteredJobs.map((job) => (
                   <TableRow key={job.id}>
                     <TableCell className="font-medium">{job.title}</TableCell>
                     <TableCell>{job.department}</TableCell>
@@ -119,16 +119,16 @@ export default function HMJobApprovalsPage() {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" onClick={() => openDetailsDialog(job)}><Eye className="mr-1 h-4 w-4"/> Review Details</Button>
+                          <Button variant="ghost" size="sm" onClick={() => openDetailsDialog(job)} disabled><Eye className="mr-1 h-4 w-4"/> Review Details</Button>
                         </DialogTrigger>
                         {job.status === "Pending Hiring Manager Approval" && (
                           <>
                             <DialogTrigger asChild>
-                               <Button variant="outline" size="sm" className="text-red-600 border-red-400 hover:bg-red-50 hover:text-red-700 focus-visible:ring-red-400" onClick={() => openDetailsDialog(job)}>
+                               <Button variant="outline" size="sm" className="text-red-600 border-red-400 hover:bg-red-50 hover:text-red-700 focus-visible:ring-red-400" onClick={() => openDetailsDialog(job)} disabled>
                                   <ThumbsDown className="mr-1 h-3.5 w-3.5" /> Reject
                               </Button>
                             </DialogTrigger>
-                            <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 text-white focus-visible:ring-green-500" onClick={() => handleAction(job.id, 'approve')}>
+                            <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 text-white focus-visible:ring-green-500" onClick={() => handleAction(job.id, 'approve')} disabled>
                               <ThumbsUp className="mr-1 h-3.5 w-3.5" /> Approve & Finalize
                             </Button>
                           </>
@@ -136,9 +136,8 @@ export default function HMJobApprovalsPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
-                {filteredJobs.length === 0 && (
-                   <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No job postings found matching your criteria.</TableCell></TableRow>
+                )) : (
+                   <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No job postings to display. This approval step is handled by Recruiters.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -158,7 +157,6 @@ export default function HMJobApprovalsPage() {
                 <div className="text-sm text-foreground/80 whitespace-pre-line p-3 border rounded-md bg-muted min-h-[100px]">
                     {selectedJob.jobDescription || "No description provided."}
                 </div>
-                 <Textarea placeholder="Hiring Manager: Add final notes or adjustments (optional)..." rows={3} className="mt-1"/>
             </div>
             <div className="space-y-1">
                 <h4 className="font-semibold text-sm">Salary Range (from Recruiter):</h4>
@@ -205,4 +203,6 @@ export default function HMJobApprovalsPage() {
     </Dialog>
   );
 }
+    
+
     

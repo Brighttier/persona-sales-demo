@@ -67,11 +67,11 @@ export default function RecruiterCreateNewJobPage() {
     });
   };
 
-  const handleSubmitForApproval = (data: JobPostingFormValues) => {
-    console.log("Submit for HM Approval (Placeholder by Recruiter):", data);
+  const handlePublishJob = (data: JobPostingFormValues) => {
+    console.log("Publish Job (Placeholder by Recruiter):", data);
     toast({
-      title: "Job Submitted for Hiring Manager Approval (Placeholder)",
-      description: `Job posting "${data.jobTitle}" by Recruiter submitted to Hiring Manager for approval.`,
+      title: "Job Published (Placeholder)",
+      description: `Job posting "${data.jobTitle}" has been published.`,
     });
     router.push("/dashboard/recruiter/job-listings");
   };
@@ -169,7 +169,7 @@ export default function RecruiterCreateNewJobPage() {
       <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center"><Briefcase className="mr-2 h-6 w-6 text-primary" /> Recruiter: Define New Job Posting</CardTitle>
-          <CardDescription>As a Recruiter, outline the details for the new role based on Hiring Manager requirements. AI can help generate content.</CardDescription>
+          <CardDescription>As a Recruiter, outline the details for the new role. AI can help generate content.</CardDescription>
         </CardHeader>
       </Card>
 
@@ -338,10 +338,10 @@ export default function RecruiterCreateNewJobPage() {
                       <Button type="button" variant="outline" onClick={addSkill}>Add Skill</Button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {field.value?.map((skill) => (
-                        <Badge key={skill} variant="default" className="py-1 px-3 text-sm">
+                      {(field.value || []).map((skill) => (
+                        <Badge key={skill} variant="default" className="py-1 px-3 text-sm bg-primary text-primary-foreground">
                           {skill}
-                          <button type="button" onClick={() => removeSkill(skill)} className="ml-2 hover:text-destructive-foreground/80">
+                          <button type="button" onClick={() => removeSkill(skill)} className="ml-2 hover:text-primary-foreground/80">
                             <Trash2 className="h-3 w-3"/>
                           </button>
                         </Badge>
@@ -380,8 +380,8 @@ export default function RecruiterCreateNewJobPage() {
             <Button type="button" variant="secondary" onClick={form.handleSubmit(handleSaveAsDraft)} disabled={isAiGenerating}>
               <Save className="mr-2 h-4 w-4" /> Save as Draft
             </Button>
-            <Button type="button" onClick={form.handleSubmit(handleSubmitForApproval)} disabled={isAiGenerating}>
-              <Send className="mr-2 h-4 w-4" /> Submit for Hiring Manager Approval
+            <Button type="button" onClick={form.handleSubmit(handlePublishJob)} disabled={isAiGenerating}>
+              <Send className="mr-2 h-4 w-4" /> Publish Job
             </Button>
           </CardFooter>
         </form>
@@ -389,3 +389,5 @@ export default function RecruiterCreateNewJobPage() {
     </div>
   );
 }
+
+    

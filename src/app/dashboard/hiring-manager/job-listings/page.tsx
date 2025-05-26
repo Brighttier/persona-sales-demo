@@ -16,10 +16,10 @@ import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 
 const mockHMJobListings = [
-  { id: "hmjob1", title: "Lead Software Architect", status: "Pending Approval", applicants: 0, department: "Engineering", location: "Remote", dateCreated: "2024-07-28", approvalStatus: "Pending Recruiter Approval" },
-  { id: "hmjob2", title: "Senior Product Designer", status: "Active", applicants: 15, department: "Design", location: "New York, NY", dateCreated: "2024-07-25", approvalStatus: "Approved" },
-  { id: "hmjob3", title: "Marketing Manager", status: "Draft", applicants: 0, department: "Marketing", location: "San Francisco, CA", dateCreated: "2024-07-22", approvalStatus: "Draft" },
-  { id: "hmjob4", title: "Data Visualization Expert", status: "Closed", applicants: 40, department: "Analytics", location: "Remote", dateCreated: "2024-06-15", approvalStatus: "Approved" },
+  { id: "hmjob1", title: "Lead Software Architect", status: "Pending Recruiter Approval", applicants: 0, department: "Engineering", location: "Remote", dateCreated: "2024-07-28" },
+  { id: "hmjob2", title: "Senior Product Designer", status: "Active", applicants: 15, department: "Design", location: "New York, NY", dateCreated: "2024-07-25" },
+  { id: "hmjob3", title: "Marketing Manager", status: "Draft", applicants: 0, department: "Marketing", location: "San Francisco, CA", dateCreated: "2024-07-22" },
+  { id: "hmjob4", title: "Data Visualization Expert", status: "Closed", applicants: 40, department: "Analytics", location: "Remote", dateCreated: "2024-06-15" },
 ];
 
 export default function HiringManagerJobListingsPage() {
@@ -27,26 +27,18 @@ export default function HiringManagerJobListingsPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [appliedSearch, setAppliedSearch] = useState("");
-  const [appliedStatus, setAppliedStatus] = useState<string | "all">("all");
-
-  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAppliedSearch(e.target.value);
-  };
-
-  const handleStatusFilterChange = (value: string) => {
-    setAppliedStatus(value);
-  };
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | "all">("all");
 
 
   const filteredJobs = useMemo(() => {
     return mockHMJobListings.filter(job => {
-      const searchMatch = job.title.toLowerCase().includes(appliedSearch.toLowerCase()) ||
-                          job.department.toLowerCase().includes(appliedSearch.toLowerCase());
-      const statusMatch = appliedStatus === "all" || job.status === appliedStatus;
+      const searchMatch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          job.department.toLowerCase().includes(searchTerm.toLowerCase());
+      const statusMatch = statusFilter === "all" || job.status === statusFilter;
       return searchMatch && statusMatch;
     });
-  }, [appliedSearch, appliedStatus]);
+  }, [searchTerm, statusFilter]);
 
   const handleJobAction = (jobId: string, action: string) => {
     toast({ title: `Action: ${action}`, description: `Performed ${action} on job ${jobId}. (Simulated)`});
@@ -55,7 +47,7 @@ export default function HiringManagerJobListingsPage() {
   const getStatusPill = (status: string) => {
     switch(status) {
         case "Active": return <Badge className="bg-green-100 text-green-700 border-green-300">{status}</Badge>;
-        case "Pending Approval": return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">{status}</Badge>;
+        case "Pending Recruiter Approval": return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">{status}</Badge>;
         case "Closed": return <Badge variant="secondary" className="bg-gray-100 text-gray-700 border-gray-300">{status}</Badge>;
         case "Draft": return <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">{status}</Badge>;
         default: return <Badge>{status}</Badge>;
@@ -68,7 +60,7 @@ export default function HiringManagerJobListingsPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-2xl flex items-center"><Briefcase className="mr-2 h-6 w-6 text-primary"/> My Job Postings</CardTitle>
-            <CardDescription>Create and manage job postings for your team.</CardDescription>
+            <CardDescription>Create and manage job postings for your team. Submit them to Recruiters for review.</CardDescription>
           </div>
           <Button asChild>
             <Link href={`/dashboard/${role}/job-listings/new`}>
@@ -86,22 +78,21 @@ export default function HiringManagerJobListingsPage() {
                     <Input
                       placeholder="Search by title, department..."
                       className="pl-8 w-full"
-                      value={appliedSearch}
-                      onChange={handleSearchInputChange}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
-                    <Select value={appliedStatus} onValueChange={handleStatusFilterChange}>
+                    <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value)}>
                         <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Filter by Status" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Statuses</SelectItem>
                             <SelectItem value="Active">Active</SelectItem>
-                            <SelectItem value="Pending Approval">Pending Approval</SelectItem>
+                            <SelectItem value="Pending Recruiter Approval">Pending Recruiter Approval</SelectItem>
                             <SelectItem value="Draft">Draft</SelectItem>
                             <SelectItem value="Closed">Closed</SelectItem>
                         </SelectContent>
                     </Select>
-                    {/* Remove explicit "Apply Filters" button for live filtering */}
                 </div>
             </div>
         </CardHeader>
@@ -122,7 +113,6 @@ export default function HiringManagerJobListingsPage() {
               {filteredJobs.map((job) => (
                 <TableRow key={job.id}>
                   <TableCell className="font-medium">
-                    {/* Assuming HM doesn't directly view applicants this way, but can edit the job */}
                     {job.title}
                   </TableCell>
                   <TableCell>{job.department}</TableCell>
@@ -140,12 +130,12 @@ export default function HiringManagerJobListingsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => router.push(`/dashboard/${role}/job-listings/${job.id}/applicants`)}>
-                            <Users className="mr-2 h-4 w-4" />View Applicants
+                        <DropdownMenuItem onClick={() => router.push(`/dashboard/${role}/job-listings/${job.id}/applicants`)}> {/* Placeholder link, adjust if HM views applicants */}
+                            <Users className="mr-2 h-4 w-4" />View Applicants (Placeholder)
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleJobAction(job.id, 'edit_job')}><Edit className="mr-2 h-4 w-4" />Edit Job</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {job.status === "Draft" && <DropdownMenuItem onClick={() => handleJobAction(job.id, 'submit_for_approval')}><Check className="mr-2 h-4 w-4"/>Submit for Approval</DropdownMenuItem>}
+                        {job.status === "Draft" && <DropdownMenuItem onClick={() => handleJobAction(job.id, 'submit_for_recruiter_approval')}><Check className="mr-2 h-4 w-4"/>Submit for Recruiter Approval</DropdownMenuItem>}
                         <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleJobAction(job.id, 'delete_job')}><Trash2 className="mr-2 h-4 w-4" />Delete Job</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -166,4 +156,4 @@ export default function HiringManagerJobListingsPage() {
   );
 }
 
-
+    
