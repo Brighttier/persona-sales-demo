@@ -24,7 +24,7 @@ export default function HiringManagerProfilePage() {
 
   const hmQuickLinks = [
     { label: "Manage My Job Postings", href: `/dashboard/${role}/job-listings`, icon: FileText },
-    { label: "Review Job Approvals", href: `/dashboard/${role}/job-approvals`, icon: CheckSquare },
+    // { label: "Review Job Approvals", href: `/dashboard/${role}/job-approvals`, icon: CheckSquare }, // Removed this line
     { label: "View Team Interviews", href: `/dashboard/${role}/interviews`, icon: Users },
     { label: "Hiring Analytics", href: `/dashboard/${role}/analytics`, icon: BarChart3 },
   ];
