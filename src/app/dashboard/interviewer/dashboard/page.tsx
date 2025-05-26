@@ -15,23 +15,22 @@ import Link from "next/link";
 import { useState, useMemo } from "react";
 import { format, parseISO, isValid } from "date-fns";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import type { CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening"; // Assuming this type is useful
+import type { CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening"; 
 import { generateInterviewGuide, type GenerateInterviewGuideOutput } from "@/ai/flows/generate-interview-guide-flow";
 
 interface AssignedInterview {
   id: string;
   candidateName: string;
   jobTitle: string;
-  jobId?: string; // For context
-  jobDescription?: string; // For AI interview strategy
-  candidateResumeSummary?: string; // For AI interview strategy
+  jobId?: string; 
+  jobDescription?: string; 
+  candidateResumeSummary?: string; 
   date: string;
   time: string;
   status: "Upcoming" | "Completed";
   feedbackProvided?: boolean;
   platformLink?: string;
   verdict?: "Recommend for Next Round" | "Hold" | "Do Not Recommend";
-  // Mock screening report data
   screeningSuitabilityScore?: number;
   screeningSummary?: string;
   screeningStrengths?: string;
@@ -75,7 +74,7 @@ const mockAssignedInterviews: AssignedInterview[] = [
     date: "2024-08-20", time: "09:00 AM", status: "Upcoming" 
   },
   { 
-    id: "intAssign5", candidateName: "Gary Goodfit", jobTitle: "Software Engineer", jobId: "job1", // Same job as Charlie
+    id: "intAssign5", candidateName: "Gary Goodfit", jobTitle: "Software Engineer", jobId: "job1", 
     jobDescription: "Seeking a skilled Software Engineer with expertise in Java and Spring Boot to develop and maintain backend services. Candidate should have 5+ years of experience and a strong understanding of microservice architecture.",
     candidateResumeSummary: "Full-stack developer with 3 years in JavaScript (React, Node) and 2 years in Python (Flask). Looking to transition more into backend Java roles. Quick learner.",
     date: "2024-08-10", time: "03:00 PM", status: "Completed", feedbackProvided: false 
@@ -89,16 +88,13 @@ export default function InterviewerDashboardPage() {
   const { toast } = useToast();
   const [interviews, setInterviews] = useState<AssignedInterview[]>(mockAssignedInterviews);
   
-  // For Feedback Dialog
   const [selectedInterviewForFeedback, setSelectedInterviewForFeedback] = useState<AssignedInterview | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [verdict, setVerdict] = useState<VerdictOption | undefined>(undefined);
 
-  // For Screening Report Dialog
   const [isScreeningReportDialogOpen, setIsScreeningReportDialogOpen] = useState(false);
   const [selectedInterviewForReport, setSelectedInterviewForReport] = useState<AssignedInterview | null>(null);
 
-  // For AI Interview Strategy Dialog
   const [isStrategyDialogOpen, setIsStrategyDialogOpen] = useState(false);
   const [selectedInterviewForStrategy, setSelectedInterviewForStrategy] = useState<AssignedInterview | null>(null);
   const [generatedStrategy, setGeneratedStrategy] = useState<string | null>(null);
@@ -165,7 +161,7 @@ export default function InterviewerDashboardPage() {
   
   const openStrategyDialog = (interview: AssignedInterview) => {
     setSelectedInterviewForStrategy(interview);
-    setGeneratedStrategy(null); // Clear previous strategy
+    setGeneratedStrategy(null); 
     setIsStrategyDialogOpen(true);
   };
 
@@ -181,7 +177,7 @@ export default function InterviewerDashboardPage() {
         candidateResumeSummary: selectedInterviewForStrategy.candidateResumeSummary,
       });
       setGeneratedStrategy(result.interviewStrategy);
-      toast({ title: "AI Strategy Generated!", description: "Review the suggested interview approach."});
+      toast({ title: "AI Interview Strategy Generated!", description: "Review the suggested interview approach."});
     } catch (error) {
       console.error("Error generating interview strategy:", error);
       toast({ variant: "destructive", title: "Strategy Generation Failed", description: "Could not generate interview strategy."});
@@ -251,7 +247,7 @@ export default function InterviewerDashboardPage() {
                                         )}
                                         {(interview.jobDescription && interview.candidateResumeSummary) && (
                                             <Button size="sm" variant="outline" className="flex-1 border-purple-500 text-purple-600 hover:bg-purple-50" onClick={() => openStrategyDialog(interview)}>
-                                                <WandSparkles className="mr-1 h-3 w-3"/> AI Strategy
+                                                <WandSparkles className="mr-1 h-3 w-3"/> AI Interview Strategy
                                             </Button>
                                         )}
                                     </div>
@@ -410,18 +406,18 @@ export default function InterviewerDashboardPage() {
                 {isGeneratingStrategy && (
                     <div className="flex items-center justify-center p-6">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="ml-2 text-muted-foreground">Generating AI Strategy...</p>
+                        <p className="ml-2 text-muted-foreground">Generating AI Interview Strategy...</p>
                     </div>
                 )}
                 {generatedStrategy && !isGeneratingStrategy && (
                     <div className="p-4 border rounded-md bg-secondary/50">
                         <h4 className="font-semibold mb-2 text-primary">Suggested Interview Approach:</h4>
-                        <p className="text-sm whitespace-pre-line">{generatedStrategy}</p>
+                        <div className="text-sm whitespace-pre-line">{generatedStrategy}</div>
                     </div>
                 )}
                 {!generatedStrategy && !isGeneratingStrategy && (
                      <Button onClick={handleGenerateStrategy} className="w-full" disabled={!selectedInterviewForStrategy?.jobDescription || !selectedInterviewForStrategy?.candidateResumeSummary}>
-                        <Lightbulb className="mr-2 h-4 w-4"/> Generate Strategy with AI
+                        <Lightbulb className="mr-2 h-4 w-4"/> Generate Interview Strategy with AI
                     </Button>
                 )}
                  {(!selectedInterviewForStrategy?.jobDescription || !selectedInterviewForStrategy?.candidateResumeSummary) && !generatedStrategy && !isGeneratingStrategy && (
