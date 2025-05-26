@@ -33,8 +33,8 @@ body {
     --destructive: 0 84% 60%; /* Standard Red */
     --destructive-foreground: 0 0% 98%; /* White */
 
-    --border: 142 60% 60%; /* Light Green for borders */
-    --input: 142 60% 60%; /* Light Green for input borders */
+    --border: 142 50% 70%; /* Lighter Green for borders */
+    --input: 142 50% 70%; /* Lighter Green for input borders */
     --ring: 142 71% 35%; /* Fiverr Green for focus rings */
 
     --radius: 0.5rem;
@@ -50,11 +50,11 @@ body {
     --sidebar-ring: 142 71% 35%;
 
     /* Chart Colors */
-    --chart-1: 142 60% 30%; /* Darker Green */
-    --chart-2: 180 50% 45%; /* Teal/Cyan */
-    --chart-3: 45 80% 55%;  /* Yellow/Gold */
-    --chart-4: 210 60% 60%; /* Muted Blue */
-    --chart-5: 0 0% 55%;   /* Neutral Gray */
+    --chart-1: 142 60% 40%; /* Green */
+    --chart-2: 210 60% 55%; /* Blue */
+    --chart-3: 45 80% 60%;  /* Gold/Yellow */
+    --chart-4: 180 50% 50%; /* Teal */
+    --chart-5: 0 0% 60%;   /* Neutral Gray */
   }
 
   .dark {
@@ -82,8 +82,8 @@ body {
     --destructive: 0 70% 55%; /* Red, slightly adjusted for dark */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 142 50% 40%; /* Greenish border for dark mode */
-    --input: 142 50% 40%; /* Greenish input border for dark mode */
+    --border: 142 50% 50%; /* Greenish border for dark mode (slightly darker than light mode accent for borders) */
+    --input: 142 50% 50%; /* Greenish input border for dark mode */
     --ring: 142 71% 45%; /* Lighter Green ring for dark mode */
 
     /* Sidebar specific theme variables for dark mode */
@@ -98,10 +98,10 @@ body {
 
     /* Chart Colors for Dark Mode */
     --chart-1: 142 71% 55%; /* Lighter Green */
-    --chart-2: 180 50% 55%; /* Lighter Teal/Cyan */
-    --chart-3: 45 80% 65%;  /* Lighter Yellow/Gold */
-    --chart-4: 210 60% 70%; /* Lighter Muted Blue */
-    --chart-5: 0 0% 65%;   /* Lighter Neutral Gray */
+    --chart-2: 210 60% 65%; /* Lighter Blue */
+    --chart-3: 45 80% 65%;  /* Lighter Gold/Yellow */
+    --chart-4: 180 50% 60%; /* Lighter Teal */
+    --chart-5: 0 0% 70%;   /* Lighter Neutral Gray */
   }
 }
 
@@ -114,28 +114,34 @@ body {
   }
 }
 
-/* Existing Speaking Orb CSS */
+/* Updated Speaking Orb CSS */
 @layer components {
   .ai-speaking-orb {
-    @apply inline-block w-6 h-6 rounded-full bg-accent transition-all duration-300 ease-in-out shadow-md;
-    /* Use HSL for box-shadow to ensure it picks up the accent color */
-    box-shadow: 0 0 5px hsl(var(--accent));
+    @apply inline-block w-8 h-8 rounded-full bg-accent transition-all duration-300 ease-in-out; /* Increased size */
+    /* Neon glow effect */
+    box-shadow: 0 0 6px hsl(var(--accent)), 
+                0 0 10px hsl(var(--accent)),
+                0 0 14px hsl(var(--accent) / 0.6);
   }
   .ai-speaking-orb.speaking {
-    animation: speaking-pulse 1.2s infinite ease-in-out;
+    animation: speaking-pulse-neon 1.2s infinite ease-in-out;
   }
 }
 
-@keyframes speaking-pulse {
+@keyframes speaking-pulse-neon {
   0%, 100% {
-    transform: scale(0.9);
-    opacity: 0.7;
-    box-shadow: 0 0 6px hsl(var(--accent));
+    transform: scale(0.95);
+    opacity: 0.8;
+    box-shadow: 0 0 6px hsl(var(--accent)), 
+                0 0 10px hsl(var(--accent)),
+                0 0 14px hsl(var(--accent) / 0.5);
   }
   50% {
-    transform: scale(1.1);
+    transform: scale(1.05);
     opacity: 1;
-    /* Use HSL for box-shadow to ensure it picks up the accent color */
-    box-shadow: 0 0 12px hsl(var(--accent)), 0 0 18px hsl(var(--accent) / 0.7);
+    box-shadow: 0 0 8px hsl(var(--accent)), 
+                0 0 16px hsl(var(--accent)), 
+                0 0 24px hsl(var(--accent) / 0.7),
+                0 0 32px hsl(var(--accent) / 0.5);
   }
 }

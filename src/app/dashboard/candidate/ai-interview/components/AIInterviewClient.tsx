@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, CheckCircle, Loader2, Timer, AlertCircle, BotMessageSquare, User, Film, Brain, ThumbsUp, ThumbsDown, MessageSquare as MessageSquareIcon, Star, Users as UsersIcon, Mic, MicOff, Volume2 } from "lucide-react";
+import { Camera, CheckCircle, Loader2, Timer, AlertCircle, BotMessageSquare, User, Film, Brain, ThumbsUp, ThumbsDown, MessageSquare as MessageSquareIcon, Star, Users as UsersIcon, Mic } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as ElevenReact from '@11labs/react';
 import { useRouter } from 'next/navigation';
@@ -32,7 +32,7 @@ type InterviewStage = "consent" | "preparingStream" | "countdown" | "interviewin
 type Message = { sender: "user" | "agent"; text: string; timestamp: number };
 
 const SESSION_COUNTDOWN_SECONDS = 3;
-const MAX_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 minutes for the whole session
+const MAX_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 minutes for the whole session (can be adjusted)
 const ELEVENLABS_AGENT_ID = "EVQJtCNSo0L6uHQnImQu";
 
 const formatFeedbackText = (text: string | undefined): React.ReactNode => {
@@ -143,7 +143,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     const conv = conversationRef.current;
     if (conv && conv.status === "connected") {
         console.log("CleanupResources: Attempting to end EL session.");
-        isIntentionalDisconnectRef.current = true; // Mark as intentional to avoid onDisconnect handler logic for this case
+        isIntentionalDisconnectRef.current = true; 
         conv.endSession().catch(e => console.error("CleanupResources: Error ending EL session:", e))
                          .finally(() => { isIntentionalDisconnectRef.current = false; });
     } else { console.log("CleanupResources: EL session not connected or already cleaned up."); }
@@ -166,10 +166,11 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     console.log("CleanupResources: Finished.");
   }, []); 
 
+
   const handleElevenError = useCallback((error: Error, context?: string) => { 
     if (isProcessingErrorRef.current) { console.warn(`EL onError (${context || 'general'}): Already processing an error. Skipping. Error:`, error); return; }
     isProcessingErrorRef.current = true;
-    isStartingSessionRef.current = false; // Ensure this is reset on error
+    isStartingSessionRef.current = false; 
     console.error(`EL onError (${context || 'general'}):`, error);
     
     const errorMessage = error.message || "AI Agent connection error.";
@@ -177,7 +178,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     toast({ variant: "destructive", title: `AI Agent Error (${context || 'General'})`, description: errorMessage });
 
     cleanupResources();
-    resetFullInterview(); 
+    resetFullInterview();
     
     setTimeout(() => { isProcessingErrorRef.current = false; }, 3000); 
   }, [toast, cleanupResources, resetFullInterview]);
@@ -196,7 +197,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         console.error("EL onConnect: combinedStreamRef is null. Cannot start MediaRecorder.");
         setMediaError("Media stream for recording not available.");
         toast({variant: "destructive", title: "Recording Error", description: "Media stream for recording not available."});
-        if(conversationRef.current && conversationRef.current.status === "connected") { conversationRef.current.endSession().catch(e => console.error("Error ending EL session on stream fail", e)); }
+        const conv = conversationRef.current;
+        if(conv && conv.status === "connected") { conv.endSession().catch(e => console.error("Error ending EL session on stream fail", e)); }
         cleanupResources(); resetFullInterview(); return;
       }
 
@@ -285,7 +287,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         });
         if(message.isFinal === true) { setFullTranscript(prev => prev + `\nMira: ${message.text}`); }
         return; 
-      } else if (typeof message.text === 'string' && !message.type && conversationRef.current?.status === "connected" && !conversationRef.current?.isSpeaking) { sender = 'user'; textContent = message.text; } 
+      } else if (typeof message.text === 'string' && !message.type && conversationRef.current?.status === "connected" && !(conversationRef.current?.isSpeaking)) { sender = 'user'; textContent = message.text; } 
       else if (message.audio && message.text) { sender = 'agent'; textContent = message.text; }
 
       if (textContent) {
@@ -321,7 +323,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         setFeedbackResult(result);
         setStage("feedback");
         toast({ title: "Feedback Received!", description: "AI has analyzed your interview." });
-        // No automatic redirect here anymore
       };
       reader.onerror = () => { toast({ variant: "destructive", title: "File Read Error", description: "Could not process video for submission." }); cleanupResources(); resetFullInterview(); }
     } catch (error) {
@@ -470,22 +471,24 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
     return (
       <Card className="shadow-xl relative overflow-hidden min-h-[500px] md:min-h-[600px] flex flex-col">
-        {/* Centering wrapper for the video area */}
         <div className="flex-grow flex items-center justify-center p-2 md:p-4">
-            {/* Sized video container with aspect ratio */}
             <div className="w-full max-w-2xl aspect-video relative bg-black rounded-md shadow-lg">
                 <video ref={videoPreviewRef} className="w-full h-full object-cover transform scale-x-[-1] rounded-md" playsInline autoPlay muted />
                 
-                {/* AI Agent Status Overlay (Top) */}
                 <div className="absolute top-0 left-0 right-0 p-2 md:p-3 bg-black/60 backdrop-blur-sm text-white rounded-t-md z-20 shadow-lg flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <BotMessageSquare className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                       <span className="font-semibold text-xs md:text-sm">Mira - AI Interviewer</span>
-                      <div className={cn('ai-speaking-orb', agentIsSpeaking && 'speaking')} />
+                       <div
+                        className={cn(
+                          'ai-speaking-orb',
+                          agentIsSpeaking && 'speaking'
+                        )}
+                      />
                     </div>
                     <div className="flex items-center gap-2 md:gap-3">
                       {(stage === 'interviewing' && conversationRef.current?.status === "connected" && !agentIsSpeaking) && (
-                          <div className="flex items-center text-xs text-white/70 animate-pulse">
+                          <div className="flex items-center text-xs text-primary animate-pulse"> {/* Changed text color */}
                               <Mic className="h-3 w-3 md:h-4 md:w-4 mr-1" /> Listening...
                           </div>
                       )}
@@ -493,7 +496,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                     </div>
                 </div>
                 
-                {/* Chat Messages Overlay (Bottom of this container) */}
                 <div className="absolute bottom-0 left-0 right-0 p-2 md:p-3 max-h-[40%] overflow-y-auto bg-black/70 backdrop-blur-md z-10 space-y-2 flex flex-col-reverse pointer-events-auto">
                   <div ref={chatMessagesEndRef} />
                   {conversationMessages.slice().reverse().map((msg, index) => ( 
@@ -605,6 +607,15 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
   }, [conversationMessages, stage]);
 
+
+  if (!elevenLabsApiKey && stage !== "consent") {
+    return (
+      <Alert variant="destructive" className="shadow-lg mt-6">
+        <AlertCircle className="h-4 w-4" /> <AlertTitle>Configuration Error</AlertTitle>
+        <AlertDescription>The ElevenLabs API Key is missing. Please set NEXT_PUBLIC_ELEVENLABS_API_KEY in your environment variables.</AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <>
