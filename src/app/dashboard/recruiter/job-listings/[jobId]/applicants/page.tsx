@@ -25,7 +25,7 @@ interface Applicant {
   avatar: string;
   applicationDate: string;
   aiMatchScore?: number;
-  status: "New" | "Screening" | "Interview" | "Offer" | "Hired" | "Rejected" | "Withdrawn";
+  status: "New" | "Screening" | "Interview" | "Offer" | "Hired" | "Not Selected" | "Withdrawn";
   email: string;
   skills: string[];
   resumeText?: string;
@@ -37,7 +37,7 @@ const initialMockApplicants: Applicant[] = [
   { id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", applicationDate: "2024-07-25", aiMatchScore: 92, status: "New", email: "alice@example.com", skills: ["React", "Node.js", "TypeScript"], resumeText: "Highly skilled React developer with 5 years of experience in Node.js and TypeScript.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu"},
   { id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", applicationDate: "2024-07-24", aiMatchScore: 85, status: "Screening", email: "bob@example.com", skills: ["Python", "Django", "SQL"], resumeText: "Data-driven Python developer, proficient in Django and SQL databases.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==" },
   { id: "app3", name: "Carol Davis", avatar: "https://placehold.co/100x100.png?text=CD", applicationDate: "2024-07-23", aiMatchScore: 78, status: "Interview", email: "carol@example.com", skills: ["Java", "Spring Boot", "Microservices"], resumeText: "Experienced Java engineer specializing in Spring Boot and microservice architectures.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Q2Fyb2wgRGF2aXMnIFJlc3VtZS4gRXhwZXJ0IGphdmEgZW5naW5lZXIgV2l0aCBKYXZhLCBTcHJpbmcgQm9vdCwgYW5kIE1pY3Jvc2VydmljZXMu" },
-  { id: "app4", name: "David Miller", avatar: "https://placehold.co/100x100.png?text=DM", applicationDate: "2024-07-22", status: "Rejected", email: "david@example.com", skills: ["PHP", "Laravel"], resumeText: "Full-stack PHP developer with Laravel expertise.", jobTitleAppliedFor: "Software Engineer, Frontend" },
+  { id: "app4", name: "David Miller", avatar: "https://placehold.co/100x100.png?text=DM", applicationDate: "2024-07-22", status: "Not Selected", email: "david@example.com", skills: ["PHP", "Laravel"], resumeText: "Full-stack PHP developer with Laravel expertise.", jobTitleAppliedFor: "Software Engineer, Frontend" },
   { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", applicationDate: "2024-07-26", aiMatchScore: 95, status: "New", email: "eve@example.com", skills: ["JavaScript", "Vue.js", "Firebase"], resumeText: "Creative Vue.js developer with Firebase backend knowledge.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=" },
 ];
 
@@ -61,38 +61,47 @@ export default function ViewApplicantsPage() {
   const [isScreeningLoading, setIsScreeningLoading] = useState(false);
   const [selectedApplicantForScreening, setSelectedApplicantForScreening] = useState<Applicant | null>(null);
   const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false);
-  const [applicantToReject, setApplicantToReject] = useState<Applicant | null>(null);
+  const [applicantToUpdate, setApplicantToUpdate] = useState<Applicant | null>(null); // Changed from applicantToReject to be more generic
 
   const jobData = mockJobTitles[jobId] || { title: `Job ID: ${jobId}`, description: "Details for this job are not available."};
 
   const handleUpdateStatus = () => {
-    if (selectedApplicantForStatus && newStatus) {
-      setApplicants(prev => prev.map(app => app.id === selectedApplicantForStatus.id ? {...app, status: newStatus as Applicant["status"]} : app));
+    if (applicantToUpdate && newStatus) {
+      setApplicants(prev => prev.map(app => app.id === applicantToUpdate.id ? {...app, status: newStatus as Applicant["status"]} : app));
       toast({
         title: "Status Updated",
-        description: `${selectedApplicantForStatus.name}'s status changed to ${newStatus}.`,
+        description: `${applicantToUpdate.name}'s status changed to ${newStatus}.`,
       });
-      setSelectedApplicantForStatus(null);
+      setApplicantToUpdate(null);
+      setSelectedApplicantForStatus(null); // Close main dialog if separate
+      setIsRejectConfirmOpen(false); // Close confirmation dialog
       setNewStatus("");
     }
   };
 
-  const openRejectDialog = (applicant: Applicant) => {
-    setApplicantToReject(applicant);
-    setIsRejectConfirmOpen(true);
+  const openStatusUpdateDialog = (applicant: Applicant, targetStatus?: Applicant["status"]) => {
+    setApplicantToUpdate(applicant);
+    if (targetStatus === "Not Selected") {
+        setIsRejectConfirmOpen(true); // Use this for confirmation
+    } else {
+        setSelectedApplicantForStatus(applicant); // Open the main status update dialog
+        setNewStatus(targetStatus || applicant.status); // Pre-fill if a specific status is targeted
+    }
   };
-
-  const confirmRejectCandidate = () => {
-     if (!applicantToReject) return;
-     setApplicants(prev => prev.map(app => app.id === applicantToReject.id ? {...app, status: "Rejected"} : app));
+  
+  const confirmStatusUpdateToAction = (status: Applicant["status"]) => {
+     if (!applicantToUpdate) return;
+     setNewStatus(status); // Set the new status
+     setApplicants(prev => prev.map(app => app.id === applicantToUpdate!.id ? {...app, status: status} : app));
      toast({
-        title: "Candidate Rejected",
-        description: `${applicantToReject.name} has been marked as rejected.`,
-        variant: "destructive"
+        title: `Candidate Status Updated`,
+        description: `${applicantToUpdate.name} has been marked as ${status}.`,
+        variant: status === "Not Selected" ? "destructive" : "default"
       });
       setIsRejectConfirmOpen(false);
-      setApplicantToReject(null);
+      setApplicantToUpdate(null);
   };
+
 
   const handleAIScreen = async (applicant: Applicant) => {
     if (!applicant.resumeText || !jobData.description) {
@@ -135,7 +144,7 @@ export default function ViewApplicantsPage() {
       case "Interview": return <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-300">{status}</Badge>;
       case "Offer": return <Badge variant="default" className="bg-green-500 text-white border-green-700">Offer</Badge>;
       case "Hired": return <Badge variant="default" className="bg-green-700 text-white border-green-900">Hired</Badge>;
-      case "Rejected": return <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-300">{status}</Badge>;
+      case "Not Selected": return <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-300">{status}</Badge>;
       case "Withdrawn": return <Badge variant="outline">{status}</Badge>;
       default: return <Badge>{status}</Badge>;
     }
@@ -171,7 +180,7 @@ export default function ViewApplicantsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  {["New", "Screening", "Interview", "Offer", "Hired", "Rejected", "Withdrawn"].map(s => (
+                  {["New", "Screening", "Interview", "Offer", "Hired", "Not Selected", "Withdrawn"].map(s => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
@@ -236,15 +245,15 @@ export default function ViewApplicantsPage() {
                           {isScreeningLoading && selectedApplicantForScreening?.id === applicant.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ShieldCheck className="mr-2 h-4 w-4" />}
                           AI Screen
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setSelectedApplicantForStatus(applicant); setNewStatus(applicant.status); }}>
+                        <DropdownMenuItem onClick={() => openStatusUpdateDialog(applicant)}>
                           <Edit3 className="mr-2 h-4 w-4" />Update Status
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => toast({title: "Schedule Interview (Placeholder)", description: `Scheduling interview for ${applicant.name}.`})}>
                           <CalendarPlus className="mr-2 h-4 w-4" />Schedule Interview
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => openRejectDialog(applicant)}>
-                          <UserX className="mr-2 h-4 w-4" />Reject Candidate
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => openStatusUpdateDialog(applicant, "Not Selected")}>
+                          <UserX className="mr-2 h-4 w-4" />Mark as Not Selected
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -264,7 +273,7 @@ export default function ViewApplicantsPage() {
       </Card>
 
       {/* Dialog for Update Status */}
-      <Dialog open={!!selectedApplicantForStatus} onOpenChange={(open) => !open && setSelectedApplicantForStatus(null)}>
+      <Dialog open={!!selectedApplicantForStatus && !isRejectConfirmOpen} onOpenChange={(open) => !open && setSelectedApplicantForStatus(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Update Status for {selectedApplicantForStatus?.name}</DialogTitle>
@@ -278,7 +287,7 @@ export default function ViewApplicantsPage() {
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {["New", "Screening", "Interview", "Offer", "Hired", "Rejected", "Withdrawn"].map(s => (
+                  {["New", "Screening", "Interview", "Offer", "Hired", "Not Selected", "Withdrawn"].map(s => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
@@ -287,28 +296,26 @@ export default function ViewApplicantsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedApplicantForStatus(null)}>Cancel</Button>
-            <Button onClick={handleUpdateStatus}>Save Changes</Button>
+            <Button onClick={() => {applicantToUpdate && handleUpdateStatus()}}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for Reject Confirmation */}
+      {/* Dialog for "Not Selected" Confirmation */}
         <Dialog open={isRejectConfirmOpen} onOpenChange={setIsRejectConfirmOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Confirm Rejection</DialogTitle>
+                    <DialogTitle>Confirm Status: Not Selected</DialogTitle>
                     <DialogDescription>
-                        Are you sure you want to reject {applicantToReject?.name}? This action cannot be undone.
+                        Are you sure you want to mark {applicantToUpdate?.name} as "Not Selected"?
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => { setIsRejectConfirmOpen(false); setApplicantToReject(null); }}>Cancel</Button>
-                    <Button variant="destructive" onClick={confirmRejectCandidate}>Confirm Rejection</Button>
+                    <Button variant="outline" onClick={() => { setIsRejectConfirmOpen(false); setApplicantToUpdate(null); }}>Cancel</Button>
+                    <Button variant="destructive" onClick={() => confirmStatusUpdateToAction("Not Selected")}>Confirm: Not Selected</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     </div>
   );
 }
-
-    

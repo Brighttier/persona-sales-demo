@@ -15,7 +15,7 @@ const mockApplications = [
   { id: "app2", jobId: "job2", jobTitle: "Product Manager", company: "Innovate Hub", dateApplied: "2024-07-19", status: "Interview Scheduled" },
   { id: "app3", jobId: "job3", jobTitle: "UX Designer", company: "Creative Designs Co.", dateApplied: "2024-07-16", status: "Application Submitted" },
   { id: "app4", jobId: "job4", jobTitle: "Data Scientist", company: "Analytics Corp.", dateApplied: "2024-07-23", status: "Offer Extended" },
-  { id: "app5", jobId: "job5", jobTitle: "Marketing Specialist", company: "Growth Co.", dateApplied: "2024-07-10", status: "Rejected" },
+  { id: "app5", jobId: "job5", jobTitle: "Marketing Specialist", company: "Growth Co.", dateApplied: "2024-07-10", status: "Not Selected" },
   { id: "app6", jobId: "job6", jobTitle: "Backend Developer", company: "Server Systems Ltd.", dateApplied: "2024-06-15", status: "Withdrawn" },
 ];
 
@@ -29,7 +29,7 @@ const getStatusPill = (status: string) => {
         return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">{status}</Badge>;
       case "application submitted":
         return <Badge className="bg-purple-100 text-purple-700 border-purple-300">{status}</Badge>;
-      case "rejected":
+      case "not selected":
         return <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-300">{status}</Badge>;
       case "withdrawn":
         return <Badge variant="secondary" className="bg-gray-100 text-gray-700 border-gray-300">{status}</Badge>;
@@ -40,8 +40,8 @@ const getStatusPill = (status: string) => {
 
 export default function CandidateApplicationsPage() {
   const allApplications = mockApplications;
-  const activeApplications = mockApplications.filter(app => !["Rejected", "Offer Extended", "Withdrawn"].includes(app.status));
-  const archivedApplications = mockApplications.filter(app => ["Rejected", "Offer Extended", "Withdrawn"].includes(app.status));
+  const activeApplications = mockApplications.filter(app => !["Not Selected", "Offer Extended", "Withdrawn"].includes(app.status));
+  const archivedApplications = mockApplications.filter(app => ["Not Selected", "Offer Extended", "Withdrawn"].includes(app.status));
 
   const renderTable = (applications: typeof mockApplications) => (
     <Table>
