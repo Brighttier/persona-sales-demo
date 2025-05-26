@@ -13,14 +13,21 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 const mockHMJobListings = [
   { id: "hmjob1", title: "Lead Software Architect", status: "Pending Recruiter Approval", applicants: 0, department: "Engineering", location: "Remote", dateCreated: "2024-07-28" },
   { id: "hmjob2", title: "Senior Product Designer", status: "Active", applicants: 15, department: "Design", location: "New York, NY", dateCreated: "2024-07-25" },
   { id: "hmjob3", title: "Marketing Manager", status: "Draft", applicants: 0, department: "Marketing", location: "San Francisco, CA", dateCreated: "2024-07-22" },
   { id: "hmjob4", title: "Data Visualization Expert", status: "Closed", applicants: 40, department: "Analytics", location: "Remote", dateCreated: "2024-06-15" },
+  { id: "hmjob5", title: "Cloud Solutions Architect", status: "Active", applicants: 22, department: "Engineering", location: "Austin, TX", dateCreated: "2024-07-10" },
+  { id: "hmjob6", title: "UX Research Lead", status: "Pending Recruiter Approval", applicants: 0, department: "Design", location: "Remote", dateCreated: "2024-07-30" },
+  { id: "hmjob7", title: "Content Strategy Head", status: "Draft", applicants: 0, department: "Marketing", location: "Boston, MA", dateCreated: "2024-07-12" },
+  { id: "hmjob8", title: "Principal Data Engineer", status: "Active", applicants: 8, department: "Analytics", location: "Seattle, WA", dateCreated: "2024-07-01" },
 ];
+
+const INITIAL_JOBS_TO_SHOW = 5;
+const JOBS_INCREMENT_COUNT = 5;
 
 export default function HiringManagerJobListingsPage() {
   const { user, role } = useAuth();
@@ -29,9 +36,9 @@ export default function HiringManagerJobListingsPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | "all">("all");
+  const [visibleJobsCount, setVisibleJobsCount] = useState(INITIAL_JOBS_TO_SHOW);
 
-
-  const filteredJobs = useMemo(() => {
+  const allFilteredJobs = useMemo(() => {
     return mockHMJobListings.filter(job => {
       const searchMatch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           job.department.toLowerCase().includes(searchTerm.toLowerCase());
@@ -39,6 +46,18 @@ export default function HiringManagerJobListingsPage() {
       return searchMatch && statusMatch;
     });
   }, [searchTerm, statusFilter]);
+
+  const displayedJobs = useMemo(() => {
+    return allFilteredJobs.slice(0, visibleJobsCount);
+  }, [allFilteredJobs, visibleJobsCount]);
+
+  useEffect(() => {
+    setVisibleJobsCount(INITIAL_JOBS_TO_SHOW); // Reset pagination when filters change
+  }, [searchTerm, statusFilter]);
+
+  const handleLoadMoreJobs = () => {
+    setVisibleJobsCount(prevCount => Math.min(prevCount + JOBS_INCREMENT_COUNT, allFilteredJobs.length));
+  };
 
   const handleJobAction = (jobId: string, action: string) => {
     toast({ title: `Action: ${action}`, description: `Performed ${action} on job ${jobId}. (Simulated)`});
@@ -52,6 +71,10 @@ export default function HiringManagerJobListingsPage() {
         case "Draft": return <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">{status}</Badge>;
         default: return <Badge>{status}</Badge>;
     }
+  };
+
+  const canViewApplicants = (status: string) => {
+    return ["Active", "Closed", "Pending Recruiter Approval"].includes(status);
   };
 
   return (
@@ -110,15 +133,25 @@ export default function HiringManagerJobListingsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredJobs.map((job) => (
+              {displayedJobs.map((job) => (
                 <TableRow key={job.id}>
                   <TableCell className="font-medium">
-                    {job.title}
+                    <Link href={`/dashboard/recruiter/job-listings/${job.id}/applicants`} className="hover:underline text-primary">
+                        {job.title}
+                    </Link>
                   </TableCell>
                   <TableCell>{job.department}</TableCell>
                   <TableCell>{job.location}</TableCell>
                   <TableCell>{getStatusPill(job.status)}</TableCell>
-                  <TableCell>{job.status === "Active" || job.status === "Closed" ? job.applicants : "N/A"}</TableCell>
+                  <TableCell>
+                    {canViewApplicants(job.status) ? (
+                        <Link href={`/dashboard/recruiter/job-listings/${job.id}/applicants`} className="hover:underline text-primary">
+                            {job.applicants}
+                        </Link>
+                    ) : (
+                        "N/A"
+                    )}
+                  </TableCell>
                   <TableCell>{job.dateCreated}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -130,8 +163,10 @@ export default function HiringManagerJobListingsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => router.push(`/dashboard/${role}/job-listings/${job.id}/applicants`)}> {/* Placeholder link, adjust if HM views applicants */}
-                            <Users className="mr-2 h-4 w-4" />View Applicants (Placeholder)
+                        <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/recruiter/job-listings/${job.id}/applicants`}>
+                                <Users className="mr-2 h-4 w-4" />View Applicants
+                            </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleJobAction(job.id, 'edit_job')}><Edit className="mr-2 h-4 w-4" />Edit Job</DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -142,18 +177,18 @@ export default function HiringManagerJobListingsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredJobs.length === 0 && (
+              {displayedJobs.length === 0 && (
                 <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No job postings found matching your criteria.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
-        <CardFooter className="border-t pt-6 flex justify-center">
-            <Button variant="outline" size="sm">Load More (Placeholder)</Button>
-        </CardFooter>
+        {visibleJobsCount < allFilteredJobs.length && (
+          <CardFooter className="border-t pt-6 flex justify-center">
+              <Button variant="outline" size="sm" onClick={handleLoadMoreJobs}>Load More Jobs</Button>
+          </CardFooter>
+        )}
       </Card>
     </div>
   );
 }
-
-    
