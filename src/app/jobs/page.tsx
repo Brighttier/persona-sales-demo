@@ -116,6 +116,31 @@ const allMockJobListings: JobListing[] = [
     salary: "$95,000 - $115,000",
     isFeatured: false,
   },
+  {
+    id: "8",
+    title: "Digital Marketing Manager",
+    company: "Growth Hackers Ltd.",
+    location: "Remote",
+    type: "Full-time",
+    postedDate: "2024-07-22",
+    skills: ["SEO", "SEM", "Content Marketing", "Social Media"],
+    shortDescription: "Develop and execute comprehensive digital marketing strategies to drive growth and brand awareness. Manage campaigns across SEO, SEM, social media, and email.",
+    experienceLevel: "Mid-Level",
+    salary: "$90,000 - $110,000",
+    isFeatured: false,
+  },
+  {
+    id: "9",
+    title: "AI Research Scientist",
+    company: "FutureAI Corp",
+    location: "Boston, MA",
+    type: "Full-time",
+    postedDate: "2024-07-25",
+    skills: ["Machine Learning", "Deep Learning", "Python", "NLP"],
+    shortDescription: "Conduct cutting-edge research in AI and Machine Learning. Develop novel algorithms and contribute to our core AI products. PhD preferred.",
+    experienceLevel: "Senior",
+    isFeatured: true,
+  },
 ];
 
 const INITIAL_JOBS_TO_SHOW = 3;
@@ -123,23 +148,29 @@ const JOBS_INCREMENT_COUNT = 2;
 
 
 export default function JobBoardPage() {
-  const [keywordsInput, setKeywordsInput] = useState("");
-  const [locationInput, setLocationInput] = useState("");
-  const [jobTypeFilter, setJobTypeFilter] = useState<string | "all">("all");
-
   const [appliedKeywords, setAppliedKeywords] = useState("");
   const [appliedLocation, setAppliedLocation] = useState("");
   const [appliedJobType, setAppliedJobType] = useState<string | "all">("all");
-  
+
   const [visibleJobsCount, setVisibleJobsCount] = useState(INITIAL_JOBS_TO_SHOW);
 
-  const handleSearchJobs = () => {
-    setAppliedKeywords(keywordsInput);
-    setAppliedLocation(locationInput);
-    setAppliedJobType(jobTypeFilter);
-    setVisibleJobsCount(INITIAL_JOBS_TO_SHOW); // Reset pagination on new search
+  const handleKeywordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAppliedKeywords(e.target.value);
   };
-  
+
+  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAppliedLocation(e.target.value);
+  };
+
+  const handleJobTypeChange = (value: string) => {
+    setAppliedJobType(value);
+  };
+
+  useEffect(() => {
+    // Reset pagination when filters change
+    setVisibleJobsCount(INITIAL_JOBS_TO_SHOW);
+  }, [appliedKeywords, appliedLocation, appliedJobType]);
+
   const filteredJobs = useMemo(() => {
     return allMockJobListings.filter(job => {
       const keywordsLower = appliedKeywords.toLowerCase();
@@ -149,11 +180,11 @@ export default function JobBoardPage() {
       const companyMatch = job.company.toLowerCase().includes(keywordsLower);
       const skillsMatch = job.skills.some(skill => skill.toLowerCase().includes(keywordsLower));
       const descriptionMatch = job.shortDescription.toLowerCase().includes(keywordsLower);
-      
+
       const keywordsCondition = !appliedKeywords || titleMatch || companyMatch || skillsMatch || descriptionMatch;
-      
+
       const locationCondition = !appliedLocation || job.location.toLowerCase().includes(locationLower);
-      
+
       const jobTypeCondition = appliedJobType === "all" || job.type.toLowerCase() === appliedJobType.toLowerCase();
 
       return keywordsCondition && locationCondition && jobTypeCondition;
@@ -169,7 +200,7 @@ export default function JobBoardPage() {
     setVisibleJobsCount(newVisibleCount);
   };
 
-  const renderJobCard = (job: typeof allMockJobListings[0]) => (
+  const renderJobCard = (job: JobListing) => (
     <Card key={job.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full overflow-hidden">
       <CardContent className="p-6 space-y-4">
         {job.isFeatured && (
@@ -235,30 +266,30 @@ export default function JobBoardPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end pt-6 border-t">
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end pt-6 border-t">
           <div className="md:col-span-2 space-y-2">
             <label htmlFor="keywords" className="text-sm font-medium">Keywords</label>
-            <Input 
-              id="keywords" 
-              placeholder="Job title, skills, or company" 
-              className="w-full" 
-              value={keywordsInput}
-              onChange={(e) => setKeywordsInput(e.target.value)}
+            <Input
+              id="keywords"
+              placeholder="Job title, skills, or company"
+              className="w-full"
+              value={appliedKeywords}
+              onChange={handleKeywordsChange}
             />
           </div>
           <div className="space-y-2">
             <label htmlFor="location" className="text-sm font-medium">Location</label>
-            <Input 
-              id="location" 
-              placeholder="City, state, or remote" 
-              className="w-full" 
-              value={locationInput}
-              onChange={(e) => setLocationInput(e.target.value)}
+            <Input
+              id="location"
+              placeholder="City, state, or remote"
+              className="w-full"
+              value={appliedLocation}
+              onChange={handleLocationChange}
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 md:col-span-1">
              <label htmlFor="jobType" className="text-sm font-medium">Job Type</label>
-            <Select value={jobTypeFilter} onValueChange={(value) => setJobTypeFilter(value)}>
+            <Select value={appliedJobType} onValueChange={handleJobTypeChange}>
               <SelectTrigger id="jobType">
                 <SelectValue placeholder="All Job Types" />
               </SelectTrigger>
@@ -271,9 +302,7 @@ export default function JobBoardPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button className="md:col-start-4" onClick={handleSearchJobs}>
-            <Search className="mr-2 h-4 w-4" /> Search Jobs
-          </Button>
+          {/* Removed explicit Search Jobs button for live filtering */}
         </CardContent>
       </Card>
 
@@ -296,3 +325,4 @@ export default function JobBoardPage() {
     </div>
   );
 }
+

@@ -16,9 +16,10 @@ import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 
 const mockHMJobListings = [
-  { id: "hmjob1", title: "Lead Software Architect", status: "Pending Approval", applicants: 0, department: "Engineering", location: "Remote", dateCreated: "2024-07-28" },
-  { id: "hmjob2", title: "Senior Product Designer", status: "Active", applicants: 15, department: "Design", location: "New York, NY", dateCreated: "2024-07-25" },
-  { id: "hmjob3", title: "Marketing Manager", status: "Draft", applicants: 0, department: "Marketing", location: "San Francisco, CA", dateCreated: "2024-07-22" },
+  { id: "hmjob1", title: "Lead Software Architect", status: "Pending Approval", applicants: 0, department: "Engineering", location: "Remote", dateCreated: "2024-07-28", approvalStatus: "Pending Recruiter Approval" },
+  { id: "hmjob2", title: "Senior Product Designer", status: "Active", applicants: 15, department: "Design", location: "New York, NY", dateCreated: "2024-07-25", approvalStatus: "Approved" },
+  { id: "hmjob3", title: "Marketing Manager", status: "Draft", applicants: 0, department: "Marketing", location: "San Francisco, CA", dateCreated: "2024-07-22", approvalStatus: "Draft" },
+  { id: "hmjob4", title: "Data Visualization Expert", status: "Closed", applicants: 40, department: "Analytics", location: "Remote", dateCreated: "2024-06-15", approvalStatus: "Approved" },
 ];
 
 export default function HiringManagerJobListingsPage() {
@@ -26,16 +27,17 @@ export default function HiringManagerJobListingsPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [searchInputVal, setSearchInputVal] = useState("");
-  const [statusFilterVal, setStatusFilterVal] = useState<string | "all">("all");
-
   const [appliedSearch, setAppliedSearch] = useState("");
   const [appliedStatus, setAppliedStatus] = useState<string | "all">("all");
 
-  const handleApplyFilters = () => {
-    setAppliedSearch(searchInputVal);
-    setAppliedStatus(statusFilterVal);
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAppliedSearch(e.target.value);
   };
+
+  const handleStatusFilterChange = (value: string) => {
+    setAppliedStatus(value);
+  };
+
 
   const filteredJobs = useMemo(() => {
     return mockHMJobListings.filter(job => {
@@ -81,15 +83,15 @@ export default function HiringManagerJobListingsPage() {
             <div className="flex flex-col md:flex-row gap-2 justify-between items-center">
                  <div className="relative flex-grow w-full md:w-auto">
                     <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="Search by title, department..." 
-                      className="pl-8 w-full" 
-                      value={searchInputVal}
-                      onChange={(e) => setSearchInputVal(e.target.value)}
+                    <Input
+                      placeholder="Search by title, department..."
+                      className="pl-8 w-full"
+                      value={appliedSearch}
+                      onChange={handleSearchInputChange}
                     />
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
-                    <Select value={statusFilterVal} onValueChange={(value) => setStatusFilterVal(value)}>
+                    <Select value={appliedStatus} onValueChange={handleStatusFilterChange}>
                         <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Filter by Status" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Statuses</SelectItem>
@@ -99,7 +101,7 @@ export default function HiringManagerJobListingsPage() {
                             <SelectItem value="Closed">Closed</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button variant="outline" onClick={handleApplyFilters}>Apply Filters</Button>
+                    {/* Remove explicit "Apply Filters" button for live filtering */}
                 </div>
             </div>
         </CardHeader>
@@ -120,9 +122,8 @@ export default function HiringManagerJobListingsPage() {
               {filteredJobs.map((job) => (
                 <TableRow key={job.id}>
                   <TableCell className="font-medium">
-                    <Link href={`/dashboard/recruiter/job-listings/${job.id}/applicants`} className="hover:underline text-primary">
-                        {job.title}
-                    </Link>
+                    {/* Assuming HM doesn't directly view applicants this way, but can edit the job */}
+                    {job.title}
                   </TableCell>
                   <TableCell>{job.department}</TableCell>
                   <TableCell>{job.location}</TableCell>
@@ -139,11 +140,9 @@ export default function HiringManagerJobListingsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        {(job.status === "Active" || job.status === "Pending Approval") && (
-                           <DropdownMenuItem onClick={() => router.push(`/dashboard/recruiter/job-listings/${job.id}/applicants`)}>
+                        <DropdownMenuItem onClick={() => router.push(`/dashboard/${role}/job-listings/${job.id}/applicants`)}>
                             <Users className="mr-2 h-4 w-4" />View Applicants
-                          </DropdownMenuItem>
-                        )}
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleJobAction(job.id, 'edit_job')}><Edit className="mr-2 h-4 w-4" />Edit Job</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {job.status === "Draft" && <DropdownMenuItem onClick={() => handleJobAction(job.id, 'submit_for_approval')}><Check className="mr-2 h-4 w-4"/>Submit for Approval</DropdownMenuItem>}
@@ -166,4 +165,5 @@ export default function HiringManagerJobListingsPage() {
     </div>
   );
 }
-    
+
+

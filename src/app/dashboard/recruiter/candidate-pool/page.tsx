@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Eye, Filter, Mail, Search, UserPlus, ExternalLink, Star, Briefcase, MapPin, Users as UsersIcon, FolderPlus, FolderOpen, MoveUpRight, Trash2, Save, GripVertical, LayoutGrid, List } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -50,8 +50,8 @@ const allMockCandidates: Candidate[] = [
   { id: "cand9", name: "Indiana Jones", role: "Data Explorer", experience: "10 Yrs", location: "Global (Remote)", skills: ["SQL", "NoSQL", "Data Mining", "Archaeology"], topSkill: "SQL", avatar: "https://placehold.co/100x100.png?text=IJ", aiMatchScore: 93, lastActive: "Today", interestedIn: ["Big Data", "Historical Data Analysis"] },
 ];
 
-const INITIAL_CANDIDATES_TO_SHOW = 6; 
-const CANDIDATES_INCREMENT_COUNT = 4; 
+const INITIAL_CANDIDATES_TO_SHOW = 6;
+const CANDIDATES_INCREMENT_COUNT = 4;
 const ALL_CANDIDATES_FOLDER_ID = "all-candidates-folder";
 
 
@@ -78,31 +78,29 @@ export default function CandidatePoolPage() {
   const [selectedCandidateForFolderMove, setSelectedCandidateForFolderMove] = useState<Candidate | null>(null);
   const [targetFolderForMove, setTargetFolderForMove] = useState<string>("");
 
-  const [keywordsInput, setKeywordsInput] = useState("");
-  const [locationInput, setLocationInput] = useState("");
-
   const [appliedKeywords, setAppliedKeywords] = useState("");
   const [appliedLocation, setAppliedLocation] = useState("");
 
+  const handleKeywordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAppliedKeywords(e.target.value);
+  };
 
-  const handleApplySearchFilters = () => {
-    setAppliedKeywords(keywordsInput);
-    setAppliedLocation(locationInput);
-    setVisibleCandidatesCount(INITIAL_CANDIDATES_TO_SHOW); // Reset pagination on new search/filter
+  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAppliedLocation(e.target.value);
   };
 
   const filteredCandidatesByFolderAndSearch = useMemo(() => {
-    let candidates = allMockCandidates;
+    let candidatesToFilter = [...allMockCandidates]; // Start with a copy
 
     // Filter by selected folder first
     if (selectedFolderId !== ALL_CANDIDATES_FOLDER_ID) {
-      candidates = candidates.filter(candidate => candidateFolderAssignments[candidate.id] === selectedFolderId);
+      candidatesToFilter = candidatesToFilter.filter(candidate => candidateFolderAssignments[candidate.id] === selectedFolderId);
     }
 
     // Then filter by applied keywords
     if (appliedKeywords) {
       const lowerKeywords = appliedKeywords.toLowerCase();
-      candidates = candidates.filter(candidate =>
+      candidatesToFilter = candidatesToFilter.filter(candidate =>
         candidate.name.toLowerCase().includes(lowerKeywords) ||
         candidate.role.toLowerCase().includes(lowerKeywords) ||
         candidate.skills.some(skill => skill.toLowerCase().includes(lowerKeywords))
@@ -112,21 +110,20 @@ export default function CandidatePoolPage() {
     // Then filter by applied location
     if (appliedLocation) {
       const lowerLocation = appliedLocation.toLowerCase();
-      candidates = candidates.filter(candidate =>
+      candidatesToFilter = candidatesToFilter.filter(candidate =>
         candidate.location.toLowerCase().includes(lowerLocation)
       );
     }
-    return candidates;
+    return candidatesToFilter;
   }, [selectedFolderId, candidateFolderAssignments, appliedKeywords, appliedLocation]);
 
   const [visibleCandidatesCount, setVisibleCandidatesCount] = useState(INITIAL_CANDIDATES_TO_SHOW);
-  
+
   const displayedCandidates = useMemo(() => {
     return filteredCandidatesByFolderAndSearch.slice(0, visibleCandidatesCount);
   }, [filteredCandidatesByFolderAndSearch, visibleCandidatesCount]);
 
   useEffect(() => {
-    // Reset pagination whenever the primary filters (folder or search terms) change
     setVisibleCandidatesCount(INITIAL_CANDIDATES_TO_SHOW);
   }, [selectedFolderId, appliedKeywords, appliedLocation]);
 
@@ -177,10 +174,10 @@ export default function CandidatePoolPage() {
     setSelectedCandidateForFolderMove(null);
   };
 
-  const getCandidateCountForFolder = (folderId: string): number => {
-    if (folderId === ALL_CANDIDATES_FOLDER_ID) return allMockCandidates.length; // Or potentially filtered length if search applies globally
+  const getCandidateCountForFolder = useCallback((folderId: string): number => {
+    if (folderId === ALL_CANDIDATES_FOLDER_ID) return allMockCandidates.length;
     return Object.values(candidateFolderAssignments).filter(assignedFolderId => assignedFolderId === folderId).length;
-  };
+  }, [candidateFolderAssignments]);
 
   const getFolderNameById = (folderId: string | null): string => {
     if (!folderId) return "Unassigned";
@@ -251,10 +248,10 @@ export default function CandidatePoolPage() {
                 <TableCell>{candidate.experience}</TableCell>
                 <TableCell>{candidate.location}</TableCell>
                 <TableCell>
-                  <Badge 
-                    variant="default" 
-                    className={cn("font-semibold", 
-                        candidate.aiMatchScore > 80 ? "bg-green-100 text-green-700 border-green-300" : 
+                  <Badge
+                    variant="default"
+                    className={cn("font-semibold",
+                        candidate.aiMatchScore > 80 ? "bg-green-100 text-green-700 border-green-300" :
                         candidate.aiMatchScore > 60 ? "bg-yellow-100 text-yellow-700 border-yellow-300" :
                         "bg-red-100 text-red-700 border-red-300"
                     )}
@@ -304,34 +301,31 @@ export default function CandidatePoolPage() {
                 <CardDescription>Browse, filter, and discover talented individuals for your open roles.</CardDescription>
               </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border-t pt-6">
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end border-t pt-6">
               <div className="md:col-span-2 space-y-1.5">
                 <Label htmlFor="keywords" className="text-xs font-medium">Search by Name, Skills, Role...</Label>
-                <Input 
-                  id="keywords" 
-                  placeholder="e.g., Alice, React, Product Manager..." 
-                  value={keywordsInput}
-                  onChange={(e) => setKeywordsInput(e.target.value)}
+                <Input
+                  id="keywords"
+                  placeholder="e.g., Alice, React, Product Manager..."
+                  value={appliedKeywords}
+                  onChange={handleKeywordsChange}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="locationFilter" className="text-xs font-medium">Location</Label>
-                <Input 
-                  id="locationFilter" 
-                  placeholder="City or Remote" 
-                  value={locationInput}
-                  onChange={(e) => setLocationInput(e.target.value)}
+                <Input
+                  id="locationFilter"
+                  placeholder="City or Remote"
+                  value={appliedLocation}
+                  onChange={handleLocationChange}
                 />
               </div>
-              <div className="flex gap-2">
-                <Button className="flex-grow" onClick={handleApplySearchFilters}><Search className="mr-2 h-4 w-4" /> Search</Button>
-                <Button variant="outline" size="icon" aria-label="Advanced Filters"><Filter className="h-4 w-4" /></Button>
-              </div>
+              {/* Removed explicit search button for live filtering */}
             </CardContent>
           </Card>
-            
+
           {renderListView()}
-          
+
           {filteredCandidatesByFolderAndSearch.length > visibleCandidatesCount && displayedCandidates.length > 0 && (
                 <div className="flex justify-center mt-4">
                     <Button variant="outline" onClick={handleLoadMoreCandidates}>Load More Candidates</Button>
@@ -340,7 +334,7 @@ export default function CandidatePoolPage() {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-            <Card className="shadow-lg sticky top-24"> 
+            <Card className="shadow-lg sticky top-24">
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
                     <CardTitle className="text-lg flex items-center"><FolderOpen className="mr-2 h-5 w-5 text-primary"/>Candidate Folders</CardTitle>
                     <Dialog open={isCreateFolderDialogOpen} onOpenChange={setIsCreateFolderDialogOpen}>
@@ -365,9 +359,9 @@ export default function CandidatePoolPage() {
                         </DialogContent>
                     </Dialog>
                 </CardHeader>
-                <CardContent className="pt-0 max-h-[calc(100vh-200px)] overflow-y-auto"> 
+                <CardContent className="pt-0 max-h-[calc(100vh-200px)] overflow-y-auto">
                      <ul className="space-y-1">
-                        <li 
+                        <li
                             className={cn(
                                 "flex justify-between items-center p-2 rounded-md hover:bg-accent/80 transition-colors cursor-pointer",
                                 selectedFolderId === ALL_CANDIDATES_FOLDER_ID && "bg-accent text-accent-foreground font-semibold"
@@ -383,8 +377,8 @@ export default function CandidatePoolPage() {
                             </Badge>
                         </li>
                         {folders.map(folder => (
-                            <li 
-                                key={folder.id} 
+                            <li
+                                key={folder.id}
                                 className={cn(
                                     "flex justify-between items-center p-2 rounded-md hover:bg-accent/80 transition-colors group cursor-pointer",
                                     selectedFolderId === folder.id && "bg-accent text-accent-foreground font-semibold"
@@ -400,23 +394,23 @@ export default function CandidatePoolPage() {
                                     <Badge variant={selectedFolderId === folder.id ? "default" : "secondary"} className="text-xs">
                                         {getCandidateCountForFolder(folder.id)}
                                     </Badge>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="xs" 
-                                        className="text-muted-foreground hover:text-destructive h-6 w-6 p-0 opacity-50 group-hover:opacity-100" 
-                                        onClick={(e) => { 
-                                            e.stopPropagation(); 
+                                    <Button
+                                        variant="ghost"
+                                        size="xs"
+                                        className="text-muted-foreground hover:text-destructive h-6 w-6 p-0 opacity-50 group-hover:opacity-100"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             setFolders(f => f.filter(item => item.id !== folder.id));
                                             setCandidateFolderAssignments(prev => {
                                                 const updated = {...prev};
                                                 Object.keys(updated).forEach(candidateId => {
                                                     if (updated[candidateId] === folder.id) {
-                                                        updated[candidateId] = null; 
+                                                        updated[candidateId] = null;
                                                     }
                                                 });
                                                 return updated;
                                             });
-                                            if (selectedFolderId === folder.id) setSelectedFolderId(ALL_CANDIDATES_FOLDER_ID); 
+                                            if (selectedFolderId === folder.id) setSelectedFolderId(ALL_CANDIDATES_FOLDER_ID);
                                             toast({title: "Folder Deleted"});
                                         }}
                                     >
@@ -465,4 +459,5 @@ export default function CandidatePoolPage() {
     </div>
   );
 }
+
     

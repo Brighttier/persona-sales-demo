@@ -17,10 +17,12 @@ import { useState, useMemo } from "react";
 
 const mockJobListings = [
   { id: "job1", title: "Software Engineer, Frontend", status: "Active", applicants: 25, interviews: 5, hired: 1, department: "Engineering", location: "Remote", aiScreeningStatus: "Completed", datePosted: "2024-07-20", approvalStatus: "Approved" },
-  { id: "job2", title: "Product Manager", status: "Pending Approval", applicants: 0, interviews: 0, hired: 0, department: "Product", location: "New York, NY", aiScreeningStatus: "N/A", datePosted: "2024-07-28", approvalStatus: "Pending Recruiter Approval"}, 
+  { id: "job2", title: "Product Manager", status: "Pending Approval", applicants: 0, interviews: 0, hired: 0, department: "Product", location: "New York, NY", aiScreeningStatus: "N/A", datePosted: "2024-07-28", approvalStatus: "Pending Recruiter Approval"},
   { id: "job3", title: "UX Designer", status: "Paused", applicants: 15, interviews: 2, hired: 0, department: "Design", location: "San Francisco, CA", aiScreeningStatus: "N/A", datePosted: "2024-07-15", approvalStatus: "Approved" },
   { id: "job4", title: "Data Scientist", status: "Closed", applicants: 60, interviews: 10, hired: 2, department: "Data Science", location: "Remote", aiScreeningStatus: "Completed", datePosted: "2024-06-10", approvalStatus: "Approved"},
   { id: "job5", title: "Marketing Lead", status: "Pending Approval", applicants: 0, interviews: 0, hired: 0, department: "Marketing", location: "Austin, TX", aiScreeningStatus: "N/A", datePosted: "2024-07-29", approvalStatus: "Pending Recruiter Approval" },
+  { id: "job6", title: "Senior Backend Developer", status: "Active", applicants: 30, interviews: 8, hired: 1, department: "Engineering", location: "Remote", aiScreeningStatus: "Completed", datePosted: "2024-07-10", approvalStatus: "Approved" },
+  { id: "job7", title: "Junior Cloud Engineer", status: "Draft", applicants: 0, interviews: 0, hired: 0, department: "IT/Ops", location: "Chicago, IL", aiScreeningStatus: "N/A", datePosted: "2024-07-30", approvalStatus: "Draft" },
 ];
 
 export default function RecruiterJobListingsPage() {
@@ -28,37 +30,35 @@ export default function RecruiterJobListingsPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [searchInputVal, setSearchInputVal] = useState("");
-  const [statusFilterVal, setStatusFilterVal] = useState<string | "all">("all");
-  const [approvalFilterVal, setApprovalFilterVal] = useState<string | "all">("all");
-
   const [appliedSearch, setAppliedSearch] = useState("");
   const [appliedStatus, setAppliedStatus] = useState<string | "all">("all");
   const [appliedApproval, setAppliedApproval] = useState<string | "all">("all");
 
-  const handleApplyFilters = () => {
-    setAppliedSearch(searchInputVal);
-    setAppliedStatus(statusFilterVal);
-    setAppliedApproval(approvalFilterVal);
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAppliedSearch(e.target.value);
   };
+
+  const handleStatusFilterChange = (value: string) => {
+    setAppliedStatus(value);
+  };
+  
+  const handleApprovalFilterChange = (value: string) => {
+    setAppliedApproval(value);
+  };
+
 
   const filteredJobs = useMemo(() => {
     return mockJobListings.filter(job => {
       const searchMatch = job.title.toLowerCase().includes(appliedSearch.toLowerCase()) ||
                           job.department.toLowerCase().includes(appliedSearch.toLowerCase());
       const statusMatch = appliedStatus === "all" || job.status === appliedStatus;
-      
-      let approvalStatusCheck = appliedApproval === "all";
-      if (appliedApproval === "pending-recruiter") approvalStatusCheck = job.approvalStatus === "Pending Recruiter Approval";
-      else if (appliedApproval === "pending-hm") approvalStatusCheck = job.approvalStatus === "Pending Hiring Manager Approval";
-      else if (appliedApproval === "approved") approvalStatusCheck = job.approvalStatus === "Approved";
-      // Include jobs where approvalStatus might be their main status if not explicitly set (e.g. Draft, Active directly)
-      else if (appliedApproval !== "all" && job.approvalStatus && job.approvalStatus !== appliedApproval) {
-         approvalStatusCheck = false;
-      } else if (appliedApproval !== "all" && !job.approvalStatus && job.status !== appliedApproval) {
-         approvalStatusCheck = false;
-      }
 
+      let approvalStatusCheck = appliedApproval === "all";
+      if (appliedApproval === "Pending Recruiter Approval") approvalStatusCheck = job.approvalStatus === "Pending Recruiter Approval";
+      else if (appliedApproval === "Pending Hiring Manager Approval") approvalStatusCheck = job.approvalStatus === "Pending Hiring Manager Approval";
+      else if (appliedApproval === "Approved") approvalStatusCheck = job.approvalStatus === "Approved";
+      else if (appliedApproval === "Draft") approvalStatusCheck = job.approvalStatus === "Draft"; // For jobs created by HM directly
 
       return searchMatch && statusMatch && approvalStatusCheck;
     });
@@ -74,17 +74,18 @@ export default function RecruiterJobListingsPage() {
         case "Active": return <Badge className="bg-green-100 text-green-700 border-green-300">{status}</Badge>;
         case "Paused": return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">{status}</Badge>;
         case "Closed": return <Badge variant="secondary" className="bg-gray-100 text-gray-700 border-gray-300">{status}</Badge>;
-        case "Draft": return <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">{status}</Badge>; 
-        case "Pending Approval": return <Badge className="bg-orange-100 text-orange-700 border-orange-300">{status}</Badge>; 
+        case "Draft": return <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">{status}</Badge>;
+        case "Pending Approval": return <Badge className="bg-orange-100 text-orange-700 border-orange-300">{status}</Badge>;
         default: return <Badge>{status}</Badge>;
     }
   };
 
-  const getApprovalStatusPill = (approvalStatus: string) => {
-     if (approvalStatus === "Pending Recruiter Approval") return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">Pending Your Approval (from HM)</Badge>;
-     if (approvalStatus === "Pending Hiring Manager Approval") return <Badge className="bg-blue-100 text-blue-700 border-blue-300">Pending HM Approval (from You)</Badge>;
+  const getApprovalStatusPill = (approvalStatus: string | undefined, jobStatus: string) => {
+     if (approvalStatus === "Pending Recruiter Approval") return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">Pending Your Approval</Badge>;
+     if (approvalStatus === "Pending Hiring Manager Approval") return <Badge className="bg-blue-100 text-blue-700 border-blue-300">Pending HM Approval</Badge>;
      if (approvalStatus === "Approved") return <Badge className="bg-green-100 text-green-700 border-green-300">Approved</Badge>;
-     return <Badge variant="outline">{approvalStatus}</Badge>;
+     if (jobStatus === "Draft" && approvalStatus === "Draft") return <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">Draft (by HM)</Badge>; // Clarify HM drafts
+     return <Badge variant="outline">{approvalStatus || jobStatus}</Badge>; // Fallback to job status if no specific approval status
   }
 
   return (
@@ -108,34 +109,36 @@ export default function RecruiterJobListingsPage() {
             <div className="flex flex-col md:flex-row gap-2 justify-between items-center">
                  <div className="relative flex-grow w-full md:w-auto">
                     <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="Search by title, department..." 
-                      className="pl-8 w-full" 
-                      value={searchInputVal}
-                      onChange={(e) => setSearchInputVal(e.target.value)}
+                    <Input
+                      placeholder="Search by title, department..."
+                      className="pl-8 w-full"
+                      value={appliedSearch}
+                      onChange={handleSearchInputChange}
                     />
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
-                    <Select value={statusFilterVal} onValueChange={(value) => setStatusFilterVal(value)}>
+                    <Select value={appliedStatus} onValueChange={handleStatusFilterChange}>
                         <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Filter by Overall Status" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Overall Statuses</SelectItem>
                             <SelectItem value="Active">Active</SelectItem>
                             <SelectItem value="Paused">Paused</SelectItem>
                             <SelectItem value="Closed">Closed</SelectItem>
-                            <SelectItem value="Pending Approval">Pending Approval</SelectItem> 
+                            <SelectItem value="Pending Approval">Pending Approval</SelectItem>
+                            <SelectItem value="Draft">Draft</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Select value={approvalFilterVal} onValueChange={(value) => setApprovalFilterVal(value)}>
+                    <Select value={appliedApproval} onValueChange={handleApprovalFilterChange}>
                         <SelectTrigger className="w-full md:w-[220px]"><SelectValue placeholder="Filter by Approval Status" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Approval Statuses</SelectItem>
                             <SelectItem value="Pending Recruiter Approval">Pending Your Approval</SelectItem>
                             <SelectItem value="Pending Hiring Manager Approval">Pending HM Approval</SelectItem>
                             <SelectItem value="Approved">Approved</SelectItem>
+                            <SelectItem value="Draft">Draft (by HM)</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button variant="outline" onClick={handleApplyFilters}>Apply Filters</Button>
+                    {/* Remove explicit "Apply Filters" button for live filtering */}
                 </div>
             </div>
         </CardHeader>
@@ -161,7 +164,7 @@ export default function RecruiterJobListingsPage() {
                   </TableCell>
                   <TableCell>{job.department}</TableCell>
                   <TableCell>{getStatusPill(job.status)}</TableCell>
-                  <TableCell>{getApprovalStatusPill(job.approvalStatus || job.status)}</TableCell>
+                  <TableCell>{getApprovalStatusPill(job.approvalStatus, job.status)}</TableCell>
                   <TableCell>{job.applicants}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -173,8 +176,8 @@ export default function RecruiterJobListingsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        {(job.approvalStatus === "Pending Recruiter Approval") && ( 
-                             <DropdownMenuItem onClick={() => router.push(`/dashboard/${role}/job-approvals`)}> 
+                        {(job.approvalStatus === "Pending Recruiter Approval") && (
+                             <DropdownMenuItem onClick={() => router.push(`/dashboard/${role}/job-approvals`)}>
                                 <Check className="mr-2 h-4 w-4" /> Review for Approval
                              </DropdownMenuItem>
                         )}
@@ -207,4 +210,5 @@ export default function RecruiterJobListingsPage() {
     </div>
   );
 }
+
     
