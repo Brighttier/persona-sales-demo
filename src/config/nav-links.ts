@@ -139,15 +139,6 @@ export const NAV_LINKS: NavLink[] = [
     tourText: 'Create, draft, and manage job postings for your team. Submit them to Recruiters for review. The "Create New Job" button is on this page.'
   },
   {
-    href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/job-approvals`,
-    label: 'Job Approvals', // For HMs to approve jobs created by Recruiters for THEIR team.
-    icon: CheckSquare,
-    roles: [USER_ROLES.HIRING_MANAGER],
-    isTourStep: true,
-    tourStepId: 'hm-job-approvals-link',
-    tourText: "Review job postings that need your approval (e.g., drafted by recruiters for your team)."
-  },
-  {
     href: `/dashboard/${USER_ROLES.HIRING_MANAGER}/interviews`,
     label: 'Team Interviews',
     icon: CalendarDays,
