@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
-import { Eye, Filter, Mail, Search, UserPlus, ExternalLink, Star, Briefcase, MapPin, Users as UsersIcon, LayoutGrid, List, FolderPlus, Folder, MoveUpRight, Trash2, Save } from "lucide-react";
+import { Eye, Filter, Mail, Search, UserPlus, ExternalLink, Star, Briefcase, MapPin, Users as UsersIcon, LayoutGrid, List, FolderPlus, FolderOpen, MoveUpRight, Trash2, Save, GripVertical } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -33,6 +33,11 @@ interface Candidate {
   interestedIn: string[];
 }
 
+interface FolderType {
+  id: string;
+  name: string;
+}
+
 const allMockCandidates: Candidate[] = [
   { id: "cand1", name: "Alice Wonderland", role: "Software Engineer", experience: "5 Yrs", location: "Remote", skills: ["React", "Node.js", "AWS", "TypeScript", "GraphQL"], topSkill: "React", avatar: "https://placehold.co/100x100.png?text=AW", aiMatchScore: 92, lastActive: "2 days ago", interestedIn: ["Frontend", "Full Stack"] },
   { id: "cand2", name: "Bob The Builder", role: "Product Manager", experience: "8 Yrs", location: "New York, NY", skills: ["Agile", "Roadmapping", "JIRA", "User Research"], topSkill: "Agile", avatar: "https://placehold.co/100x100.png?text=BB", aiMatchScore: 85, lastActive: "Online", interestedIn: ["Product Leadership"] },
@@ -41,36 +46,56 @@ const allMockCandidates: Candidate[] = [
   { id: "cand5", name: "Edward Norton", role: "Backend Engineer", experience: "7 Yrs", location: "Austin, TX", skills: ["Java", "Spring Boot", "Kafka", "Microservices"], topSkill: "Java", avatar: "https://placehold.co/100x100.png?text=EN", aiMatchScore: 88, lastActive: "5 days ago", interestedIn: ["Backend Architecture", "Distributed Systems"] },
   { id: "cand6", name: "Fiona Gallagher", role: "DevOps Engineer", experience: "4 Yrs", location: "Remote", skills: ["Kubernetes", "Docker", "AWS", "Terraform"], topSkill: "Kubernetes", avatar: "https://placehold.co/100x100.png?text=FG", aiMatchScore: 90, lastActive: "Yesterday", interestedIn: ["Cloud Infrastructure", "CI/CD"] },
   { id: "cand7", name: "George Costanza", role: "QA Analyst", experience: "2 Yrs", location: "New York, NY", skills: ["Selenium", "JIRA", "Test Planning", "API Testing"], topSkill: "Selenium", avatar: "https://placehold.co/100x100.png?text=GC", aiMatchScore: 75, lastActive: "3 weeks ago", interestedIn: ["Automation Testing", "Quality Assurance"] },
+  { id: "cand8", name: "Hannah Montana", role: "Frontend Developer", experience: "1 Yr", location: "Los Angeles, CA", skills: ["HTML", "CSS", "JavaScript", "Vue.js"], topSkill: "Vue.js", avatar: "https://placehold.co/100x100.png?text=HM", aiMatchScore: 80, lastActive: "4 days ago", interestedIn: ["UI Development"] },
+  { id: "cand9", name: "Indiana Jones", role: "Data Explorer", experience: "10 Yrs", location: "Global (Remote)", skills: ["SQL", "NoSQL", "Data Mining", "Archaeology"], topSkill: "SQL", avatar: "https://placehold.co/100x100.png?text=IJ", aiMatchScore: 93, lastActive: "Today", interestedIn: ["Big Data", "Historical Data Analysis"] },
 ];
 
 const INITIAL_CANDIDATES_TO_SHOW = 4;
 const CANDIDATES_INCREMENT_COUNT = 2;
+const ALL_CANDIDATES_FOLDER_ID = "all-candidates-folder";
+
 
 export default function CandidatePoolPage() {
   const { user, role } = useAuth();
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
-  const [displayedCandidates, setDisplayedCandidates] = useState<Candidate[]>([]);
-  const [visibleCandidatesCount, setVisibleCandidatesCount] = useState(INITIAL_CANDIDATES_TO_SHOW);
+  const [folders, setFolders] = useState<FolderType[]>([
+    { id: "folder1", name: "Shortlisted - Engineering" },
+    { id: "folder2", name: "Future Prospects" },
+    { id: "folder3", name: "Tech Review Pending" },
+  ]);
+  const [candidateFolderAssignments, setCandidateFolderAssignments] = useState<Record<string, string | null>>({}); // candidateId -> folderId | null
+  const [selectedFolderId, setSelectedFolderId] = useState<string>(ALL_CANDIDATES_FOLDER_ID);
 
-  const [folders, setFolders] = useState<string[]>(["Shortlisted - Engineering", "Future Prospects", "Tech Review Pending", "Not a Fit"]);
   const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
 
   const [isMoveToFolderDialogOpen, setIsMoveToFolderDialogOpen] = useState(false);
   const [selectedCandidateForFolderMove, setSelectedCandidateForFolderMove] = useState<Candidate | null>(null);
-  const [selectedFolderForMove, setSelectedFolderForMove] = useState<string>("");
+  const [targetFolderForMove, setTargetFolderForMove] = useState<string>("");
 
+  const filteredCandidates = useMemo(() => {
+    if (selectedFolderId === ALL_CANDIDATES_FOLDER_ID) {
+      return allMockCandidates;
+    }
+    return allMockCandidates.filter(candidate => candidateFolderAssignments[candidate.id] === selectedFolderId);
+  }, [selectedFolderId, candidateFolderAssignments]);
+
+  const [visibleCandidatesCount, setVisibleCandidatesCount] = useState(INITIAL_CANDIDATES_TO_SHOW);
+  const displayedCandidates = useMemo(() => {
+    return filteredCandidates.slice(0, visibleCandidatesCount);
+  }, [filteredCandidates, visibleCandidatesCount]);
 
   useEffect(() => {
-    setDisplayedCandidates(allMockCandidates.slice(0, INITIAL_CANDIDATES_TO_SHOW));
-  }, []);
+    // Reset visible count when filter changes
+    setVisibleCandidatesCount(INITIAL_CANDIDATES_TO_SHOW);
+  }, [selectedFolderId]);
+
 
   const handleLoadMoreCandidates = () => {
-    const newVisibleCount = Math.min(visibleCandidatesCount + CANDIDATES_INCREMENT_COUNT, allMockCandidates.length);
+    const newVisibleCount = Math.min(visibleCandidatesCount + CANDIDATES_INCREMENT_COUNT, filteredCandidates.length);
     setVisibleCandidatesCount(newVisibleCount);
-    setDisplayedCandidates(allMockCandidates.slice(0, newVisibleCount));
   };
 
   const handleContact = (candidateName: string) => {
@@ -82,30 +107,41 @@ export default function CandidatePoolPage() {
       toast({ variant: "destructive", title: "Error", description: "Folder name cannot be empty." });
       return;
     }
-    if (folders.includes(newFolderName.trim())) {
+    if (folders.find(f => f.name.toLowerCase() === newFolderName.trim().toLowerCase())) {
        toast({ variant: "destructive", title: "Error", description: "Folder with this name already exists." });
       return;
     }
-    setFolders(prev => [...prev, newFolderName.trim()]);
-    toast({ title: "Folder Created (Placeholder)", description: `Folder "${newFolderName.trim()}" added.` });
+    const newFolder = { id: `folder-${Date.now()}`, name: newFolderName.trim() };
+    setFolders(prev => [...prev, newFolder]);
+    toast({ title: "Folder Created", description: `Folder "${newFolder.name}" added.` });
     setNewFolderName("");
     setIsCreateFolderDialogOpen(false);
   };
 
   const openMoveToFolderDialog = (candidate: Candidate) => {
     setSelectedCandidateForFolderMove(candidate);
-    setSelectedFolderForMove("");
+    setTargetFolderForMove(candidateFolderAssignments[candidate.id] || "");
     setIsMoveToFolderDialogOpen(true);
   };
 
   const handleMoveCandidateToFolder = () => {
-    if (!selectedCandidateForFolderMove || !selectedFolderForMove) {
-      toast({ variant: "destructive", title: "Error", description: "Please select a candidate and a folder." });
+    if (!selectedCandidateForFolderMove || !targetFolderForMove) {
+      toast({ variant: "destructive", title: "Error", description: "Please select a candidate and a target folder." });
       return;
     }
-    toast({ title: "Candidate Moved (Placeholder)", description: `${selectedCandidateForFolderMove.name} moved to folder "${selectedFolderForMove}".` });
+    setCandidateFolderAssignments(prev => ({
+        ...prev,
+        [selectedCandidateForFolderMove.id]: targetFolderForMove === "unassign" ? null : targetFolderForMove,
+    }));
+    const folderName = targetFolderForMove === "unassign" ? "unassigned" : folders.find(f => f.id === targetFolderForMove)?.name;
+    toast({ title: "Candidate Moved", description: `${selectedCandidateForFolderMove.name} moved to folder "${folderName || 'N/A'}".` });
     setIsMoveToFolderDialogOpen(false);
     setSelectedCandidateForFolderMove(null);
+  };
+
+  const getCandidateCountForFolder = (folderId: string): number => {
+    if (folderId === ALL_CANDIDATES_FOLDER_ID) return allMockCandidates.length;
+    return Object.values(candidateFolderAssignments).filter(assignedFolderId => assignedFolderId === folderId).length;
   };
 
   const renderCandidateActions = (candidate: Candidate) => (
@@ -127,7 +163,7 @@ export default function CandidatePoolPage() {
           <Mail className="mr-2 h-4 w-4" /> Contact Candidate
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => openMoveToFolderDialog(candidate)}>
-          <Folder className="mr-2 h-4 w-4" /> Move to Folder
+          <FolderOpen className="mr-2 h-4 w-4" /> Move to Folder
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => toast({ title: "Action: Remove (Placeholder)", description: `Candidate ${candidate.name} would be removed.`})}>
@@ -138,7 +174,7 @@ export default function CandidatePoolPage() {
   );
 
   const renderCardView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6"> {/* Changed to 3 columns for wider screens */}
       {displayedCandidates.map((candidate) => (
         <Card key={candidate.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg overflow-hidden">
           <CardHeader className="items-center text-center p-6 bg-secondary/30">
@@ -248,7 +284,7 @@ export default function CandidatePoolPage() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-6"> {/* Main content area expanded */}
           <Card className="shadow-xl">
             <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between">
               <div>
@@ -280,18 +316,21 @@ export default function CandidatePoolPage() {
             </CardContent>
           </Card>
 
-          {viewMode === 'card' ? renderCardView() : renderListView()}
-          
           {displayedCandidates.length === 0 && (
               <Card className="col-span-full text-center py-10 shadow-lg">
                 <CardContent>
                     <UsersIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">No candidates match your current filters.</p>
-                    <Button variant="link" className="mt-2">Clear Filters</Button>
+                    <p className="text-muted-foreground">
+                        {selectedFolderId === ALL_CANDIDATES_FOLDER_ID ? "No candidates in the pool yet." : `No candidates found in "${folders.find(f => f.id === selectedFolderId)?.name || 'this folder'}".`}
+                    </p>
+                    {selectedFolderId !== ALL_CANDIDATES_FOLDER_ID && <Button variant="link" onClick={() => setSelectedFolderId(ALL_CANDIDATES_FOLDER_ID)}>View All Candidates</Button>}
                 </CardContent>
               </Card>
             )}
-            {visibleCandidatesCount < allMockCandidates.length && (
+            
+            {displayedCandidates.length > 0 && (viewMode === 'card' ? renderCardView() : renderListView())}
+          
+          {filteredCandidates.length > visibleCandidatesCount && displayedCandidates.length > 0 && (
                 <div className="flex justify-center mt-4">
                     <Button variant="outline" onClick={handleLoadMoreCandidates}>Load More Candidates</Button>
                 </div>
@@ -299,9 +338,9 @@ export default function CandidatePoolPage() {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-            <Card className="shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg flex items-center"><Folder className="mr-2 h-5 w-5 text-primary"/>Candidate Folders</CardTitle>
+            <Card className="shadow-lg sticky top-24"> {/* Added sticky positioning */}
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                    <CardTitle className="text-lg flex items-center"><FolderOpen className="mr-2 h-5 w-5 text-primary"/>Candidate Folders</CardTitle>
                     <Dialog open={isCreateFolderDialogOpen} onOpenChange={setIsCreateFolderDialogOpen}>
                         <DialogTrigger asChild>
                             <Button variant="outline" size="sm" onClick={() => setNewFolderName("")}><FolderPlus className="mr-1.5 h-4 w-4"/>New</Button>
@@ -324,22 +363,68 @@ export default function CandidatePoolPage() {
                         </DialogContent>
                     </Dialog>
                 </CardHeader>
-                <CardContent>
-                    {folders.length > 0 ? (
-                        <ul className="space-y-2">
-                            {folders.map(folderName => (
-                                <li key={folderName} className="flex justify-between items-center p-2 rounded-md hover:bg-accent/50 transition-colors">
-                                    <span className="text-sm text-foreground">{folderName}</span>
-                                    <Button variant="ghost" size="xs" className="text-muted-foreground hover:text-destructive h-6 w-6 p-0" onClick={() => { setFolders(f => f.filter(f => f !== folderName)); toast({title: "Folder Deleted (Placeholder)"})}}>
+                <CardContent className="pt-0 max-h-[calc(100vh-200px)] overflow-y-auto"> {/* Added max-height and overflow */}
+                     <ul className="space-y-1">
+                        <li 
+                            className={cn(
+                                "flex justify-between items-center p-2 rounded-md hover:bg-accent transition-colors cursor-pointer",
+                                selectedFolderId === ALL_CANDIDATES_FOLDER_ID && "bg-accent text-accent-foreground font-semibold"
+                            )}
+                            onClick={() => setSelectedFolderId(ALL_CANDIDATES_FOLDER_ID)}
+                        >
+                            <div className="flex items-center">
+                                <FolderOpen className="mr-2 h-4 w-4" />
+                                <span className="text-sm">All Candidates</span>
+                            </div>
+                            <Badge variant={selectedFolderId === ALL_CANDIDATES_FOLDER_ID ? "default" : "secondary"} className="text-xs">
+                                {getCandidateCountForFolder(ALL_CANDIDATES_FOLDER_ID)}
+                            </Badge>
+                        </li>
+                        {folders.map(folder => (
+                            <li 
+                                key={folder.id} 
+                                className={cn(
+                                    "flex justify-between items-center p-2 rounded-md hover:bg-accent transition-colors group cursor-pointer",
+                                    selectedFolderId === folder.id && "bg-accent text-accent-foreground font-semibold"
+                                )}
+                                onClick={() => setSelectedFolderId(folder.id)}
+                            >
+                                <div className="flex items-center">
+                                    <GripVertical className="mr-1 h-4 w-4 text-muted-foreground/50 group-hover:text-accent-foreground cursor-grab" />
+                                    <FolderOpen className="mr-2 h-4 w-4" />
+                                    <span className="text-sm">{folder.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Badge variant={selectedFolderId === folder.id ? "default" : "secondary"} className="text-xs">
+                                        {getCandidateCountForFolder(folder.id)}
+                                    </Badge>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="xs" 
+                                        className="text-muted-foreground hover:text-destructive h-6 w-6 p-0 opacity-50 group-hover:opacity-100" 
+                                        onClick={(e) => { 
+                                            e.stopPropagation(); // Prevent folder selection
+                                            setFolders(f => f.filter(item => item.id !== folder.id));
+                                            setCandidateFolderAssignments(prev => {
+                                                const updated = {...prev};
+                                                Object.keys(updated).forEach(candidateId => {
+                                                    if (updated[candidateId] === folder.id) {
+                                                        updated[candidateId] = null; // Unassign candidates from deleted folder
+                                                    }
+                                                });
+                                                return updated;
+                                            });
+                                            toast({title: "Folder Deleted"});
+                                        }}
+                                    >
                                         <Trash2 className="h-3.5 w-3.5"/>
-                                        <span className="sr-only">Delete {folderName}</span>
+                                        <span className="sr-only">Delete {folder.name}</span>
                                     </Button>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">No folders created yet.</p>
-                    )}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                    {folders.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">No custom folders created yet.</p>}
                 </CardContent>
             </Card>
         </div>
@@ -355,22 +440,23 @@ export default function CandidatePoolPage() {
             <div className="grid gap-4 py-4">
                 <div className="space-y-2">
                     <Label htmlFor="folder-select">Target Folder</Label>
-                    <Select value={selectedFolderForMove} onValueChange={setSelectedFolderForMove}>
+                    <Select value={targetFolderForMove} onValueChange={setTargetFolderForMove}>
                         <SelectTrigger id="folder-select">
                             <SelectValue placeholder="Select a folder" />
                         </SelectTrigger>
                         <SelectContent>
-                            {folders.map(folderName => (
-                                <SelectItem key={folderName} value={folderName}>{folderName}</SelectItem>
+                            <SelectItem value="unassign">Unassign (Remove from any folder)</SelectItem>
+                            {folders.map(folder => (
+                                <SelectItem key={folder.id} value={folder.id}>{folder.name}</SelectItem>
                             ))}
-                            {folders.length === 0 && <p className="p-2 text-sm text-muted-foreground">No folders available. Create one first.</p>}
+                            {folders.length === 0 && <p className="p-2 text-sm text-muted-foreground">No custom folders available.</p>}
                         </SelectContent>
                     </Select>
                 </div>
             </div>
             <DialogFooter>
-                 <Button variant="outline" onClick={() => setIsMoveToFolderDialogOpen(false)}>Cancel</Button>
-                 <Button onClick={handleMoveCandidateToFolder} disabled={!selectedFolderForMove || folders.length === 0}>Move Candidate</Button>
+                 <Button variant="outline" onClick={() => { setIsMoveToFolderDialogOpen(false); setSelectedCandidateForFolderMove(null); }}>Cancel</Button>
+                 <Button onClick={handleMoveCandidateToFolder} disabled={!targetFolderForMove}>Move Candidate</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
