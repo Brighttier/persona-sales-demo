@@ -375,7 +375,7 @@ export default function CandidateProfilePage() {
 
         {/* Right Column */}
         <div className="space-y-6">
-          <Card className="shadow-lg">
+         <Card className="shadow-lg">
             <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
             <CardContent>
               {(isEnriching || isLoading) && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
@@ -406,7 +406,7 @@ export default function CandidateProfilePage() {
                                 <FormItem>
                                     <FormLabel htmlFor={fileInputId} className="sr-only">New Resume</FormLabel>
                                     <FormControl>
-                                        <>
+                                        <div>
                                             <Input
                                                 type="file"
                                                 id={fileInputId}
@@ -420,14 +420,13 @@ export default function CandidateProfilePage() {
                                                 htmlFor={fileInputId}
                                                 className={cn(
                                                 "inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer w-full",
-                                                "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg transition-all",
-                                                (isEnriching || isLoading) && "opacity-50 cursor-not-allowed"
+                                                "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg transition-all"
                                                 )}
                                             >
                                                 <FileUp className="mr-2 h-4 w-4" />
                                                 {currentResumeFile?.name ? "Change Resume" : "Upload & Re-Enrich"}
                                             </Label>
-                                        </>
+                                        </div>
                                     </FormControl>
                                      {currentResumeFile?.name && <p className="text-xs text-muted-foreground mt-1">Selected: {currentResumeFile.name}</p>}
                                     <FormMessage className="text-xs"/>

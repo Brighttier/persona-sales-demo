@@ -208,7 +208,7 @@ export default function JobApplicationPage() {
                   <FormItem>
                     <FormLabel>Resume (PDF, DOC, DOCX) *</FormLabel>
                     <FormControl>
-                      <>
+                      <div>
                         <Input 
                           type="file"
                           id={fileInputId}
@@ -232,7 +232,7 @@ export default function JobApplicationPage() {
                           <FileUp className="mr-2 h-4 w-4" />
                           {currentFile?.name ? "Change Resume" : "Choose Resume"}
                         </Label>
-                      </>
+                      </div>
                     </FormControl>
                     {currentFile?.name && <p className="text-xs text-muted-foreground mt-1">Selected: {currentFile.name}</p>}
                     <FormMessage />

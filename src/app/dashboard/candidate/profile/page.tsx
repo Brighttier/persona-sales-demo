@@ -344,7 +344,7 @@ export default function CandidateProfilePage() {
                     <FormItem>
                       <div className="flex items-center gap-4">
                         <FormControl>
-                          <>
+                          <div>
                             <Input
                               type="file"
                               id={fileInputId}
@@ -373,7 +373,7 @@ export default function CandidateProfilePage() {
                               <FileUp className="mr-2 h-4 w-4" />
                               {value?.name ? "Change Resume" : "Upload Resume"}
                             </Label>
-                          </>
+                          </div>
                         </FormControl>
                         {isAiProcessing && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
                       </div>
