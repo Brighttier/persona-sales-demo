@@ -9,7 +9,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/useToast";
+import { useToast } from "@/hooks/use-toast"; // Corrected import path
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit3, FileUp, Loader2, Save, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
@@ -217,9 +217,8 @@ export default function CandidateProfilePage() {
       </div>
 
       <Card className="shadow-xl overflow-hidden">
-        <div className="bg-gradient-to-br from-primary/10 via-background to-background h-16 md:h-20 relative" /> {/* Reduced height & added gradient */}
+        <div className="bg-gradient-to-br from-primary/10 via-background to-background h-16 md:h-20 relative" />
         <div className="px-6 pb-6">
-          {/* Adjusted negative margin to pull avatar up more, relative to shorter banner */}
           <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-20 md:-mt-24"> 
             <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
               <AvatarImage src={user.avatar || `https://placehold.co/200x200.png?text=${(form.watch("fullName") || user.name).charAt(0)}`} alt={form.watch("fullName") || user.name} data-ai-hint="person professional"/>
@@ -384,8 +383,7 @@ export default function CandidateProfilePage() {
                               htmlFor={fileInputId}
                               className={cn(
                                 "inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer w-full",
-                                "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg transition-all",
-                                (!isEditing || isAiProcessing) && "opacity-50 cursor-not-allowed"
+                                "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg transition-all"
                               )}
                             >
                               <FileUp className="mr-2 h-4 w-4" />
@@ -420,5 +418,4 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
-
 
