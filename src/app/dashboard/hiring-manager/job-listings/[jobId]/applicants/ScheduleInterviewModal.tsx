@@ -19,8 +19,6 @@ import { format, addDays } from "date-fns";
 import { CalendarIcon, Bot, Loader2, Save, Users as UsersIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from '@/components/ui/badge';
-import { FormDescription } from '@/components/ui/form';
-
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean;
@@ -31,20 +29,20 @@ interface ScheduleInterviewModalProps {
   jobTitle: string;
 }
 
-const MOCK_AI_AGENTS = [
+const MOCK_AI_AGENTS_HM = [
   { id: "EVQJtCNSo0L6uHQnImQu", name: "Mira - Persona AI Interviewer" },
-  { id: "agent2", name: "Tech Screener Bot" },
-  { id: "agent3", name: "Behavioral Assessor AI" },
+  { id: "agent2-hm", name: "Tech Screener Bot (HM)" },
+  { id: "agent3-hm", name: "Behavioral Assessor AI (HM)" },
 ];
 
-const MOCK_COMMON_INTERVIEWERS = [
-    "Brenda Smith (Recruiter)",
+const MOCK_COMMON_INTERVIEWERS_HM = [
     "Charles Brown (Hiring Manager)",
+    "Brenda Smith (Recruiter)",
     "Diana Green (Admin Lead)",
 ];
 
-const TIME_SLOTS = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"];
-const DURATIONS = ["15", "30", "45", "60"]; // In minutes
+const TIME_SLOTS_HM = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"];
+const DURATIONS_HM = ["15", "30", "45", "60"]; // In minutes
 
 export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
   isOpen,
@@ -66,7 +64,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
   const [timeZone, setTimeZone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
   // AI Interview state
-  const [selectedAgentId, setSelectedAgentId] = useState<string>(MOCK_AI_AGENTS[0]?.id || "");
+  const [selectedAgentId, setSelectedAgentId] = useState<string>(MOCK_AI_AGENTS_HM[0]?.id || "");
   const [aiDuration, setAiDuration] = useState("15");
 
   const [notes, setNotes] = useState("");
@@ -76,7 +74,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
     if (interviewType === "ai") {
       setInterviewDate(undefined);
       setTimeSlot("10:00");
-      // Keep interviewers if needed for AI instructions, or clear: setInterviewers("");
+      setInterviewers("");
       setMeetingLink("");
     } else {
       setInterviewDate(new Date());
@@ -85,7 +83,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
 
   const handleSchedule = async () => {
     setIsSubmitting(true);
-    console.log("Scheduling Interview with data:", {
+    console.log("Scheduling Interview (HM View) with data:", {
       candidateId,
       candidateName,
       candidateEmail,
@@ -96,7 +94,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
       duration: interviewType === "face-to-face" ? faceToFaceDuration : aiDuration,
       interviewers: interviewType === "face-to-face" ? interviewers : "N/A",
       meetingLink: interviewType === "face-to-face" ? meetingLink : "N/A",
-      selectedAIAgent: interviewType === "ai" ? MOCK_AI_AGENTS.find(a => a.id === selectedAgentId)?.name : "N/A",
+      selectedAIAgent: interviewType === "ai" ? MOCK_AI_AGENTS_HM.find(a => a.id === selectedAgentId)?.name : "N/A",
       timeZone: interviewType === "face-to-face" ? timeZone : "N/A",
       notes,
     });
@@ -114,7 +112,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
   const addCommonInterviewer = (name: string) => {
     setInterviewers(prev => {
         if (!prev.trim()) return name;
-        if (prev.toLowerCase().includes(name.toLowerCase())) return prev; // Avoid duplicates
+        if (prev.toLowerCase().includes(name.toLowerCase())) return prev;
         return `${prev}, ${name}`;
     });
   };
@@ -179,7 +177,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
                   <Select value={timeSlot} onValueChange={setTimeSlot}>
                     <SelectTrigger id="timeSlot-hm"><SelectValue placeholder="Select time" /></SelectTrigger>
                     <SelectContent>
-                      {TIME_SLOTS.map(slot => <SelectItem key={slot} value={slot}>{slot}</SelectItem>)}
+                      {TIME_SLOTS_HM.map(slot => <SelectItem key={slot} value={slot}>{slot}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -188,7 +186,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
                   <Select value={faceToFaceDuration} onValueChange={setFaceToFaceDuration}>
                     <SelectTrigger id="faceToFaceDuration-hm"><SelectValue placeholder="Select duration" /></SelectTrigger>
                     <SelectContent>
-                      {DURATIONS.map(d => <SelectItem key={d} value={d}>{d} mins</SelectItem>)}
+                      {DURATIONS_HM.map(d => <SelectItem key={d} value={d}>{d} mins</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -200,9 +198,9 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
               <div className="space-y-1">
                 <Label htmlFor="interviewers-hm">Interviewer(s) *</Label>
                 <Input id="interviewers-hm" placeholder="e.g., John Doe, Jane Smith" value={interviewers} onChange={(e) => setInterviewers(e.target.value)} />
-                <FormDescription className="text-xs">Manually type names, or click a common interviewer below.</FormDescription>
+                <p className="text-xs text-muted-foreground">Manually type names, or click a common interviewer below.</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                    {MOCK_COMMON_INTERVIEWERS.map(name => (
+                    {MOCK_COMMON_INTERVIEWERS_HM.map(name => (
                         <Badge
                             key={name}
                             variant="secondary"
@@ -230,7 +228,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
                   <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
                     <SelectTrigger id="aiAgent-hm"><SelectValue placeholder="Select AI Agent" /></SelectTrigger>
                     <SelectContent>
-                      {MOCK_AI_AGENTS.map(agent => <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>)}
+                      {MOCK_AI_AGENTS_HM.map(agent => <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -239,7 +237,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
                    <Select value={aiDuration} onValueChange={setAiDuration}>
                     <SelectTrigger id="aiDuration-hm"><SelectValue placeholder="Select duration" /></SelectTrigger>
                     <SelectContent>
-                      {DURATIONS.map(d => <SelectItem key={d} value={d}>{d} mins</SelectItem>)}
+                      {DURATIONS_HM.map(d => <SelectItem key={d} value={d}>{d} mins</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
