@@ -9,9 +9,9 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast"; 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit3, FileUp, Loader2, Save, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText } from "lucide-react";
+import { Edit3, FileUp, Loader2, PlusCircle, Trash2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, Award, FileText } from "lucide-react";
 import React, { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
@@ -163,16 +163,7 @@ export default function CandidateProfilePage() {
     
     if (user && data.fullName !== user.name && login) { 
         const updatedUser = { ...user, name: data.fullName };
-        // This login call will update the user in AuthContext.
-        // If the user object in AuthContext is what drives the display name everywhere,
-        // this should update it.
-        login(user.role); // Re-logging in with the same role effectively updates the user object in context
-                           // to the one defined in DEMO_USERS for that role.
-                           // For a real name update, you'd update the user object and then set it in context.
-                           // For this demo, re-calling login with the same role will refresh with DEMO_USER data.
-                           // To actually persist the name change in the UI based on form input, 
-                           // we'd need a setUser method in AuthContext or manage a local user state here.
-                           // For now, we'll assume the AuthContext update via login() is sufficient for demo.
+        login(user.role); 
     }
 
     setIsSubmitting(false);
@@ -223,26 +214,35 @@ export default function CandidateProfilePage() {
           </Button>
       </div>
 
-      <Card className="shadow-xl"> {/* Removed overflow-hidden */}
-        <div className="bg-gradient-to-br from-primary/10 via-background to-background h-16 md:h-20 relative" />
+      <Card className="shadow-xl">
+        {/* Banner Area */}
+        <div className="bg-gradient-to-br from-primary/10 via-background to-background h-16 md:h-20" />
+        
+        {/* Content Area: Avatar + Text Details */}
         <div className="px-6 pb-6">
-          <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-20 md:-mt-24"> 
-            <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
-              <AvatarImage src={user.avatar || `https://placehold.co/200x200.png?text=${(form.watch("fullName") || user.name).charAt(0)}`} alt={form.watch("fullName") || user.name} data-ai-hint="person professional"/>
-              <AvatarFallback>{(form.watch("fullName") || user.name).split(" ").map(n=>n[0]).join("").toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div className="sm:ml-6 mt-4 sm:mt-0 text-center sm:text-left">
-             <CardTitle className="text-2xl md:text-3xl">{form.watch("fullName")}</CardTitle>
-             <CardDescription className="text-base mt-1 text-primary">{form.watch("headline")}</CardDescription>
-             <p className="text-sm text-muted-foreground mt-1">{form.watch("location")}</p>
-             <div className="flex gap-2 mt-2 justify-center sm:justify-start">
+          <div className="flex flex-col sm:flex-row items-start"> {/* Align items to start for text alignment */}
+            {/* Wrapper for Avatar to apply negative margin */}
+            <div className="-mt-12 md:-mt-16 shrink-0"> 
+              <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
+                <AvatarImage src={user.avatar || `https://placehold.co/200x200.png?text=${(form.watch("fullName") || user.name).charAt(0)}`} alt={form.watch("fullName") || user.name} data-ai-hint="person professional"/>
+                <AvatarFallback>{(form.watch("fullName") || user.name).split(" ").map(n=>n[0]).join("").toUpperCase()}</AvatarFallback>
+              </Avatar>
+            </div>
+            
+            {/* Text Details - these will now be on the white background of the card */}
+            <div className="sm:ml-6 mt-4 sm:mt-0 text-center sm:text-left w-full">
+              <CardTitle className="text-2xl md:text-3xl text-foreground">{form.watch("fullName")}</CardTitle>
+              <CardDescription className="text-base mt-1 text-primary">{form.watch("headline")}</CardDescription>
+              <p className="text-sm text-muted-foreground mt-1">{form.watch("location")}</p>
+              <div className="flex gap-2 mt-2 justify-center sm:justify-start">
                 {form.watch("linkedinProfile") && <Button variant="ghost" size="sm" asChild><Link href={form.watch("linkedinProfile")!} target="_blank"><Linkedin className="h-4 w-4 mr-1"/> LinkedIn</Link></Button>}
                 {form.watch("portfolioUrl") && <Button variant="ghost" size="sm" asChild><Link href={form.watch("portfolioUrl")!} target="_blank"><ExternalLink className="h-4 w-4 mr-1"/> Portfolio</Link></Button>}
-             </div>
+              </div>
             </div>
           </div>
         </div>
       </Card>
+
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -368,7 +368,7 @@ export default function CandidateProfilePage() {
                     <FormItem>
                       <div className="flex items-center gap-4">
                         <FormControl>
-                          <div> {/* Wrapper div */}
+                          <div>
                             <Input
                               type="file"
                               id={fileInputId}
