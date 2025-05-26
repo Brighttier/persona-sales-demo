@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Check, Clock, Eye, ThumbsDown, ThumbsUp, X, Search as SearchIcon, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useMemo } from "react"; // Added useMemo
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -17,12 +17,11 @@ interface JobForRecruiterApproval {
   id: string;
   title: string;
   department: string;
-  hiringManager: string; // Changed from recruiter
+  hiringManager: string;
   dateSubmitted: string;
   status: "Pending Recruiter Approval" | "Approved by Recruiter" | "Rejected by Recruiter";
   jobDescription?: string;
   salaryRange?: string;
-  // Potentially add other fields submitted by HM like responsibilities, qualifications if available
 }
 
 const mockJobsForRecruiterApproval: JobForRecruiterApproval[] = [
@@ -38,6 +37,7 @@ export default function RecruiterJobApprovalsPage() {
   const [selectedJob, setSelectedJob] = useState<JobForRecruiterApproval | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [recruiterOptimizedDescription, setRecruiterOptimizedDescription] = useState("");
+  const [searchTerm, setSearchTerm] = useState(""); // State for search term
 
   const handleAction = (jobId: string, action: 'approve' | 'reject', reason?: string) => {
     setJobs(prevJobs => prevJobs.map(job =>
@@ -64,11 +64,23 @@ export default function RecruiterJobApprovalsPage() {
 
   const openDetailsDialog = (job: JobForRecruiterApproval) => {
     setSelectedJob(job);
-    setRecruiterOptimizedDescription(job.jobDescription || ""); // Pre-fill with HM's description for easier editing
+    setRecruiterOptimizedDescription(job.jobDescription || ""); 
     if (job.status === "Pending Recruiter Approval") {
         setRejectionReason("");
     }
   };
+
+  const filteredJobs = useMemo(() => {
+    if (!searchTerm) {
+      return jobs;
+    }
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+    return jobs.filter(job => 
+      job.title.toLowerCase().includes(lowercasedSearchTerm) ||
+      job.department.toLowerCase().includes(lowercasedSearchTerm) ||
+      job.hiringManager.toLowerCase().includes(lowercasedSearchTerm)
+    );
+  }, [jobs, searchTerm]);
 
   return (
     <Dialog onOpenChange={(open) => { if (!open) setSelectedJob(null); }}>
@@ -84,7 +96,12 @@ export default function RecruiterJobApprovalsPage() {
           <CardHeader className="border-b py-4">
              <div className="relative max-w-xs">
                 <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search job titles or departments..." className="pl-8"/>
+                <Input 
+                  placeholder="Search by title, department, HM..." 
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
              </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -100,7 +117,7 @@ export default function RecruiterJobApprovalsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {jobs.map((job) => (
+                {filteredJobs.map((job) => (
                   <TableRow key={job.id}>
                     <TableCell className="font-medium">{job.title}</TableCell>
                     <TableCell>{job.department}</TableCell>
@@ -128,8 +145,10 @@ export default function RecruiterJobApprovalsPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {jobs.length === 0 && (
-                   <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No job postings awaiting your approval.</TableCell></TableRow>
+                {filteredJobs.length === 0 && (
+                   <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                     {searchTerm ? "No job postings found matching your search." : "No job postings awaiting your approval."}
+                   </TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -156,7 +175,6 @@ export default function RecruiterJobApprovalsPage() {
                     {selectedJob.salaryRange || "Not specified by Hiring Manager."}
                 </p>
             </div>
-             {/* Assume other fields like responsibilities, qualifications would also be displayed here if available */}
 
             <div className="space-y-2 pt-4 border-t mt-4">
                 <Label htmlFor="recruiterOptimizedDescription" className="font-semibold text-md text-primary">Recruiter's Optimized Version / Suggestions:</Label>
@@ -198,7 +216,6 @@ export default function RecruiterJobApprovalsPage() {
                     Confirm Rejection
                 </Button>
                  <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => {
-                    // Placeholder: In a real app, you'd save the recruiterOptimizedDescription
                     console.log("Recruiter Optimized Description:", recruiterOptimizedDescription);
                     handleAction(selectedJob.id, 'approve');
                  }}>
@@ -212,6 +229,5 @@ export default function RecruiterJobApprovalsPage() {
     </Dialog>
   );
 }
-
 
     
