@@ -10,29 +10,76 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { CalendarDays, CheckCircle, Clock, Edit3, MessageSquare, Video, UserCircle as UserIcon, Check, Send, Briefcase } from "lucide-react";
+import { CalendarDays, CheckCircle, Clock, Edit3, MessageSquare, Video, UserCircle as UserIcon, Check, Send, Briefcase, ShieldCheck, WandSparkles, Lightbulb, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import { format, parseISO, isValid } from "date-fns";
+import { Alert, AlertTitle } from "@/components/ui/alert";
+import type { CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening"; // Assuming this type is useful
+import { generateInterviewGuide, type GenerateInterviewGuideOutput } from "@/ai/flows/generate-interview-guide-flow";
 
 interface AssignedInterview {
   id: string;
   candidateName: string;
   jobTitle: string;
+  jobId?: string; // For context
+  jobDescription?: string; // For AI interview strategy
+  candidateResumeSummary?: string; // For AI interview strategy
   date: string;
   time: string;
   status: "Upcoming" | "Completed";
   feedbackProvided?: boolean;
   platformLink?: string;
   verdict?: "Recommend for Next Round" | "Hold" | "Do Not Recommend";
+  // Mock screening report data
+  screeningSuitabilityScore?: number;
+  screeningSummary?: string;
+  screeningStrengths?: string;
+  screeningAreasForImprovement?: string;
+  screeningRecommendation?: string;
 }
 
 const mockAssignedInterviews: AssignedInterview[] = [
-  { id: "intAssign1", candidateName: "Charlie Candidate", jobTitle: "Software Engineer", date: "2024-08-20", time: "10:00 AM", status: "Upcoming", platformLink: "#" },
-  { id: "intAssign2", candidateName: "Dana Developer", jobTitle: "Product Manager", date: "2024-08-22", time: "02:30 PM", status: "Upcoming", platformLink: "#" },
-  { id: "intAssign3", candidateName: "Eddie Eng", jobTitle: "UX Designer", date: "2024-08-10", time: "11:00 AM", status: "Completed", feedbackProvided: true, verdict: "Recommend for Next Round" },
-  { id: "intAssign4", candidateName: "Fiona Future", jobTitle: "Data Scientist", date: "2024-08-20", time: "09:00 AM", status: "Upcoming" }, // Changed to upcoming for grouping test
-  { id: "intAssign5", candidateName: "Gary Goodfit", jobTitle: "Software Engineer", date: "2024-08-10", time: "03:00 PM", status: "Completed", feedbackProvided: false },
+  { 
+    id: "intAssign1", candidateName: "Charlie Candidate", jobTitle: "Software Engineer", jobId: "job1",
+    jobDescription: "Seeking a skilled Software Engineer with expertise in Java and Spring Boot to develop and maintain backend services. Candidate should have 5+ years of experience and a strong understanding of microservice architecture.",
+    candidateResumeSummary: "Experienced Java Developer (6 years) proficient in Spring Boot, REST APIs, and microservices. Proven ability in leading small teams and delivering scalable solutions. BSc in Computer Science.",
+    date: "2024-08-20", time: "10:00 AM", status: "Upcoming", platformLink: "#",
+    screeningSuitabilityScore: 88,
+    screeningSummary: "Charlie shows strong alignment with the core Java and Spring Boot requirements. Experience in microservices is a plus.",
+    screeningStrengths: "• Deep Java knowledge\n• Microservice architecture understanding\n• Project leadership examples",
+    screeningAreasForImprovement: "• Explore cloud platform experience (AWS/Azure)\n• Assess communication style for team collaboration",
+    screeningRecommendation: "Strongly recommend for technical interview. Focus on system design and cloud deployment."
+  },
+  { 
+    id: "intAssign2", candidateName: "Dana Developer", jobTitle: "Product Manager", jobId: "job2",
+    jobDescription: "We need an innovative Product Manager to define product vision, strategy, and roadmap for our new mobile application. Must have experience with agile methodologies and user-centric design.",
+    candidateResumeSummary: "Agile Product Manager with 4 years of experience in mobile app development. Skilled in market research, user story mapping, and backlog prioritization. MBA.",
+    date: "2024-08-22", time: "02:30 PM", status: "Upcoming", platformLink: "#" 
+  },
+  { 
+    id: "intAssign3", candidateName: "Eddie Eng", jobTitle: "UX Designer", jobId: "job3",
+    jobDescription: "Creative UX Designer wanted for crafting intuitive user interfaces for web platforms. Portfolio showcasing user-centered design projects is required.",
+    candidateResumeSummary: "UX Designer with 3 years of experience. Proficient in Figma, Adobe XD, and user research. Passionate about creating accessible and engaging digital experiences.",
+    date: "2024-08-10", time: "11:00 AM", status: "Completed", feedbackProvided: true, verdict: "Recommend for Next Round",
+    screeningSuitabilityScore: 75,
+    screeningSummary: "Eddie has a decent portfolio. Lacks some specific domain experience but shows good design thinking.",
+    screeningStrengths: "• Strong visual design skills (Figma)\n• Good understanding of user research principles",
+    screeningAreasForImprovement: "• Domain specific knowledge for our industry\n• Experience with complex enterprise applications",
+    screeningRecommendation: "Worth an initial conversation to gauge interest and assess adaptability."
+  },
+  { 
+    id: "intAssign4", candidateName: "Fiona Future", jobTitle: "Data Scientist", jobId: "job4",
+    jobDescription: "Join our data science team to build predictive models and extract insights from large datasets. Requires strong Python, SQL, and machine learning skills.",
+    candidateResumeSummary: "Data Scientist with 5 years of experience in ML model development, statistical analysis, and data visualization. MSc in Statistics.",
+    date: "2024-08-20", time: "09:00 AM", status: "Upcoming" 
+  },
+  { 
+    id: "intAssign5", candidateName: "Gary Goodfit", jobTitle: "Software Engineer", jobId: "job1", // Same job as Charlie
+    jobDescription: "Seeking a skilled Software Engineer with expertise in Java and Spring Boot to develop and maintain backend services. Candidate should have 5+ years of experience and a strong understanding of microservice architecture.",
+    candidateResumeSummary: "Full-stack developer with 3 years in JavaScript (React, Node) and 2 years in Python (Flask). Looking to transition more into backend Java roles. Quick learner.",
+    date: "2024-08-10", time: "03:00 PM", status: "Completed", feedbackProvided: false 
+  },
 ];
 
 type VerdictOption = "Recommend for Next Round" | "Hold" | "Do Not Recommend";
@@ -41,9 +88,22 @@ export default function InterviewerDashboardPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [interviews, setInterviews] = useState<AssignedInterview[]>(mockAssignedInterviews);
+  
+  // For Feedback Dialog
   const [selectedInterviewForFeedback, setSelectedInterviewForFeedback] = useState<AssignedInterview | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [verdict, setVerdict] = useState<VerdictOption | undefined>(undefined);
+
+  // For Screening Report Dialog
+  const [isScreeningReportDialogOpen, setIsScreeningReportDialogOpen] = useState(false);
+  const [selectedInterviewForReport, setSelectedInterviewForReport] = useState<AssignedInterview | null>(null);
+
+  // For AI Interview Strategy Dialog
+  const [isStrategyDialogOpen, setIsStrategyDialogOpen] = useState(false);
+  const [selectedInterviewForStrategy, setSelectedInterviewForStrategy] = useState<AssignedInterview | null>(null);
+  const [generatedStrategy, setGeneratedStrategy] = useState<string | null>(null);
+  const [isGeneratingStrategy, setIsGeneratingStrategy] = useState(false);
+
 
   const upcomingInterviews = interviews.filter(i => i.status === "Upcoming");
   const pastInterviews = interviews.filter(i => i.status === "Completed");
@@ -55,7 +115,6 @@ export default function InterviewerDashboardPage() {
         acc[dateKey] = [];
       }
       acc[dateKey].push(interview);
-      // Sort interviews within each day by time
       acc[dateKey].sort((a, b) => a.time.localeCompare(b.time));
       return acc;
     }, {} as Record<string, AssignedInterview[]>);
@@ -99,13 +158,53 @@ export default function InterviewerDashboardPage() {
     setSelectedInterviewForFeedback(null);
   };
 
+  const openScreeningReportDialog = (interview: AssignedInterview) => {
+    setSelectedInterviewForReport(interview);
+    setIsScreeningReportDialogOpen(true);
+  };
+  
+  const openStrategyDialog = (interview: AssignedInterview) => {
+    setSelectedInterviewForStrategy(interview);
+    setGeneratedStrategy(null); // Clear previous strategy
+    setIsStrategyDialogOpen(true);
+  };
+
+  const handleGenerateStrategy = async () => {
+    if (!selectedInterviewForStrategy || !selectedInterviewForStrategy.jobDescription || !selectedInterviewForStrategy.candidateResumeSummary) {
+      toast({ variant: "destructive", title: "Missing Data", description: "Job description or candidate summary is missing for strategy generation."});
+      return;
+    }
+    setIsGeneratingStrategy(true);
+    try {
+      const result = await generateInterviewGuide({
+        jobDescription: selectedInterviewForStrategy.jobDescription,
+        candidateResumeSummary: selectedInterviewForStrategy.candidateResumeSummary,
+      });
+      setGeneratedStrategy(result.interviewStrategy);
+      toast({ title: "AI Strategy Generated!", description: "Review the suggested interview approach."});
+    } catch (error) {
+      console.error("Error generating interview strategy:", error);
+      toast({ variant: "destructive", title: "Strategy Generation Failed", description: "Could not generate interview strategy."});
+    } finally {
+      setIsGeneratingStrategy(false);
+    }
+  };
+
+
   return (
-    <Dialog onOpenChange={(open) => !open && setSelectedInterviewForFeedback(null)}>
+    <Dialog 
+      onOpenChange={(open) => {
+        if (!open) {
+          setSelectedInterviewForFeedback(null);
+          // Note: We don't reset other dialog states here as they are separate dialogs.
+        }
+      }}
+    >
       <div className="space-y-8">
         <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl">Interviewer Dashboard</CardTitle>
-            <CardDescription>Welcome, {user?.name?.split(" ")[0]}! View your scheduled interviews and submit feedback.</CardDescription>
+            <CardDescription>Welcome, {user?.name?.split(" ")[0]}! View your scheduled interviews, submit feedback, and prepare with AI tools.</CardDescription>
           </CardHeader>
         </Card>
 
@@ -126,23 +225,35 @@ export default function InterviewerDashboardPage() {
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {groupedUpcomingInterviews[dateStr].map(interview => (
-                                <Card key={interview.id} className="shadow-md hover:shadow-lg transition-shadow">
+                                <Card key={interview.id} className="shadow-md hover:shadow-lg transition-shadow flex flex-col">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-base">{interview.candidateName}</CardTitle>
                                     <CardDescription className="text-xs">{interview.jobTitle}</CardDescription>
                                 </CardHeader>
-                                <CardContent className="space-y-1 text-sm">
+                                <CardContent className="space-y-1 text-sm flex-grow">
                                     <div className="flex items-center"><Clock className="mr-2 h-4 w-4 text-muted-foreground" /> {interview.time}</div>
                                     {interview.platformLink && <div className="flex items-center"><Video className="mr-2 h-4 w-4 text-muted-foreground" /> Platform: <Link href={interview.platformLink} target="_blank" className="text-primary hover:underline ml-1">Meeting Link</Link></div>}
                                 </CardContent>
-                                <CardFooter className="pt-3">
-                                     <div className="flex gap-2 w-full">
+                                <CardFooter className="pt-3 border-t mt-auto space-y-2 flex-col items-stretch">
+                                    <div className="flex gap-2 w-full">
                                         <Button size="xs" variant="outline" className="flex-1" asChild><Link href={interview.platformLink || "#"} target="_blank">Join Interview</Link></Button>
                                         <DialogTrigger asChild>
                                             <Button size="xs" variant="default" className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleOpenFeedbackDialog(interview)}>
                                                 <Edit3 className="mr-1 h-3 w-3"/> Feedback
                                             </Button>
                                         </DialogTrigger>
+                                    </div>
+                                     <div className="flex gap-2 w-full">
+                                        {interview.screeningSuitabilityScore !== undefined && (
+                                            <Button size="xs" variant="outline" className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => openScreeningReportDialog(interview)}>
+                                                <ShieldCheck className="mr-1 h-3 w-3"/> Screening Report
+                                            </Button>
+                                        )}
+                                        {(interview.jobDescription && interview.candidateResumeSummary) && (
+                                            <Button size="xs" variant="outline" className="flex-1 border-purple-500 text-purple-600 hover:bg-purple-50" onClick={() => openStrategyDialog(interview)}>
+                                                <WandSparkles className="mr-1 h-3 w-3"/> AI Strategy
+                                            </Button>
+                                        )}
                                     </div>
                                 </CardFooter>
                                 </Card>
@@ -216,6 +327,7 @@ export default function InterviewerDashboardPage() {
         </Card>
       </div>
 
+      {/* Feedback Dialog */}
       {selectedInterviewForFeedback && (
         <DialogContent className="sm:max-w-lg">
             <DialogHeader>
@@ -259,6 +371,74 @@ export default function InterviewerDashboardPage() {
             </DialogFooter>
         </DialogContent>
       )}
+
+      {/* Screening Report Dialog */}
+      <Dialog open={isScreeningReportDialogOpen} onOpenChange={setIsScreeningReportDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+                <DialogTitle>AI Screening Report: {selectedInterviewForReport?.candidateName}</DialogTitle>
+                <DialogDescription>Job: {selectedInterviewForReport?.jobTitle}</DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                {selectedInterviewForReport && selectedInterviewForReport.screeningSuitabilityScore !== undefined ? (
+                    <>
+                        <Alert variant="default" className={selectedInterviewForReport.screeningSuitabilityScore > 70 ? "bg-green-50 border-green-200 text-green-700" : selectedInterviewForReport.screeningSuitabilityScore > 50 ? "bg-yellow-50 border-yellow-200 text-yellow-700" : "bg-red-50 border-red-200 text-red-700"}>
+                            <ShieldCheck className={`h-4 w-4 ${selectedInterviewForReport.screeningSuitabilityScore > 70 ? "!text-green-600" : "!text-red-600"}`} />
+                            <AlertTitle className="font-semibold">Suitability Score: {selectedInterviewForReport.screeningSuitabilityScore}/100</AlertTitle>
+                        </Alert>
+                        <Card><CardHeader className="p-3"><CardTitle className="text-sm">Summary</CardTitle></CardHeader><CardContent className="p-3 text-xs">{selectedInterviewForReport.screeningSummary || "N/A"}</CardContent></Card>
+                        <Card><CardHeader className="p-3"><CardTitle className="text-sm">Strengths</CardTitle></CardHeader><CardContent className="p-3 text-xs whitespace-pre-line">{selectedInterviewForReport.screeningStrengths || "N/A"}</CardContent></Card>
+                        <Card><CardHeader className="p-3"><CardTitle className="text-sm">Areas for Improvement</CardTitle></CardHeader><CardContent className="p-3 text-xs whitespace-pre-line">{selectedInterviewForReport.screeningAreasForImprovement || "N/A"}</CardContent></Card>
+                        <Card><CardHeader className="p-3"><CardTitle className="text-sm">Recommendation</CardTitle></CardHeader><CardContent className="p-3 text-xs whitespace-pre-line">{selectedInterviewForReport.screeningRecommendation || "N/A"}</CardContent></Card>
+                    </>
+                ) : <p className="text-muted-foreground">No screening report details available for this interview.</p>}
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="outline">Close</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Interview Strategy Dialog */}
+      <Dialog open={isStrategyDialogOpen} onOpenChange={setIsStrategyDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+                <DialogTitle>AI Interview Strategy: {selectedInterviewForStrategy?.candidateName}</DialogTitle>
+                <DialogDescription>For Job: {selectedInterviewForStrategy?.jobTitle}</DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                {isGeneratingStrategy && (
+                    <div className="flex items-center justify-center p-6">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="ml-2 text-muted-foreground">Generating AI Strategy...</p>
+                    </div>
+                )}
+                {generatedStrategy && !isGeneratingStrategy && (
+                    <div className="p-4 border rounded-md bg-secondary/50">
+                        <h4 className="font-semibold mb-2 text-primary">Suggested Interview Approach:</h4>
+                        <p className="text-sm whitespace-pre-line">{generatedStrategy}</p>
+                    </div>
+                )}
+                {!generatedStrategy && !isGeneratingStrategy && (
+                     <Button onClick={handleGenerateStrategy} className="w-full" disabled={!selectedInterviewForStrategy?.jobDescription || !selectedInterviewForStrategy?.candidateResumeSummary}>
+                        <Lightbulb className="mr-2 h-4 w-4"/> Generate Strategy with AI
+                    </Button>
+                )}
+                 {(!selectedInterviewForStrategy?.jobDescription || !selectedInterviewForStrategy?.candidateResumeSummary) && !generatedStrategy && !isGeneratingStrategy && (
+                    <p className="text-xs text-destructive text-center">Job description or candidate summary missing, cannot generate strategy.</p>
+                 )}
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button type="button" variant="outline">Close</Button></DialogClose>
+                 {generatedStrategy && !isGeneratingStrategy && (
+                    <Button onClick={handleGenerateStrategy} variant="secondary">
+                        <WandSparkles className="mr-2 h-4 w-4"/> Regenerate
+                    </Button>
+                )}
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </Dialog>
   );
 }
