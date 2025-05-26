@@ -3,7 +3,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"; // Added CardFooter
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, UserCircle, BrainCircuit, CalendarCheck, BarChart3, Mail, Briefcase, CheckCircle } from "lucide-react";
 import React from "react";
@@ -56,11 +56,11 @@ export default function InterviewerProfilePage() {
   return (
     <div className="space-y-6">
       <Card className="shadow-xl">
-        <div className="bg-gradient-to-br from-primary/10 via-background to-background h-20" />
+        <div className="bg-gradient-to-br from-primary/10 via-background to-background h-16 md:h-20" />
         <div className="px-6 pb-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start">
-            <div className="-mt-16 shrink-0 relative group">
-              <Avatar className="h-32 w-32 border-4 border-background shadow-lg">
+            <div className="-mt-12 md:-mt-16 shrink-0 relative group">
+              <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
                 <AvatarImage src={user.avatar || `https://placehold.co/200x200.png?text=${currentFullName.charAt(0)}`} alt={currentFullName} data-ai-hint="person professional"/>
                 <AvatarFallback>{currentFullName.split(" ").map(n => n[0]).join("").toUpperCase()}</AvatarFallback>
               </Avatar>
@@ -121,7 +121,6 @@ export default function InterviewerProfilePage() {
                 <p className="text-sm text-muted-foreground">No specializations listed yet.</p>
               )}
             </CardContent>
-             {/* Placeholder for edit functionality in future */}
              <CardFooter className="text-xs text-muted-foreground">
                 To update specializations, please contact an administrator (Placeholder).
             </CardFooter>
