@@ -94,8 +94,8 @@ export default function HiringManagerDashboardPage() {
     };
     setTeamInterviewers(prev => [...prev, newInterviewer]);
     toast({
-        title: "Interviewer Added (Placeholder)",
-        description: `${data.name} has been added to your team's interviewer list.`,
+        title: "Interviewer Added to Team (Placeholder)",
+        description: `${data.name} has been added. In a real system, an invitation would be sent to them to set up their account.`,
     });
     interviewerForm.reset();
     setIsAddInterviewerDialogOpen(false);
@@ -104,10 +104,10 @@ export default function HiringManagerDashboardPage() {
   const handleEditInterviewerSubmit = (data: InterviewerFormValues) => {
     if (!editingInterviewer) return;
 
-    setTeamInterviewers(prev => 
-        prev.map(interviewer => 
-            interviewer.id === editingInterviewer.id 
-            ? { ...interviewer, name: data.name, email: data.email, specializations: data.specializations || interviewer.specializations } 
+    setTeamInterviewers(prev =>
+        prev.map(interviewer =>
+            interviewer.id === editingInterviewer.id
+            ? { ...interviewer, name: data.name, email: data.email, specializations: data.specializations || interviewer.specializations }
             : interviewer
         )
     );
@@ -171,7 +171,7 @@ export default function HiringManagerDashboardPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-200 ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -216,7 +216,7 @@ export default function HiringManagerDashboardPage() {
                     <DialogHeader>
                         <DialogTitle>Add New Interviewer to Your Team</DialogTitle>
                         <DialogDescription>
-                            Define the interviewer's details and their areas of specialization.
+                            Define the interviewer's details and their areas of specialization. They will be invited to join and set up their account.
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...interviewerForm}>
@@ -284,7 +284,10 @@ export default function HiringManagerDashboardPage() {
       </Card>
 
       {/* Edit Interviewer Dialog */}
-       <Dialog open={isEditInterviewerDialogOpen} onOpenChange={setIsEditInterviewerDialogOpen}>
+       <Dialog open={isEditInterviewerDialogOpen} onOpenChange={(open) => {
+           if (!open) setEditingInterviewer(null); // Clear editing state when dialog closes
+           setIsEditInterviewerDialogOpen(open);
+        }}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Manage Interviewer: {editingInterviewer?.name}</DialogTitle>
@@ -292,47 +295,49 @@ export default function HiringManagerDashboardPage() {
                         View or update the interviewer's details and specializations.
                     </DialogDescription>
                 </DialogHeader>
-                <Form {...interviewerForm}>
-                    <form onSubmit={interviewerForm.handleSubmit(handleEditInterviewerSubmit)} className="space-y-4 py-4">
-                        <FormField
-                            control={interviewerForm.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Full Name (Read-only)</FormLabel>
-                                    <FormControl><Input {...field} readOnly /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={interviewerForm.control}
-                            name="email"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Email (Read-only)</FormLabel>
-                                    <FormControl><Input type="email" {...field} readOnly /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={interviewerForm.control}
-                            name="specializations"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Specializations / Focus Areas</FormLabel>
-                                    <FormControl><Textarea placeholder="e.g., Java Backend, System Design, Behavioral Interviews, React Frontend" {...field} rows={4}/></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <DialogFooter className="pt-4">
-                            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                            <Button type="submit">Save Changes</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
+                {editingInterviewer && (
+                  <Form {...interviewerForm}>
+                      <form onSubmit={interviewerForm.handleSubmit(handleEditInterviewerSubmit)} className="space-y-4 py-4">
+                          <FormField
+                              control={interviewerForm.control}
+                              name="name"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Full Name (Read-only)</FormLabel>
+                                      <FormControl><Input {...field} readOnly /></FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={interviewerForm.control}
+                              name="email"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Email (Read-only)</FormLabel>
+                                      <FormControl><Input type="email" {...field} readOnly /></FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={interviewerForm.control}
+                              name="specializations"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Specializations / Focus Areas</FormLabel>
+                                      <FormControl><Textarea placeholder="e.g., Java Backend, System Design, Behavioral Interviews, React Frontend" {...field} rows={4}/></FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <DialogFooter className="pt-4">
+                              <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                              <Button type="submit">Save Changes</Button>
+                          </DialogFooter>
+                      </form>
+                  </Form>
+                )}
             </DialogContent>
         </Dialog>
 
