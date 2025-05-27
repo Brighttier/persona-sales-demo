@@ -4,13 +4,13 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlus, UserX, Users, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Search, Eye, ShieldCheck, Edit3, CalendarPlus, UserX, Users, Loader2, FileText, VideoIcon, Star } from "lucide-react"; // Added VideoIcon, Star
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
@@ -19,7 +19,9 @@ import { Label } from "@/components/ui/label";
 import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { ScheduleInterviewModal } from "./ScheduleInterviewModal"; // Use relative path after moving
+import { ScheduleInterviewModal } from "./ScheduleInterviewModal";
+
+const PLACEHOLDER_INTRO_VIDEO_URL = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4";
 
 interface Applicant {
   id: string;
@@ -33,14 +35,15 @@ interface Applicant {
   resumeText?: string;
   jobTitleAppliedFor?: string;
   mockResumeDataUri?: string;
+  introductionVideoUrl?: string; // Added for candidate's intro video
 }
 
 const initialMockApplicants: Applicant[] = [
-  { id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", applicationDate: "2024-07-25", aiMatchScore: 92, status: "New", email: "alice@example.com", skills: ["React", "Node.js", "TypeScript"], resumeText: "Highly skilled React developer with 5 years of experience in Node.js and TypeScript.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu"},
-  { id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", applicationDate: "2024-07-24", aiMatchScore: 85, status: "Screening", email: "bob@example.com", skills: ["Python", "Django", "SQL"], resumeText: "Data-driven Python developer, proficient in Django and SQL databases.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==" },
-  { id: "app3", name: "Carol Davis", avatar: "https://placehold.co/100x100.png?text=CD", applicationDate: "2024-07-23", aiMatchScore: 78, status: "Shortlisted", email: "carol@example.com", skills: ["Java", "Spring Boot", "Microservices"], resumeText: "Experienced Java engineer specializing in Spring Boot and microservice architectures.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Q2Fyb2wgRGF2aXMnIFJlc3VtZS4gRXhwZXJ0IGphdmEgZW5naW5lZXIgV2l0aCBKYXZhLCBTcHJpbmcgQm9vdCwgYW5kIE1pY3Jvc2VydmljZXMu" },
-  { id: "app4", name: "David Miller", avatar: "https://placehold.co/100x100.png?text=DM", applicationDate: "2024-07-22", status: "Not Selected", email: "david@example.com", skills: ["PHP", "Laravel"], resumeText: "Full-stack PHP developer with Laravel expertise.", jobTitleAppliedFor: "Software Engineer, Frontend" },
-  { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", applicationDate: "2024-07-26", aiMatchScore: 95, status: "Interview", email: "eve@example.com", skills: ["JavaScript", "Vue.js", "Firebase"], resumeText: "Creative Vue.js developer with Firebase backend knowledge.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=" },
+  { id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", applicationDate: "2024-07-25", aiMatchScore: 92, status: "New", email: "alice@example.com", skills: ["React", "Node.js", "TypeScript", "GraphQL", "AWS"], resumeText: "Highly skilled React developer with 5 years of experience in Node.js and TypeScript. Led frontend team at Innovatech.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu", introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL },
+  { id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", applicationDate: "2024-07-24", aiMatchScore: 85, status: "Screening", email: "bob@example.com", skills: ["Python", "Django", "SQL", "REST APIs"], resumeText: "Data-driven Python developer, proficient in Django and SQL databases. Strong analytical skills.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==" },
+  { id: "app3", name: "Carol Davis", avatar: "https://placehold.co/100x100.png?text=CD", applicationDate: "2024-07-23", aiMatchScore: 78, status: "Shortlisted", email: "carol@example.com", skills: ["Java", "Spring Boot", "Microservices", "Kafka"], resumeText: "Experienced Java engineer specializing in Spring Boot and microservice architectures. Familiar with Kafka.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Q2Fyb2wgRGF2aXMnIFJlc3VtZS4gRXhwZXJ0IGphdmEgZW5naW5lZXIgV2l0aCBKYXZhLCBTcHJpbmcgQm9vdCwgYW5kIE1pY3Jvc2VydmljZXMu", introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL },
+  { id: "app4", name: "David Miller", avatar: "https://placehold.co/100x100.png?text=DM", applicationDate: "2024-07-22", status: "Not Selected", email: "david@example.com", skills: ["PHP", "Laravel", "MySQL"], resumeText: "Full-stack PHP developer with Laravel expertise. Comfortable with MySQL.", jobTitleAppliedFor: "Software Engineer, Frontend" },
+  { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", applicationDate: "2024-07-26", aiMatchScore: 95, status: "Interview", email: "eve@example.com", skills: ["JavaScript", "Vue.js", "Firebase", "Nuxt.js"], resumeText: "Creative Vue.js developer with Firebase backend knowledge and Nuxt.js experience.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=" },
 ];
 
 const mockJobTitles: { [key: string]: { title: string, description: string } } = {
@@ -62,7 +65,7 @@ export default function ViewApplicantsPage() {
   const [applicants, setApplicants] = useState<Applicant[]>(initialMockApplicants);
   const [selectedApplicantForStatus, setSelectedApplicantForStatus] = useState<Applicant | null>(null);
   const [newStatus, setNewStatus] = useState<Applicant["status"] | "">("");
-  
+
   const [isScreeningLoading, setIsScreeningLoading] = useState(false);
   const [selectedApplicantForScreening, setSelectedApplicantForScreening] = useState<Applicant | null>(null);
   const [screeningReports, setScreeningReports] = useState<Record<string, CandidateScreeningOutput | null>>({});
@@ -88,8 +91,8 @@ export default function ViewApplicantsPage() {
         description: `${applicantToUpdate.name}'s status changed to ${newStatus}.`,
       });
       setApplicantToUpdate(null);
-      setSelectedApplicantForStatus(null); 
-      setIsRejectConfirmOpen(false); 
+      setSelectedApplicantForStatus(null);
+      setIsRejectConfirmOpen(false);
       setNewStatus("");
     }
   };
@@ -97,17 +100,17 @@ export default function ViewApplicantsPage() {
   const openStatusUpdateDialog = (applicant: Applicant, targetStatus?: Applicant["status"]) => {
     setApplicantToUpdate(applicant);
     if (targetStatus === "Not Selected") {
-        setNewStatus("Not Selected"); 
-        setIsRejectConfirmOpen(true); 
+        setNewStatus("Not Selected");
+        setIsRejectConfirmOpen(true);
     } else {
-        setSelectedApplicantForStatus(applicant); 
-        setNewStatus(targetStatus || applicant.status); 
+        setSelectedApplicantForStatus(applicant);
+        setNewStatus(targetStatus || applicant.status);
     }
   };
-  
+
   const confirmStatusUpdateToAction = (status: Applicant["status"]) => {
      if (!applicantToUpdate) return;
-     setNewStatus(status); 
+     setNewStatus(status);
      setApplicants(prev => prev.map(app => app.id === applicantToUpdate!.id ? {...app, status: status} : app));
      toast({
         title: `Candidate Status Updated`,
@@ -125,7 +128,7 @@ export default function ViewApplicantsPage() {
     }
     setSelectedApplicantForScreening(applicant);
     setIsScreeningLoading(true);
-    setScreeningReports(prev => ({ ...prev, [applicant.id]: null })); 
+    setScreeningReports(prev => ({ ...prev, [applicant.id]: null }));
     try {
         const screeningInput: CandidateScreeningInput = {
             jobDetails: jobData.description,
@@ -202,9 +205,9 @@ export default function ViewApplicantsPage() {
           <div className="flex flex-col md:flex-row gap-2 justify-between items-center">
             <div className="relative flex-grow w-full md:w-auto">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search applicants by name or skills..." 
-                className="pl-8 w-full" 
+              <Input
+                placeholder="Search applicants by name or skills..."
+                className="pl-8 w-full"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -361,12 +364,46 @@ export default function ViewApplicantsPage() {
 
       {/* Screening Report Dialog */}
       <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg md:max-w-xl">
           <DialogHeader>
             <DialogTitle>AI Screening Report for {selectedApplicantForReportView?.name}</DialogTitle>
             <DialogDescription>Job: {jobData.title}</DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+          <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-3">
+            {selectedApplicantForReportView?.introductionVideoUrl && (
+              <Card className="shadow-sm">
+                <CardHeader className="p-3">
+                  <CardTitle className="text-sm flex items-center">
+                    <VideoIcon className="mr-2 h-4 w-4 text-primary" /> Candidate Introduction Video
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3">
+                  <video
+                    src={selectedApplicantForReportView.introductionVideoUrl}
+                    controls
+                    className="w-full rounded-md aspect-video shadow-inner bg-muted"
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {selectedApplicantForReportView?.skills && selectedApplicantForReportView.skills.length > 0 && (
+              <Card className="shadow-sm">
+                <CardHeader className="p-3">
+                  <CardTitle className="text-sm flex items-center">
+                    <Star className="mr-2 h-4 w-4 text-primary" /> Candidate Skills
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3">
+                  <div className="flex flex-wrap gap-2">
+                    {selectedApplicantForReportView.skills.map((skill) => (
+                      <Badge key={skill} variant="default">{skill}</Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {screeningReports[selectedApplicantForReportView?.id || ""] ? (
               <>
                 <Alert variant="default" className={cn("shadow-sm", (screeningReports[selectedApplicantForReportView!.id]!.suitabilityScore > 70 ? "bg-green-50 border-green-200 text-green-700" : screeningReports[selectedApplicantForReportView!.id]!.suitabilityScore > 50 ? "bg-yellow-50 border-yellow-200 text-yellow-700" : "bg-red-50 border-red-200 text-red-700"))}>
@@ -375,7 +412,7 @@ export default function ViewApplicantsPage() {
                 </Alert>
                  <Card className="shadow-sm">
                     <CardHeader className="p-3"><CardTitle className="text-sm">Summary</CardTitle></CardHeader>
-                    <CardContent className="p-3 text-xs">{screeningReports[selectedApplicantForReportView!.id]!.summary}</CardContent>
+                    <CardContent className="p-3 text-xs whitespace-pre-line">{screeningReports[selectedApplicantForReportView!.id]!.summary}</CardContent>
                 </Card>
                 <Card className="shadow-sm">
                     <CardHeader className="p-3"><CardTitle className="text-sm">Strengths</CardTitle></CardHeader>
@@ -390,7 +427,7 @@ export default function ViewApplicantsPage() {
                     <CardContent className="p-3 text-xs whitespace-pre-line">{screeningReports[selectedApplicantForReportView!.id]!.recommendation}</CardContent>
                 </Card>
               </>
-            ) : <p>No screening report available for this candidate.</p>}
+            ) : <p className="text-muted-foreground text-center py-4">No AI screening text report available. Run AI Screen action first.</p>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsReportDialogOpen(false)}>Close</Button>
@@ -414,3 +451,6 @@ export default function ViewApplicantsPage() {
     </div>
   );
 }
+
+
+    
