@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, CheckCircle, Loader2, Timer, AlertCircle, BotMessageSquare, User, Film, Brain, ThumbsUp, ThumbsDown, MessageSquare as MessageSquareIcon, Star, Users as UsersIcon, Mic, Volume2 } from "lucide-react";
+import { Camera, CheckCircle, Loader2, Timer, AlertCircle, BotMessageSquare, User, Film, Brain, ThumbsUp, ThumbsDown, MessageSquare as MessageSquareIcon, Star, Users as UsersIcon, Mic, Volume2, VideoOff } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as ElevenReact from '@11labs/react';
 import { useRouter } from 'next/navigation';
@@ -29,7 +29,7 @@ type InterviewStage = "consent" | "preparingStream" | "countdown" | "interviewin
 type Message = { sender: "user" | "agent"; text: string; timestamp: number };
 
 const SESSION_COUNTDOWN_SECONDS = 3;
-const MAX_SESSION_DURATION_MS = 10 * 60 * 1000;
+const MAX_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 const ELEVENLABS_AGENT_ID = "EVQJtCNSo0L6uHQnImQu";
 
 const formatFeedbackText = (text: string | undefined): React.ReactNode => {
@@ -103,12 +103,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
   const sessionTimerIdRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   const isProcessingErrorRef = useRef(false);
   const isStartingSessionRef = useRef(false);
   const isInterviewActiveRef = useRef(false);
   const isIntentionalDisconnectRef = useRef(false);
 
-  const stageRef = useRef(stage); // To access current stage in callbacks
+  const stageRef = useRef(stage);
   useEffect(() => { stageRef.current = stage; }, [stage]);
 
   const elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
@@ -128,7 +129,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     isStartingSessionRef.current = false;
     isInterviewActiveRef.current = false;
     isIntentionalDisconnectRef.current = false;
-    // isProcessingErrorRef is reset asynchronously in error handlers
+    isProcessingErrorRef.current = false; // Ensure this is reset too
     console.log("ResetFullInterview: UI states and refs reset.");
   }, []);
 
@@ -140,7 +141,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     const conv = conversationRef.current;
     if (conv && conv.status === "connected") {
         console.log("CleanupResources: Attempting to end EL session.");
-        isIntentionalDisconnectRef.current = true; // Signal that this is a planned disconnect
+        isIntentionalDisconnectRef.current = true;
         conv.endSession().catch(e => console.error("CleanupResources: Error ending EL session:", e))
                          .finally(() => { isIntentionalDisconnectRef.current = false; });
     } else { console.log("CleanupResources: EL session not connected or already cleaned up."); }
@@ -161,13 +162,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
     isInterviewActiveRef.current = false;
     console.log("CleanupResources: Finished.");
-  }, []); // conversationRef removed from deps, will be accessed via current
+  }, []);
 
 
   const submitForFinalFeedback = useCallback(async (videoBlob: Blob | null) => {
     if (!videoBlob || videoBlob.size === 0) {
       toast({ variant: "destructive", title: "No Video Recorded", description: "Cannot submit feedback without a valid video recording." });
-      cleanupResources(); // Call cleanup before reset
+      cleanupResources(); 
       resetFullInterview();
       return;
     }
@@ -177,8 +178,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       reader.readAsDataURL(videoBlob);
       reader.onloadend = async () => {
         const videoDataUri = reader.result as string;
-        // Ensure resources are cleaned up AFTER video data is secured for submission
-        cleanupResources(); 
+        cleanupResources(); // Call cleanup AFTER video data is secured
         const input: AiInterviewSimulationInput = {
           jobDescription: jobContext.jobDescription,
           candidateResume: jobContext.candidateResume,
@@ -192,16 +192,17 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       };
       reader.onerror = () => {
         toast({ variant: "destructive", title: "File Read Error", description: "Could not process video for submission." });
-        cleanupResources(); // Call cleanup before reset
+        cleanupResources(); 
         resetFullInterview();
       }
     } catch (error) {
       console.error("Error getting feedback:", error);
       toast({ variant: "destructive", title: "Feedback Error", description: "Could not get AI feedback." });
-      cleanupResources(); // Call cleanup before reset
+      cleanupResources(); 
       resetFullInterview();
     }
   }, [jobContext, toast, fullTranscript, cleanupResources, resetFullInterview]);
+
 
   const handleFinishInterview = useCallback(async () => {
       if (!isInterviewActiveRef.current && stageRef.current !== "interviewing") {
@@ -209,8 +210,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           return;
       }
       console.log("handleFinishInterview: User initiated finish.");
-      isInterviewActiveRef.current = false; // Signal interview is no longer active
-      isIntentionalDisconnectRef.current = true; // Signal this is an intentional disconnect
+      isInterviewActiveRef.current = false; 
+      isIntentionalDisconnectRef.current = true; 
 
       if (sessionTimerIdRef.current) { clearTimeout(sessionTimerIdRef.current); sessionTimerIdRef.current = null; }
 
@@ -218,13 +219,13 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       if (conv && conv.status === 'connected') {
           try {
               console.log("handleFinishInterview: Ending EL session.");
-              await conv.endSession(); // This will trigger onDisconnect which should be handled cleanly
+              await conv.endSession(); 
           } catch (e) { console.error("handleFinishInterview: Error ending EL session:", e); }
       }
 
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
           console.log("handleFinishInterview: Stopping MediaRecorder. Current state:", mediaRecorderRef.current.state);
-          mediaRecorderRef.current.stop(); // This will trigger its onstop handler for submission
+          mediaRecorderRef.current.stop(); 
       } else if (recordedChunksRef.current.length > 0 && (stageRef.current !== "feedback" && stageRef.current !== "submitting")) {
           console.warn("handleFinishInterview: MediaRecorder already stopped but chunks exist. Processing directly. Chunks:", recordedChunksRef.current.length);
           const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
@@ -242,19 +243,21 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       }
   }, [submitForFinalFeedback, toast, cleanupResources, resetFullInterview]);
 
-
   const handleElevenError = useCallback((error: Error, context: string = "ElevenLabs") => {
-    console.error(`AIInterviewClient - ${context} Error:`, error);
     if (isProcessingErrorRef.current) { console.warn("handleElevenError: Already processing an error. Skipping."); return; }
     isProcessingErrorRef.current = true;
     isStartingSessionRef.current = false;
+    isInterviewActiveRef.current = false; // Ensure interview is marked inactive
 
-    toast({ variant: "destructive", title: "AI Interviewer Error", description: error.message || "An unexpected error occurred with the AI interviewer." });
+    console.error(`AIInterviewClient - ${context} Error:`, error);
+    const errorMessage = error.message || "An unexpected error occurred with the AI interviewer.";
+    toast({ variant: "destructive", title: "AI Interviewer Error", description: errorMessage });
+    
     cleanupResources();
-    resetFullInterview();
-    setTimeout(() => { isProcessingErrorRef.current = false; }, 1000); // Cooldown
+    resetFullInterview(); // Resets stage to 'consent'
+    
+    setTimeout(() => { isProcessingErrorRef.current = false; }, 2000); // Cooldown
   }, [toast, cleanupResources, resetFullInterview]);
-
 
   const conversation = ElevenReact.useConversation({
       onConnect: useCallback(() => {
@@ -262,7 +265,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           console.log("EL onConnect: Agent connected. Setting up MediaRecorder.");
           toast({ title: "AI Interviewer Connected", description: "Mira is ready." });
 
-          isStartingSessionRef.current = false;
+          isStartingSessionRef.current = false; // Successfully started
           isInterviewActiveRef.current = true;
           setStage("interviewing");
 
@@ -281,7 +284,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                   console.log("MediaRecorder onstop triggered. Number of chunks:", recordedChunksRef.current.length);
                   const newBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
                   console.log("MediaRecorder onstop: New blob created. Size:", newBlob.size);
-                  setRecordedVideoBlob(newBlob); // Save blob for potential review
+                  setRecordedVideoBlob(newBlob); 
                   if (newBlob.size > 0 && (stageRef.current === 'interviewing' || stageRef.current === 'submitting' || isIntentionalDisconnectRef.current)) {
                       if (stageRef.current !== 'feedback' && stageRef.current !== 'submitting') {
                         submitForFinalFeedback(newBlob);
@@ -298,41 +301,39 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
                   if (event instanceof DOMException) { errorMsg = `Video recording error: ${event.name} - ${event.message}.`; }
                   setMediaError(errorMsg);
                   toast({ variant: "destructive", title: "Recording Error", description: errorMsg });
-                  if (!isProcessingErrorRef.current) { cleanupResources(); resetFullInterview(); }
+                  isInterviewActiveRef.current = false; // Important: mark inactive on recording error
+                  if (!isProcessingErrorRef.current) { handleElevenError(new Error(errorMsg), "MediaRecorder OnError");}
               };
-              mediaRecorderRef.current.start(1000); // Start with timeslice
+              mediaRecorderRef.current.start(1000); 
               console.log("EL onConnect: MediaRecorder started with combinedStream. State:", mediaRecorderRef.current.state);
               if (sessionTimerIdRef.current) clearTimeout(sessionTimerIdRef.current);
               sessionTimerIdRef.current = setTimeout(() => { if (isInterviewActiveRef.current) { toast({ title: "Session Timeout", description: "Interview ended due to timeout." }); handleFinishInterview(); }}, MAX_SESSION_DURATION_MS);
           } catch (e) {
               console.error("EL onConnect: Error initializing or starting MediaRecorder:", e);
+              isInterviewActiveRef.current = false; // Mark inactive
               handleElevenError(e as Error, "onConnect MediaRecorder Init");
           }
       }, [toast, submitForFinalFeedback, resetFullInterview, cleanupResources, handleFinishInterview, handleElevenError]),
 
       onDisconnect: useCallback(() => {
-          console.log("ELEVENLABS useConversation onDisconnect. Intentional:", isIntentionalDisconnectRef.current, "ProcessingError:", isProcessingErrorRef.current, "StartingSession:", isStartingSessionRef.current, "InterviewActive:", isInterviewActiveRef.current);
-          if (isIntentionalDisconnectRef.current || isProcessingErrorRef.current) {
-              isIntentionalDisconnectRef.current = false; // Reset flag
-              return;
-          }
-          // If disconnected during startup, it's an error handled by startSession's catch or onError.
-          if (isStartingSessionRef.current) {
-              console.warn("EL onDisconnect: Disconnected during startup. Should be handled by onError or startSession catch.");
-              // Ensure cleanup if onError wasn't triggered or if startSession didn't catch it
-              if (!isProcessingErrorRef.current) {
-                handleElevenError(new Error("AI Agent disconnected unexpectedly during setup."), "onDisconnect (during startup)");
-              }
-              return;
-          }
-          // Unexpected disconnect during an active interview
-          if (isInterviewActiveRef.current) {
-              console.log("EL onDisconnect: Unexpected disconnect during active interview.");
-              toast({ title: "AI Interviewer Disconnected Unexpectedly", variant: "destructive", description: "Attempting to finalize your interview." });
-              handleFinishInterview(); // Try to finalize
-          } else {
-              console.log("EL onDisconnect: Disconnected in a non-active state, likely after intentional end or error handling.");
-          }
+        console.log("EL onDisconnect. Intentional:", isIntentionalDisconnectRef.current, "ProcessingError:", isProcessingErrorRef.current, "StartingSession:", isStartingSessionRef.current, "InterviewActive:", isInterviewActiveRef.current);
+        if (isIntentionalDisconnectRef.current || isProcessingErrorRef.current) {
+            isIntentionalDisconnectRef.current = false;
+            return;
+        }
+        if (isStartingSessionRef.current) {
+            console.warn("EL onDisconnect: Disconnected during startup. Handling as error.");
+            isStartingSessionRef.current = false;
+            handleElevenError(new Error("AI Agent disconnected unexpectedly during setup."), "onDisconnect (startup)");
+            return;
+        }
+        if (isInterviewActiveRef.current) {
+            console.log("EL onDisconnect: Unexpected disconnect during active interview.");
+            toast({ title: "AI Interviewer Disconnected Unexpectedly", variant: "destructive", description: "Attempting to finalize your interview." });
+            handleFinishInterview(); // Try to finalize
+        } else {
+            console.log("EL onDisconnect: Disconnected in a non-active state, likely after intentional end or handled error.");
+        }
       }, [toast, handleFinishInterview, handleElevenError]),
 
       onMessage: useCallback((message: any) => {
@@ -342,36 +343,31 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
         if (message.type === 'user_transcript' && message.text) { sender = 'user'; textContent = message.text; }
         else if (message.type === 'agent_response' && message.text) { sender = 'agent'; textContent = message.text; }
-        else if (message.type === 'agent_text_chunk' && message.text) { // Handle streaming text
+        else if (message.type === 'agent_text_chunk' && message.text) {
             setConversationMessages(prev => {
                 const lastMessage = prev[prev.length -1];
-                // If last message is from agent and current message is a chunk, append to it
                 if (lastMessage && lastMessage.sender === 'agent' && (message.type === 'agent_text_chunk' || message.isFinal === false)) {
                     const updatedMessages = [...prev];
                     updatedMessages[prev.length -1] = { ...lastMessage, text: message.text, timestamp: Date.now() };
                     return updatedMessages;
                 }
-                // Otherwise, add as a new agent message
                 return [...prev, { sender: 'agent', text: message.text, timestamp: Date.now() }];
             });
-            if(message.isFinal === true) { // Add to full transcript only when chunk is final
+            if(message.isFinal === true) { 
               setFullTranscript(prev => prev + `\nMira: ${message.text}`);
             }
-            return; // Don't add to transcript or messages again below
+            return; 
         }
-        // Fallback for messages that might not have a 'type' but have text and audio (agent response)
         else if (message.audio && message.text) { sender = 'agent'; textContent = message.text; }
-        // Fallback for other text messages if not handled above (less likely for ElevenLabs structured messages)
         else if (typeof message.text === 'string' && !message.type && conversationRef.current?.status === "connected" && !(conversationRef.current?.isSpeaking)) { sender = 'user'; textContent = message.text; }
 
         if (textContent) {
            if (sender === 'agent') {
-             // Only add if it's not a chunk (chunks are handled above)
              if (message.type !== 'agent_text_chunk') {
                 setConversationMessages(prev => [...prev, { sender, text: textContent, timestamp: Date.now() }]);
                 setFullTranscript(prev => prev + `\nMira: ${textContent}`);
              }
-           } else { // User message
+           } else { 
              setConversationMessages(prev => [...prev, { sender, text: textContent, timestamp: Date.now() }]);
              setFullTranscript(prev => prev + `\nCandidate: ${textContent}`);
            }
@@ -383,7 +379,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       }, [handleElevenError]),
   });
   const conversationRef = useRef(conversation);
-  const { isSpeaking: agentIsSpeaking } = conversation; // Use destructured isSpeaking
+  const { isSpeaking: agentIsSpeaking } = conversation;
   useEffect(() => { conversationRef.current = conversation; }, [conversation]);
 
   const startInterviewSession = useCallback(async () => {
@@ -401,7 +397,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       console.log("Requesting media permissions...");
       let videoStream;
       try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); // Get video-only first for preview
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); 
         setCameraPermission(true);
         if (videoPreviewRef.current) {
           if (previewStreamRef.current) { previewStreamRef.current.getTracks().forEach(track => track.stop()); }
@@ -418,15 +414,14 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
       let audioVideoStream;
       try {
-        audioVideoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); // Now get combined stream
+        audioVideoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); 
         setMicPermission(true);
         if (combinedStreamRef.current) { combinedStreamRef.current.getTracks().forEach(track => track.stop()); }
         combinedStreamRef.current = audioVideoStream;
-        // If preview was using video-only, replace its srcObject with the combined stream for recording consistency
         if (videoPreviewRef.current && previewStreamRef.current !== combinedStreamRef.current) {
-            previewStreamRef.current?.getTracks().forEach(track => track.stop()); // Stop old video-only stream
-            previewStreamRef.current = combinedStreamRef.current; // Update ref
-            videoPreviewRef.current.srcObject = previewStreamRef.current; // Update preview
+            previewStreamRef.current?.getTracks().forEach(track => track.stop()); 
+            previewStreamRef.current = combinedStreamRef.current; 
+            videoPreviewRef.current.srcObject = previewStreamRef.current; 
         }
       } catch (micErr) {
         console.error("Error getting audio/video stream:", micErr);
@@ -475,9 +470,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   }, [toast, elevenLabsApiKey, resetFullInterview, cleanupResources, handleElevenError]);
 
   const handleConsentAndStart = () => {
-    resetFullInterview(); // Ensure clean state before starting
+    resetFullInterview(); 
     setStage("preparingStream");
-    setTimeout(() => startInterviewSession(), 100); // Slight delay for state update
+    setTimeout(() => startInterviewSession(), 100); 
   };
 
   useEffect(() => {
@@ -507,74 +502,90 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   }
 
   const renderInterviewContent = () => (
-     <Card className="shadow-xl relative overflow-hidden min-h-[500px] md:min-h-[600px] flex flex-col">
-        <div className="flex-grow flex items-center justify-center p-2 md:p-4">
-            {/* Outer container for sizing and centering the video area */}
-            <div className="w-full max-w-2xl aspect-video relative rounded-md shadow-lg bg-black">
-                {/* Video Preview */}
-                <video ref={videoPreviewRef} className="w-full h-full object-cover transform scale-x-[-1] rounded-md" playsInline autoPlay muted={!(isVideoRecorded && videoBlobUrl)} />
+     <Card className="shadow-xl overflow-hidden min-h-[500px] md:min-h-[600px] flex flex-col">
+        <CardContent className="flex-grow p-0 md:grid md:grid-cols-3 md:gap-0">
+            {/* Left Column: Video Recorder */}
+            <div className="md:col-span-2 bg-black flex items-center justify-center relative min-h-[300px] md:min-h-full">
+                <div className="w-full max-w-2xl aspect-video rounded-md shadow-lg bg-black relative">
+                    {/* Video Preview */}
+                    {(cameraPermission !== false) && (
+                         <video ref={videoPreviewRef} className="w-full h-full object-cover transform scale-x-[-1] rounded-md" playsInline autoPlay muted />
+                    )}
+                    {(cameraPermission === false) && (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-muted rounded-md">
+                            <VideoOff className="h-16 w-16 mb-2" />
+                            <p>Camera access denied or unavailable.</p>
+                        </div>
+                    )}
 
-                {/* Top Overlay: AI Agent Status */}
-                <div className="absolute top-0 left-0 right-0 p-2 md:p-3 bg-black/60 backdrop-blur-sm text-white rounded-t-md z-20 shadow-lg flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                        <BotMessageSquare className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-                        <span className="font-semibold text-xs md:text-sm">Mira - AI Interviewer</span>
-                        <div className={cn('ai-speaking-orb', agentIsSpeaking && 'speaking')} />
-                    </div>
-                    <div className="flex items-center gap-2 md:gap-3">
-                        {(stage === 'interviewing' && conversationRef.current?.status === "connected" && !agentIsSpeaking) && (
-                            <div className="flex items-center text-xs text-white animate-pulse"> <Mic className="h-3 w-3 md:h-4 md:w-4 mr-1" /> Listening... </div>
-                        )}
-                        <span className="text-xs">Status: {conversationRef.current?.status || "Initializing..."}</span>
-                    </div>
-                </div>
 
-                {/* Bottom Overlay: Chat Messages */}
-                <div className="absolute bottom-0 left-0 right-0 p-2 md:p-3 max-h-[40%] overflow-y-auto bg-black/70 backdrop-blur-md z-10 space-y-2 flex flex-col-reverse pointer-events-auto">
-                  <div ref={chatMessagesEndRef} />
-                  {conversationMessages.slice().reverse().map((msg, index) => (
-                    <div key={msg.timestamp + '-' + index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`p-1.5 md:p-2 px-2 md:px-3 rounded-lg max-w-[80%] text-xs md:text-sm shadow-md ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-background/90 text-foreground border border-border/50 backdrop-blur-sm'}`}>
-                        {msg.text}
+                    {/* Top Overlay: AI Agent Status */}
+                    <div className="absolute top-0 left-0 right-0 p-2 md:p-3 bg-black/60 backdrop-blur-sm text-white rounded-t-md z-20 shadow-lg flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                            <BotMessageSquare className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                            <span className="font-semibold text-xs md:text-sm">Mira - AI Interviewer</span>
+                            <div className={cn('ai-speaking-orb', agentIsSpeaking && 'speaking')} />
+                        </div>
+                        <div className="flex items-center gap-2 md:gap-3">
+                            {(stage === 'interviewing' && conversationRef.current?.status === "connected" && !agentIsSpeaking) && (
+                                <div className="flex items-center text-xs text-white animate-pulse"> <Mic className="h-3 w-3 md:h-4 md:w-4 mr-1" /> Listening... </div>
+                            )}
+                            <span className="text-xs">Status: {conversationRef.current?.status || "Initializing..."}</span>
+                        </div>
+                    </div>
+
+                    {/* Centered Overlays: Preparing Stream, Countdown, Errors */}
+                    {(stage === 'preparingStream') && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-black/70 z-30">
+                        <Loader2 className="h-10 w-10 md:h-12 md:w-12 animate-spin text-primary mb-2" />
+                        <p className="text-sm md:text-base">{ (cameraPermission === null || micPermission === null) ? "Requesting Permissions..." : "Preparing Interview..."}</p>
+                        { isStartingSessionRef.current && <p className="text-xs mt-1">Connecting to AI Agent...</p>}
                       </div>
-                    </div>
-                  ))}
-                  {conversationMessages.length === 0 && stage === 'interviewing' && !agentIsSpeaking && (
-                    <div className="text-center text-xs text-gray-300 py-2">Waiting for interview to start...</div>
-                  )}
+                    )}
+                    {stage === "countdown" && countdown !== null && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-40"> <div className="text-6xl md:text-7xl font-bold text-white">{countdown}</div> </div>
+                    )}
+                    {mediaRecorderRef.current?.state === "recording" && (
+                      <div className="absolute top-16 left-3 bg-red-500 text-white p-1 px-2 rounded text-xs flex items-center animate-pulse z-20"> <Timer className="h-3 w-3 md:h-4 md:w-4 mr-1" /> REC </div>
+                    )}
+                     {mediaError && stage !== 'consent' && stage !== 'feedback' && stage !== 'submitting' && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-50 p-4 text-center">
+                        <Alert variant="destructive" className="shadow-md max-w-sm mx-auto">
+                          <AlertCircle className="h-4 w-4" /> <AlertTitle>Error Occurred</AlertTitle>
+                          <AlertDescription>{mediaError || "An unexpected error occurred."}
+                            <Button onClick={resetFullInterview} className="w-full mt-3" size="sm" variant="outline"> Try Again </Button>
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    )}
                 </div>
-
-                {/* Centered Overlays: Preparing Stream, Countdown, Errors */}
-                {(stage === 'preparingStream') && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-black/70 z-30">
-                    <Loader2 className="h-10 w-10 md:h-12 md:w-12 animate-spin text-primary mb-2" />
-                    <p className="text-sm md:text-base">{ (cameraPermission === null || micPermission === null) ? "Requesting Permissions..." : "Preparing Interview..."}</p>
-                    { isStartingSessionRef.current && <p className="text-xs mt-1">Connecting to AI Agent...</p>}
-                  </div>
-                )}
-                {stage === "countdown" && countdown !== null && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-40"> <div className="text-6xl md:text-7xl font-bold text-white">{countdown}</div> </div>
-                )}
-                {mediaRecorderRef.current?.state === "recording" && (
-                  <div className="absolute top-16 left-3 bg-red-500 text-white p-1 px-2 rounded text-xs flex items-center animate-pulse z-20"> <Timer className="h-3 w-3 md:h-4 md:w-4 mr-1" /> REC </div>
-                )}
-                 {mediaError && stage !== 'consent' && stage !== 'feedback' && stage !== 'submitting' && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-50 p-4 text-center">
-                    <Alert variant="destructive" className="shadow-md max-w-sm mx-auto">
-                      <AlertCircle className="h-4 w-4" /> <AlertTitle>Error Occurred</AlertTitle>
-                      <AlertDescription>{mediaError || "An unexpected error occurred."}
-                        <Button onClick={resetFullInterview} className="w-full mt-3" size="sm" variant="outline"> Try Again </Button>
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                )}
             </div>
-        </div>
-        <CardFooter className="border-t border-border/30 bg-background/80 backdrop-blur-sm p-3 md:p-4 z-10 relative">
-           {(stage === "interviewing" && conversationRef.current?.status === 'connected') && (
-            <Button onClick={handleFinishInterview} className="w-full" size="lg" variant="default"> Finish Interview & Get Feedback </Button>
-          )}
-        </CardFooter>
+
+            {/* Right Column: Controls & Chat */}
+            <div className="md:col-span-1 p-4 flex flex-col border-l border-border/30 bg-background/90 md:bg-transparent">
+                <div className="mb-4">
+                    {(stage === "interviewing" && conversationRef.current?.status === 'connected') && (
+                        <Button onClick={handleFinishInterview} className="w-full" size="lg" variant="default"> Finish Interview & Get Feedback </Button>
+                    )}
+                </div>
+                <div className="flex-grow overflow-y-auto space-y-2 pr-1 max-h-[300px] md:max-h-none">
+                    {conversationMessages.slice().reverse().map((msg, index) => (
+                        <div key={msg.timestamp + '-' + index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`p-1.5 md:p-2 px-2 md:px-3 rounded-lg max-w-[90%] text-xs md:text-sm shadow-md ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground border border-border/50'}`}>
+                            {msg.text}
+                        </div>
+                        </div>
+                    ))}
+                    <div ref={chatMessagesEndRef} />
+                    {conversationMessages.length === 0 && stage === 'interviewing' && !agentIsSpeaking && (
+                        <div className="text-center text-xs text-muted-foreground py-2">Waiting for AI agent to speak...</div>
+                    )}
+                     {stage !== 'interviewing' && conversationMessages.length === 0 && (
+                         <div className="text-center text-xs text-muted-foreground py-2">Interview chat will appear here.</div>
+                     )}
+                </div>
+            </div>
+        </CardContent>
       </Card>
   );
 
@@ -623,3 +634,5 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     </>
   );
 }
+
+    
