@@ -49,21 +49,23 @@ interface ApplicantDetail {
   linkedin?: string;
   portfolio?: string;
   headline?: string;
-  mockResumeDataUri?: string;
+  mockResumeDataUri?: string; // Can be PDF data URI or text data URI
   resumeText: string;
   mockExperience?: ExperienceItem[];
   mockEducation?: EducationItem[];
   mockCertifications?: CertificationItem[];
   introductionVideoUrl?: string;
-  skills?: string[]; // Added skills to ensure it's available for display
+  skills?: string[];
 }
 
 const PLACEHOLDER_INTRO_VIDEO_URL = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4";
+const samplePdfDataUri = "data:application/pdf;base64,JVBERi0xLjQKJSAgIAogMSAwIG9iagogIDw8IC9UeXBlIC9DYXRhbG9nCiAgICAgIC9QYWdlcyAyIDAgUgogID4+CmVuZG9iYgoyIDAgb2JqCiAgPDwgL1R5cGUgL1BhZ2VzCiAgICAgIC9LaWRzIFszIDAgUl0KICAgICAgL0NvdW50IDEKICA+PgplbmRvYmoKMyAwIG9iagogIDw8IC9UeXBlIC9QYWdlCiAgICAgIC9QYXJlbnQgMiAwIFIKICAgICAgL1Jlc291cmNlcyA8PAogICAgICAgICAgICAvRm9udCA8PAogICAgICAgICAgICAgICAgL0YxIDQgMCBSIAogICAgICAgICAgICA+PgogICAgICA+PgogICAgICAgIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCiAgICAgIC9Db250ZW50cyA1IDAgUgogID4+CmVuZG9iago0IDAgb2JqCiAgPDwgL1R5cGUgL0ZvbnQKICAgICAgL1N1YnR5cGUgL1R5cGUxCiAgICAgIC9CYXNlRm9udCAvSGVsdmV0aWNhCiAgPj4KZW5kb2JqCjUgMCBvYmoKICA8PCAvTGVuZ3RoIDQwID4+CnN0cmVhbQogIEJUCiAgICAvRjEgMTggVGYKICAgIDEwMCA3MDAgVGQKICAgIChIZWxsbyBQREYpIFRqCiAgRUQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTggMDAwMDAgbiAKMDAwMDAwMDA3NyAwMDAwMCBuIAowMDAwMDAwMTc4IDAwMDAwIG4gCjAwMDAwMDAzMDMgMDAwMDAgbiAKMDAwMDAwMDM2MSAwMDAwMCBuIAp0cmFpbGVyCiAgPDwgL1Jvb3QgMSAwIFIKICAgICAgL1NpemUgNgogID4+CnN0YXJ0eHJlZgo0NDQKJSVFT0YK";
+
 
 const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
   "app1": {
     id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", email: "alice@example.com", phone: "555-0101", linkedin: "https://linkedin.com/in/alicejohnson", headline: "Senior React Developer",
-    mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu",
+    mockResumeDataUri: samplePdfDataUri, // Using the sample PDF Data URI
     resumeText: "Alice Johnson - Senior React Developer\n\nSummary:\nA highly skilled and motivated software engineer with 5+ years of experience in developing and implementing innovative web applications. Proven ability to lead frontend teams and deliver high-quality products. Passionate about creating intuitive user experiences and leveraging modern technologies.\n\nSkills:\n- Frontend: React, Redux, TypeScript, Next.js, JavaScript (ES6+), HTML5, CSS3, SASS\n- Backend: Node.js, Express.js, GraphQL\n- Databases: PostgreSQL, MongoDB\n- Tools: Git, Docker, Webpack, Jest, Cypress\n- Methodologies: Agile, Scrum\n\nExperience:\nLead Frontend Developer | Innovatech Solutions | 2021 - Present\n- Led a team of 5 frontend developers in an agile environment.\n- Architected and implemented new user-facing features using React, Redux, and TypeScript.\n- Improved application performance by 20% through code optimization and modern techniques.\n- Collaborated with UX/UI designers to translate mockups into functional components.\n\nSoftware Engineer | Web Wizards Inc. | 2019 - 2021\n- Developed and maintained responsive web applications using React and JavaScript.\n- Contributed to backend development with Node.js.\n- Participated in code reviews and agile ceremonies.\n\nEducation:\nBSc Computer Science | State University | 2019\n\nCertifications:\n- AWS Certified Developer - Associate | Amazon Web Services | 2022-03\n- Professional Scrum Master I | Scrum.org | 2021-07",
     mockExperience: [
       { title: "Lead Frontend Developer", company: "Innovatech Solutions", duration: "2021 - Present", description: "Led a team of 5 frontend developers in agile environment. Architected and implemented new user-facing features using React, Redux, and TypeScript. Improved application performance by 20%." },
@@ -79,9 +81,9 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
     introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL,
     skills: ["React", "Node.js", "AWS", "TypeScript", "GraphQL", "JavaScript", "HTML", "CSS", "PostgreSQL"]
   },
-  "cand1": { // Ensuring this ID also has full data as it's used in candidate pool
+  "cand1": {
     id: "cand1", name: "Alice Wonderland", avatar: "https://placehold.co/100x100.png?text=AW", email: "alice.wonder@example.com", phone: "555-0102", linkedin: "https://linkedin.com/in/alicewonder", headline: "Frontend Magician",
-    mockResumeDataUri: "data:text/plain;base64,QWxpY2UgV29uZGVybGFuZDogUmVhY3QsIEphdmFTY3JpcHQsIEhUTUwsIENTUy4=",
+    mockResumeDataUri: samplePdfDataUri, // Using the sample PDF Data URI
     resumeText: "Alice Wonderland - Frontend Magician\n\nSkills: React, JavaScript, HTML, CSS, Whimsical Animations.\nExperience: 5 years creating enchanting user interfaces at TeaParty Inc. Led UI development and sprinkled magic on every project.\nEducation: BFA Interactive Design, Wonderland Academy.",
     mockExperience: [{ title: "UI Enchantress", company: "TeaParty Inc.", duration: "2020 - Present", description: "Crafted delightful user experiences with React and whimsy." }],
     mockEducation: [{ institution: "Wonderland Academy", degree: "BFA Interactive Design", field: "Digital Arts", year: "2019" }],
@@ -89,7 +91,16 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
     introductionVideoUrl: "",
     skills: ["React", "JavaScript", "HTML", "CSS", "Whimsical Animations"]
   },
-  // Add other candidates from MOCK_CANDIDATE_DB here if needed with full details
+  // Other candidates can have text-based mockResumeDataUri or null
+  "app2": {
+    id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", email: "bob@example.com", phone: "555-0103", linkedin: "https://linkedin.com/in/bobwilliams", headline: "Data-Driven Python Developer",
+    mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==",
+    resumeText: "Bob Williams - Python Developer\nSkills: Python, Django, SQL, Data Analysis.\nExperience: 3 years building scalable web applications with Django at DataCorp.\nEducation: MSc Data Science, Tech University.",
+    mockExperience: [{ title: "Python Developer", company: "DataCorp", duration: "2021 - Present", description: "Developed backend systems and data processing pipelines." }],
+    mockEducation: [{ institution: "Tech University", degree: "MSc Data Science", field: "Data Science", year: "2020" }],
+    introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL,
+    skills: ["Python", "Django", "SQL", "Data Analysis"]
+  },
 };
 
 const mockQuickScreenJobs = [
@@ -121,7 +132,7 @@ export default function CandidateProfilePage() {
     const foundCandidate = MOCK_CANDIDATE_DB[id];
     setCandidate(foundCandidate || null);
 
-    if (foundCandidate && foundCandidate.mockResumeDataUri) {
+    if (foundCandidate && foundCandidate.mockResumeDataUri && foundCandidate.mockResumeDataUri.startsWith("data:text/plain;base64,")) {
       setIsEnriching(true);
       try {
         const result = await enrichProfile({ resumeDataUri: foundCandidate.mockResumeDataUri });
@@ -133,7 +144,7 @@ export default function CandidateProfilePage() {
         setIsEnriching(false);
       }
     } else if (foundCandidate) {
-        setEnrichedData(null);
+        setEnrichedData(null); // No enrichment if no text data URI
     }
     setIsLoading(false);
   }, [toast]);
@@ -192,6 +203,7 @@ export default function CandidateProfilePage() {
 
   const skillsToDisplay = candidate.skills || enrichedData?.skills || [];
   const summaryToDisplay = enrichedData?.experienceSummary || candidate.resumeText.split('\n\n')[1] || "No AI summary available. Candidate's resume might not have been processed by AI.";
+  const isPdfResumeAvailable = candidate.mockResumeDataUri && candidate.mockResumeDataUri.startsWith("data:application/pdf;base64,");
 
 
   return (
@@ -203,7 +215,7 @@ export default function CandidateProfilePage() {
       <Card className="shadow-xl">
         <div className="bg-gradient-to-br from-primary/10 via-background to-background h-16 md:h-20" />
         <div className="px-6 pb-6">
-          <div className="flex flex-col sm:flex-row items-start">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start">
             <div className="-mt-12 md:-mt-16 shrink-0">
               <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-lg">
                 <AvatarImage src={candidate.avatar} alt={candidate.name} data-ai-hint="person professional"/>
@@ -232,7 +244,7 @@ export default function CandidateProfilePage() {
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row justify-between items-center">
               <CardTitle className="text-lg flex items-center"><BrainCircuit className="mr-2 h-5 w-5 text-primary"/> AI-Generated Summary</CardTitle>
-              {(isEnriching || isLoading) && <Loader2 className="h-5 w-5 animate-spin text-primary"/>}
+              {(isEnriching || isLoading) && skillsToDisplay.length === 0 && <Loader2 className="h-5 w-5 animate-spin text-primary"/>}
             </CardHeader>
             <CardContent>
               <p className="text-sm text-foreground/80 whitespace-pre-line">{summaryToDisplay}</p>
@@ -299,33 +311,35 @@ export default function CandidateProfilePage() {
             </CardContent>
           </Card>
           <Card className="shadow-lg">
-            <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
-            <CardContent>
-              {(isEnriching || isLoading) && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
-              {!isEnriching && !isLoading && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills extracted from resume.</p>}
-              <div className="flex flex-wrap gap-2">
-                {skillsToDisplay.map(skill => <Badge key={skill} variant="default" className="text-sm py-1 px-2">{skill}</Badge>)}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg">
             <CardHeader><CardTitle className="text-lg flex items-center"><FileTextIcon className="mr-2 h-5 w-5 text-primary"/>Resume</CardTitle></CardHeader>
             <CardContent className="space-y-2">
                 <p className="text-sm text-muted-foreground">
-                    {candidate.mockResumeDataUri?.startsWith("data:")
-                      ? "Candidate's resume has been processed by AI."
-                      : "No resume data available for AI processing."}
+                    {isPdfResumeAvailable
+                      ? "Candidate's original resume (PDF) is available for viewing."
+                      : candidate.mockResumeDataUri
+                        ? "Candidate's resume text has been processed by AI."
+                        : "No resume data available."
+                    }
                 </p>
-                {candidate.resumeText && (
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => setIsViewResumeDialogOpen(true)}
-                    >
-                        View Resume Text
-                    </Button>
-                )}
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => setIsViewResumeDialogOpen(true)}
+                    disabled={!candidate.mockResumeDataUri}
+                >
+                    {isPdfResumeAvailable ? "View Original Resume (PDF)" : "View Resume Text"}
+                </Button>
+            </CardContent>
+          </Card>
+           <Card className="shadow-lg">
+            <CardHeader><CardTitle className="text-lg flex items-center"><Star className="mr-2 h-5 w-5 text-primary"/> Skills</CardTitle></CardHeader>
+            <CardContent>
+              {(isEnriching || isLoading) && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">AI is processing skills...</p>}
+              {!isEnriching && !isLoading && skillsToDisplay.length === 0 && <p className="text-sm text-muted-foreground">No skills listed.</p>}
+              <div className="flex flex-wrap gap-2">
+                {skillsToDisplay.map(skill => <Badge key={skill} variant="default" className="text-sm py-1 px-2">{skill}</Badge>)}
+              </div>
             </CardContent>
           </Card>
            <Card className="shadow-lg">
@@ -353,7 +367,7 @@ export default function CandidateProfilePage() {
                 {quickScreenResult && !isQuickScreeningLoading && (
                      <Alert variant={quickScreenResult.suitabilityScore > 70 ? "default" : "destructive"} className={cn("shadow-sm", quickScreenResult.suitabilityScore > 70 ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200")}>
                         <ShieldCheck className={`h-4 w-4 ${quickScreenResult.suitabilityScore > 70 ? "!text-green-600" : "!text-red-600"}`} />
-                        <AlertTitle className={quickScreenResult.suitabilityScore > 70 ? "text-green-700" : "text-red-700"}>
+                        <AlertTitle className={cn("font-semibold", quickScreenResult.suitabilityScore > 70 ? "text-green-700" : "text-red-700")}>
                             Suitability Score: {quickScreenResult.suitabilityScore}/100
                         </AlertTitle>
                         <AlertDescription className="text-xs space-y-1 mt-1">
@@ -369,15 +383,23 @@ export default function CandidateProfilePage() {
 
       {/* View Resume Dialog */}
       <Dialog open={isViewResumeDialogOpen} onOpenChange={setIsViewResumeDialogOpen}>
-        <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[80vh]">
+        <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Resume: {candidate?.name}</DialogTitle>
-            <DialogDescription>Text content of the candidate's resume.</DialogDescription>
+            <DialogDescription>
+                {isPdfResumeAvailable ? "Original PDF Document" : "Text Content"}
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-4 max-h-[60vh] overflow-y-auto pr-2">
-            <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-md border">
-              {candidate?.resumeText || "No resume text available."}
-            </pre>
+          <div className="py-4 flex-grow overflow-hidden">
+            {isPdfResumeAvailable && candidate?.mockResumeDataUri ? (
+                 <iframe src={candidate.mockResumeDataUri} className="w-full h-full min-h-[60vh]" title={`Resume for ${candidate?.name}`} />
+            ) : candidate?.resumeText ? (
+                <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-md border h-full overflow-y-auto">
+                    {candidate.resumeText}
+                </pre>
+            ) : (
+              <p className="text-muted-foreground">No resume content available to display.</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsViewResumeDialogOpen(false)}>Close</Button>
