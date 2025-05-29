@@ -71,3 +71,5 @@ const generateInterviewGuideFlow = ai.defineFlow(
   }
 );
 
+// Ensure this file is registered in src/ai/dev.ts
+// Example: import '@/ai/flows/generate-interview-guide-flow.ts';

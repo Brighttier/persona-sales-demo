@@ -10,21 +10,22 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { CalendarDays, CheckCircle, Clock, Edit3, MessageSquare, Video, UserCircle as UserIcon, Check, Send, Briefcase, ShieldCheck, WandSparkles, Lightbulb, Loader2, TrendingUp, ListChecks, Hourglass, PieChart } from "lucide-react"; 
+import { CalendarDays, CheckCircle, Clock, Edit3, MessageSquare, Video, UserCircle as UserIcon, Check, Send, Briefcase, ShieldCheck, WandSparkles, Lightbulb, Loader2, TrendingUp, ListChecks, Hourglass, PieChart } from "lucide-react";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import { format, parseISO, isValid } from "date-fns";
-import { Alert, AlertTitle } from "@/components/ui/alert";
-import type { CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening"; 
+import { Alert, AlertTitle, AlertDescription as ShadcnAlertDescription } from "@/components/ui/alert"; // Renamed to avoid conflict
+import type { CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
 import { generateInterviewGuide, type GenerateInterviewGuideOutput } from "@/ai/flows/generate-interview-guide-flow";
+import { cn } from "@/lib/utils";
 
 interface AssignedInterview {
   id: string;
   candidateName: string;
   jobTitle: string;
-  jobId?: string; 
-  jobDescription?: string; 
-  candidateResumeSummary?: string; 
+  jobId?: string;
+  jobDescription?: string;
+  candidateResumeSummary?: string;
   date: string;
   time: string;
   status: "Upcoming" | "Completed";
@@ -39,45 +40,50 @@ interface AssignedInterview {
 }
 
 const mockAssignedInterviews: AssignedInterview[] = [
-  { 
+  {
     id: "intAssign1", candidateName: "Charlie Candidate", jobTitle: "Software Engineer", jobId: "job1",
     jobDescription: "Seeking a skilled Software Engineer with expertise in Java and Spring Boot to develop and maintain backend services. Candidate should have 5+ years of experience and a strong understanding of microservice architecture.",
     candidateResumeSummary: "Experienced Java Developer (6 years) proficient in Spring Boot, REST APIs, and microservices. Proven ability in leading small teams and delivering scalable solutions. BSc in Computer Science.",
     date: "2024-08-20", time: "10:00 AM", status: "Upcoming", platformLink: "#",
     screeningSuitabilityScore: 88,
-    screeningSummary: "Charlie shows strong alignment with the core Java and Spring Boot requirements. Experience in microservices is a plus.",
-    screeningStrengths: "• Deep Java knowledge\n• Microservice architecture understanding\n• Project leadership examples",
-    screeningAreasForImprovement: "• Explore cloud platform experience (AWS/Azure)\n• Assess communication style for team collaboration",
-    screeningRecommendation: "Strongly recommend for technical interview. Focus on system design and cloud deployment."
+    screeningSummary: "Charlie shows strong alignment with the core Java and Spring Boot requirements. Experience in microservices is a plus. Good communication skills evident from resume.",
+    screeningStrengths: "• Deep Java knowledge\n• Microservice architecture understanding\n• Project leadership examples mentioned in resume",
+    screeningAreasForImprovement: "• Explore cloud platform experience (AWS/Azure)\n• Assess communication style for team collaboration during the interview",
+    screeningRecommendation: "Strongly recommend for technical interview. Focus on system design capabilities and cloud deployment familiarity."
   },
-  { 
+  {
     id: "intAssign2", candidateName: "Dana Developer", jobTitle: "Product Manager", jobId: "job2",
     jobDescription: "We need an innovative Product Manager to define product vision, strategy, and roadmap for our new mobile application. Must have experience with agile methodologies and user-centric design.",
     candidateResumeSummary: "Agile Product Manager with 4 years of experience in mobile app development. Skilled in market research, user story mapping, and backlog prioritization. MBA.",
-    date: "2024-08-22", time: "02:30 PM", status: "Upcoming", platformLink: "#" 
+    date: "2024-08-22", time: "02:30 PM", status: "Upcoming", platformLink: "#",
+    screeningSuitabilityScore: 75,
+    screeningSummary: "Dana has relevant product management experience for mobile apps and agile methodologies. Needs more experience in B2B products.",
+    screeningStrengths: "• User story mapping\n• Agile practices",
+    screeningAreasForImprovement: "• B2B product experience\n• Go-to-market strategy for enterprise clients",
+    screeningRecommendation: "Proceed with interview, focus on adaptability to B2B and strategic thinking."
   },
-  { 
+  {
     id: "intAssign3", candidateName: "Eddie Eng", jobTitle: "UX Designer", jobId: "job3",
     jobDescription: "Creative UX Designer wanted for crafting intuitive user interfaces for web platforms. Portfolio showcasing user-centered design projects is required.",
     candidateResumeSummary: "UX Designer with 3 years of experience. Proficient in Figma, Adobe XD, and user research. Passionate about creating accessible and engaging digital experiences.",
     date: "2024-08-10", time: "11:00 AM", status: "Completed", feedbackProvided: true, verdict: "Recommend for Next Round",
-    screeningSuitabilityScore: 75,
-    screeningSummary: "Eddie has a decent portfolio. Lacks some specific domain experience but shows good design thinking.",
-    screeningStrengths: "• Strong visual design skills (Figma)\n• Good understanding of user research principles",
-    screeningAreasForImprovement: "• Domain specific knowledge for our industry\n• Experience with complex enterprise applications",
-    screeningRecommendation: "Worth an initial conversation to gauge interest and assess adaptability."
+    screeningSuitabilityScore: 82,
+    screeningSummary: "Eddie has a decent portfolio demonstrating good design thinking. Lacks some specific domain experience but shows strong potential.",
+    screeningStrengths: "• Strong visual design skills (Figma, Adobe XD)\n• Good understanding of user research principles and application",
+    screeningAreasForImprovement: "• Domain specific knowledge for our industry (FinTech)\n• Experience with complex enterprise applications and data visualization",
+    screeningRecommendation: "Good candidate for further consideration. Assess adaptability and specific FinTech UI/UX interest."
   },
-  { 
+  {
     id: "intAssign4", candidateName: "Fiona Future", jobTitle: "Data Scientist", jobId: "job4",
     jobDescription: "Join our data science team to build predictive models and extract insights from large datasets. Requires strong Python, SQL, and machine learning skills.",
     candidateResumeSummary: "Data Scientist with 5 years of experience in ML model development, statistical analysis, and data visualization. MSc in Statistics.",
-    date: "2024-08-20", time: "09:00 AM", status: "Upcoming" 
+    date: "2024-08-20", time: "09:00 AM", status: "Upcoming"
   },
-  { 
-    id: "intAssign5", candidateName: "Gary Goodfit", jobTitle: "Software Engineer", jobId: "job1", 
+  {
+    id: "intAssign5", candidateName: "Gary Goodfit", jobTitle: "Software Engineer", jobId: "job1",
     jobDescription: "Seeking a skilled Software Engineer with expertise in Java and Spring Boot to develop and maintain backend services. Candidate should have 5+ years of experience and a strong understanding of microservice architecture.",
     candidateResumeSummary: "Full-stack developer with 3 years in JavaScript (React, Node) and 2 years in Python (Flask). Looking to transition more into backend Java roles. Quick learner.",
-    date: "2024-08-10", time: "03:00 PM", status: "Completed", feedbackProvided: false 
+    date: "2024-08-10", time: "03:00 PM", status: "Completed", feedbackProvided: false
   },
 ];
 
@@ -87,7 +93,7 @@ export default function InterviewerDashboardPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [interviews, setInterviews] = useState<AssignedInterview[]>(mockAssignedInterviews);
-  
+
   const [selectedInterviewForFeedback, setSelectedInterviewForFeedback] = useState<AssignedInterview | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [verdict, setVerdict] = useState<VerdictOption | undefined>(undefined);
@@ -108,8 +114,8 @@ export default function InterviewerDashboardPage() {
   const interviewerKpis = {
     upcoming: upcomingInterviews.length,
     feedbackDue: feedbackDueCount,
-    avgFeedbackTime: "24h", 
-    completionRate: "95%",   
+    avgFeedbackTime: "24h",
+    completionRate: "95%",
   };
 
   const groupedUpcomingInterviews = useMemo(() => {
@@ -166,10 +172,10 @@ export default function InterviewerDashboardPage() {
     setSelectedInterviewForReport(interview);
     setIsScreeningReportDialogOpen(true);
   };
-  
+
   const openStrategyDialog = (interview: AssignedInterview) => {
     setSelectedInterviewForStrategy(interview);
-    setGeneratedStrategy(null); 
+    setGeneratedStrategy(null);
     setIsStrategyDialogOpen(true);
   };
 
@@ -196,7 +202,7 @@ export default function InterviewerDashboardPage() {
 
 
   return (
-    <Dialog 
+    <Dialog
       onOpenChange={(open) => {
         if (!open) {
           setSelectedInterviewForFeedback(null);
@@ -436,14 +442,14 @@ export default function InterviewerDashboardPage() {
             <div className="py-4 space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                 {selectedInterviewForReport && selectedInterviewForReport.screeningSuitabilityScore !== undefined ? (
                     <>
-                        <Alert variant="default" className={selectedInterviewForReport.screeningSuitabilityScore > 70 ? "bg-green-50 border-green-200 text-green-700" : selectedInterviewForReport.screeningSuitabilityScore > 50 ? "bg-yellow-50 border-yellow-200 text-yellow-700" : "bg-red-50 border-red-200 text-red-700"}>
+                        <Alert variant="default" className={cn("shadow-sm", selectedInterviewForReport.screeningSuitabilityScore > 70 ? "bg-green-50 border-green-200 text-green-700" : selectedInterviewForReport.screeningSuitabilityScore > 50 ? "bg-yellow-50 border-yellow-200 text-yellow-700" : "bg-red-50 border-red-200 text-red-700")}>
                             <ShieldCheck className={`h-4 w-4 ${selectedInterviewForReport.screeningSuitabilityScore > 70 ? "!text-green-600" : "!text-red-600"}`} />
                             <AlertTitle className="font-semibold">Suitability Score: {selectedInterviewForReport.screeningSuitabilityScore}/100</AlertTitle>
                         </Alert>
-                        <Card><CardHeader className="p-3"><CardTitle className="text-sm">Summary</CardTitle></CardHeader><CardContent className="p-3 text-xs">{selectedInterviewForReport.screeningSummary || "N/A"}</CardContent></Card>
-                        <Card><CardHeader className="p-3"><CardTitle className="text-sm">Strengths</CardTitle></CardHeader><CardContent className="p-3 text-xs whitespace-pre-line">{selectedInterviewForReport.screeningStrengths || "N/A"}</CardContent></Card>
-                        <Card><CardHeader className="p-3"><CardTitle className="text-sm">Areas for Improvement</CardTitle></CardHeader><CardContent className="p-3 text-xs whitespace-pre-line">{selectedInterviewForReport.screeningAreasForImprovement || "N/A"}</CardContent></Card>
-                        <Card><CardHeader className="p-3"><CardTitle className="text-sm">Recommendation</CardTitle></CardHeader><CardContent className="p-3 text-xs whitespace-pre-line">{selectedInterviewForReport.screeningRecommendation || "N/A"}</CardContent></Card>
+                        <Card className="shadow-sm"><CardHeader className="p-3"><CardTitle className="text-sm">Summary</CardTitle></CardHeader><CardContent className="p-3 text-xs">{selectedInterviewForReport.screeningSummary || "N/A"}</CardContent></Card>
+                        <Card className="shadow-sm"><CardHeader className="p-3"><CardTitle className="text-sm">Strengths</CardTitle></CardHeader><CardContent className="p-3 text-xs whitespace-pre-line">{selectedInterviewForReport.screeningStrengths || "N/A"}</CardContent></Card>
+                        <Card className="shadow-sm"><CardHeader className="p-3"><CardTitle className="text-sm">Areas for Improvement</CardTitle></CardHeader><CardContent className="p-3 text-xs whitespace-pre-line">{selectedInterviewForReport.screeningAreasForImprovement || "N/A"}</CardContent></Card>
+                        <Card className="shadow-sm"><CardHeader className="p-3"><CardTitle className="text-sm">Recommendation</CardTitle></CardHeader><CardContent className="p-3 text-xs whitespace-pre-line">{selectedInterviewForReport.screeningRecommendation || "N/A"}</CardContent></Card>
                     </>
                 ) : <p className="text-muted-foreground">No screening report details available for this interview.</p>}
             </div>
