@@ -5,20 +5,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input"; // Keep if used by other parts, remove if not (it's not after this change)
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, UserCircle, BrainCircuit, Star, Award, Building, ShieldCheck, BarChart, VideoIcon } from "lucide-react";
+import { ArrowLeft, Loader2, ExternalLink, Mail, Phone, Linkedin, Briefcase, GraduationCap, UserCircle, BrainCircuit, Star, Award, Building, ShieldCheck, BarChart, VideoIcon, FileText as FileTextIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback } from "react";
-// Removed useForm and zodResolver as resumeForm is removed
-// Removed Form, FormControl, FormField, FormItem, FormLabel, FormMessage imports
 import { enrichProfile, type EnrichProfileOutput } from "@/ai/flows/profile-enrichment";
 import { aiCandidateScreening, type CandidateScreeningInput, type CandidateScreeningOutput } from "@/ai/flows/ai-candidate-screening";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-// Label removed as it was only for the resumeForm file input
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
 
 // Data structures for profile sections
 interface ExperienceItem {
@@ -57,6 +55,7 @@ interface ApplicantDetail {
   mockEducation?: EducationItem[];
   mockCertifications?: CertificationItem[];
   introductionVideoUrl?: string;
+  skills?: string[]; // Added skills to ensure it's available for display
 }
 
 const PLACEHOLDER_INTRO_VIDEO_URL = "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4";
@@ -65,7 +64,7 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
   "app1": {
     id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", email: "alice@example.com", phone: "555-0101", linkedin: "https://linkedin.com/in/alicejohnson", headline: "Senior React Developer",
     mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu",
-    resumeText: "Alice Johnson - Senior React Developer. Skills: React, Redux, TypeScript, Node.js, GraphQL. Experience: 5 years developing scalable web applications. Led front-end team at Innovatech. Improved performance by 20%. Education: BSc Computer Science, State University.",
+    resumeText: "Alice Johnson - Senior React Developer\n\nSummary:\nA highly skilled and motivated software engineer with 5+ years of experience in developing and implementing innovative web applications. Proven ability to lead frontend teams and deliver high-quality products. Passionate about creating intuitive user experiences and leveraging modern technologies.\n\nSkills:\n- Frontend: React, Redux, TypeScript, Next.js, JavaScript (ES6+), HTML5, CSS3, SASS\n- Backend: Node.js, Express.js, GraphQL\n- Databases: PostgreSQL, MongoDB\n- Tools: Git, Docker, Webpack, Jest, Cypress\n- Methodologies: Agile, Scrum\n\nExperience:\nLead Frontend Developer | Innovatech Solutions | 2021 - Present\n- Led a team of 5 frontend developers in an agile environment.\n- Architected and implemented new user-facing features using React, Redux, and TypeScript.\n- Improved application performance by 20% through code optimization and modern techniques.\n- Collaborated with UX/UI designers to translate mockups into functional components.\n\nSoftware Engineer | Web Wizards Inc. | 2019 - 2021\n- Developed and maintained responsive web applications using React and JavaScript.\n- Contributed to backend development with Node.js.\n- Participated in code reviews and agile ceremonies.\n\nEducation:\nBSc Computer Science | State University | 2019\n\nCertifications:\n- AWS Certified Developer - Associate | Amazon Web Services | 2022-03\n- Professional Scrum Master I | Scrum.org | 2021-07",
     mockExperience: [
       { title: "Lead Frontend Developer", company: "Innovatech Solutions", duration: "2021 - Present", description: "Led a team of 5 frontend developers in agile environment. Architected and implemented new user-facing features using React, Redux, and TypeScript. Improved application performance by 20%." },
       { title: "Software Engineer", company: "Web Wizards Inc.", duration: "2019 - 2021", description: "Developed and maintained responsive web applications. Collaborated with UX/UI designers to translate mockups into functional components." }
@@ -78,73 +77,19 @@ const MOCK_CANDIDATE_DB: Record<string, ApplicantDetail> = {
       { name: "Professional Scrum Master I", issuingOrganization: "Scrum.org", date: "2021-07" }
     ],
     introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL,
+    skills: ["React", "Node.js", "AWS", "TypeScript", "GraphQL", "JavaScript", "HTML", "CSS", "PostgreSQL"]
   },
-  "app2": {
-    id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", email: "bob@example.com", headline: "Full Stack Python Developer",
-    mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==",
-    resumeText: "Bob Williams - Full Stack Python Developer. Proficient in Django, Flask, SQL, and REST APIs. Built backend systems for Data Corp. MSc Data Science from Tech Institute.",
-    mockExperience: [
-      { title: "Backend Developer", company: "Data Corp", duration: "2020 - 2023", description: "Built scalable APIs with Django and Flask. Managed PostgreSQL databases and integrated third-party services." }
-    ],
-    mockEducation: [
-      { institution: "Tech Institute", degree: "MSc Data Science", field: "Data Science", year: "2020" }
-    ],
-    mockCertifications: [
-      { name: "Google Cloud Professional Data Engineer", issuingOrganization: "Google Cloud", date: "2023-01" }
-    ],
-    introductionVideoUrl: "",
-  },
-  "app5": {
-    id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", email: "eve@example.com", headline: "Creative Vue.js Developer",
-    mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=",
-    resumeText: "Eve Brown - Creative Vue.js Developer. Expertise in Vue.js, Vuex, Vuetify, and Firebase. Designed and implemented UIs at Web Creations. BA Graphic Design.",
-    mockExperience: [
-      { title: "UI Developer", company: "Web Creations", duration: "2022 - Present", description: "Designed and implemented user interfaces with Vue.js, Vuex, and Vuetify. Focused on accessibility and responsive design." }
-    ],
-    mockEducation: [
-      { institution: "Design School of Fine Arts", degree: "BA Graphic Design", field: "Graphic Design", year: "2021" }
-    ],
-     mockCertifications: [
-      { name: "Certified Vue.js Developer", issuingOrganization: "Vue School", date: "2022-08" }
-    ],
-    introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL,
-  },
-  "cand1": {
+  "cand1": { // Ensuring this ID also has full data as it's used in candidate pool
     id: "cand1", name: "Alice Wonderland", avatar: "https://placehold.co/100x100.png?text=AW", email: "alice.wonder@example.com", phone: "555-0102", linkedin: "https://linkedin.com/in/alicewonder", headline: "Frontend Magician",
     mockResumeDataUri: "data:text/plain;base64,QWxpY2UgV29uZGVybGFuZDogUmVhY3QsIEphdmFTY3JpcHQsIEhUTUwsIENTUy4=",
-    resumeText: "Alice Wonderland - Frontend Magician. Skills: React, JavaScript, HTML, CSS. 5 years experience creating enchanting user interfaces. Led UI development at TeaParty Inc.",
+    resumeText: "Alice Wonderland - Frontend Magician\n\nSkills: React, JavaScript, HTML, CSS, Whimsical Animations.\nExperience: 5 years creating enchanting user interfaces at TeaParty Inc. Led UI development and sprinkled magic on every project.\nEducation: BFA Interactive Design, Wonderland Academy.",
     mockExperience: [{ title: "UI Enchantress", company: "TeaParty Inc.", duration: "2020 - Present", description: "Crafted delightful user experiences with React and whimsy." }],
     mockEducation: [{ institution: "Wonderland Academy", degree: "BFA Interactive Design", field: "Digital Arts", year: "2019" }],
     mockCertifications: [{ name: "Mad Hatter Certified UI Designer", issuingOrganization: "Wonderland Council", date: "2021" }],
     introductionVideoUrl: "",
+    skills: ["React", "JavaScript", "HTML", "CSS", "Whimsical Animations"]
   },
-  "cand2": {
-    id: "cand2", name: "Bob The Builder", avatar: "https://placehold.co/100x100.png?text=BB", email: "bob.builder@example.com", phone: "555-0103", linkedin: "https://linkedin.com/in/bobthebuilder", headline: "Product Construction Expert",
-    mockResumeDataUri: "data:text/plain;base64,Qm9iIFRoZSBCdWlsZGVyOiBQcm9kdWN0IE1hbmFnZW1lbnQsIEFnaWxlLCBSb2FkbWFwcGluZy4=",
-    resumeText: "Bob The Builder - Product Construction Expert. Skills: Product Management, Agile, Roadmapping, JIRA. 8 years experience building successful products. Yes, we can!",
-    mockExperience: [{ title: "Chief Product Architect", company: "Builder's Guild", duration: "2018 - Present", description: "Led product strategy and execution for several flagship tools." }],
-    mockEducation: [{ institution: "University of Construction", degree: "Master of Product Management", field: "Product Strategy", year: "2017" }],
-    mockCertifications: [{ name: "Certified Scrum Product Owner (CSPO)", issuingOrganization: "Scrum Alliance", date: "2018" }],
-    introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL,
-  },
-  "cand3": {
-    id: "cand3", name: "Carol Danvers", avatar: "https://placehold.co/100x100.png?text=CD", email: "carol.danvers@example.com", phone: "555-0104", linkedin: "https://linkedin.com/in/caroldanvers", headline: "Captain of UX Design",
-    mockResumeDataUri: "data:text/plain;base64,Q2Fyb2wgRGFudmVyczogVVggRGVzaWduLCBGaWdtYSwgUHJvdG90eXBpbmcu",
-    resumeText: "Carol Danvers - Captain of UX Design. Skills: UX Design, Figma, Prototyping, User Research. 3 years experience creating stellar user experiences. Higher, further, faster.",
-    mockExperience: [{ title: "Lead UX Pilot", company: "Starforce Design", duration: "2021 - Present", description: "Designed user-centric interfaces for intergalactic applications." }],
-    mockEducation: [{ institution: "Air Force Academy of Design", degree: "BSc User Experience", field: "Human-Computer Interaction", year: "2020" }],
-    mockCertifications: [{ name: "Certified Figma Design Expert", issuingOrganization: "Figma Academy", date: "2022" }],
-    introductionVideoUrl: "",
-  },
-   "cand4": {
-    id: "cand4", name: "David Copperfield", avatar: "https://placehold.co/100x100.png?text=DC", email: "david.copperfield@example.com", phone: "555-0105", linkedin: "https://linkedin.com/in/davidcopperfield", headline: "Data Illusionist",
-    mockResumeDataUri: "data:text/plain;base64,RGF2aWQgQ29wcGVyZmllbGQ6IERhdGEgU2NpZW5jZSwgUHl0aG9uLCBNTC4=",
-    resumeText: "David Copperfield - Data Illusionist. Skills: Data Science, Python, Machine Learning, TensorFlow. 6 years experience making data disappear and reappear as insights. It's all about misdirection.",
-    mockExperience: [{ title: "Chief Data Sorcerer", company: "Magic & Models Inc.", duration: "2019 - Present", description: "Developed predictive models and data visualizations that amazed audiences." }],
-    mockEducation: [{ institution: "Houdini University of Statistics", degree: "PhD Applied Magic (Data Science)", field: "Statistical Sorcery", year: "2018" }],
-    mockCertifications: [{ name: "Certified TensorFlow Developer", issuingOrganization: "Google", date: "2020" }],
-    introductionVideoUrl: PLACEHOLDER_INTRO_VIDEO_URL,
-  }
+  // Add other candidates from MOCK_CANDIDATE_DB here if needed with full details
 };
 
 const mockQuickScreenJobs = [
@@ -163,11 +108,12 @@ export default function CandidateProfilePage() {
   const [candidate, setCandidate] = useState<ApplicantDetail | null>(null);
   const [enrichedData, setEnrichedData] = useState<EnrichProfileOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEnriching, setIsEnriching] = useState(false); // For initial page load enrichment
+  const [isEnriching, setIsEnriching] = useState(false);
 
   const [selectedJobIdForScreening, setSelectedJobIdForScreening] = useState<string | undefined>(undefined);
   const [quickScreenResult, setQuickScreenResult] = useState<CandidateScreeningOutput | null>(null);
   const [isQuickScreeningLoading, setIsQuickScreeningLoading] = useState(false);
+  const [isViewResumeDialogOpen, setIsViewResumeDialogOpen] = useState(false);
 
 
   const fetchAndEnrichCandidate = useCallback(async (id: string) => {
@@ -216,7 +162,7 @@ export default function CandidateProfilePage() {
         const screeningInput: CandidateScreeningInput = {
             jobDetails: selectedJob.description,
             resume: candidate.resumeText,
-            candidateProfile: `Name: ${candidate.name}, Email: ${candidate.email}, Skills: ${(enrichedData?.skills || []).join(', ')}`,
+            candidateProfile: `Name: ${candidate.name}, Email: ${candidate.email}, Skills: ${(candidate.skills || enrichedData?.skills || []).join(', ')}`,
         };
         const result = await aiCandidateScreening(screeningInput);
         setQuickScreenResult(result);
@@ -244,8 +190,8 @@ export default function CandidateProfilePage() {
     );
   }
 
-  const skillsToDisplay = enrichedData?.skills || [];
-  const summaryToDisplay = enrichedData?.experienceSummary || "No AI summary available. Candidate's resume might not have been processed by AI.";
+  const skillsToDisplay = candidate.skills || enrichedData?.skills || [];
+  const summaryToDisplay = enrichedData?.experienceSummary || candidate.resumeText.split('\n\n')[1] || "No AI summary available. Candidate's resume might not have been processed by AI.";
 
 
   return (
@@ -339,7 +285,7 @@ export default function CandidateProfilePage() {
 
         {/* Right Column */}
         <div className="space-y-6">
-           <Card className="shadow-lg">
+          <Card className="shadow-lg">
             <CardHeader><CardTitle className="text-lg flex items-center"><VideoIcon className="mr-2 h-5 w-5 text-primary"/> Introduction Video</CardTitle></CardHeader>
             <CardContent>
               {candidate.introductionVideoUrl ? (
@@ -363,15 +309,23 @@ export default function CandidateProfilePage() {
             </CardContent>
           </Card>
           <Card className="shadow-lg">
-            <CardHeader><CardTitle className="text-lg">Resume Status</CardTitle></CardHeader>
-            <CardContent>
+            <CardHeader><CardTitle className="text-lg flex items-center"><FileTextIcon className="mr-2 h-5 w-5 text-primary"/>Resume</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
                 <p className="text-sm text-muted-foreground">
                     {candidate.mockResumeDataUri?.startsWith("data:")
                       ? "Candidate's resume has been processed by AI."
                       : "No resume data available for AI processing."}
                 </p>
-                {/* Placeholder if a download link were available */}
-                {/* <Button variant="outline" size="sm" className="mt-2">Download Resume (Placeholder)</Button> */}
+                {candidate.resumeText && (
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => setIsViewResumeDialogOpen(true)}
+                    >
+                        View Resume Text
+                    </Button>
+                )}
             </CardContent>
           </Card>
            <Card className="shadow-lg">
@@ -412,8 +366,24 @@ export default function CandidateProfilePage() {
           </Card>
         </div>
       </div>
+
+      {/* View Resume Dialog */}
+      <Dialog open={isViewResumeDialogOpen} onOpenChange={setIsViewResumeDialogOpen}>
+        <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Resume: {candidate?.name}</DialogTitle>
+            <DialogDescription>Text content of the candidate's resume.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-[60vh] overflow-y-auto pr-2">
+            <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-md border">
+              {candidate?.resumeText || "No resume text available."}
+            </pre>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewResumeDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-    
