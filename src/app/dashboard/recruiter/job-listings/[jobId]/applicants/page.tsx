@@ -36,11 +36,75 @@ interface Applicant {
 }
 
 const initialMockApplicants: Applicant[] = [
-  { id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", applicationDate: "2024-07-25", aiMatchScore: 92, status: "New", email: "alice@example.com", skills: ["React", "Node.js", "TypeScript"], resumeText: "Highly skilled React developer with 5 years of experience in Node.js and TypeScript.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,UmVzdW1lIGNvbnRlbnQgZm9yIEFsaWNlIEpvaG5zb24uIFNraWxsZWQgaW4gUmVhY3QsIE5vZGUuanMsIGFuZCBUeXBlU2NyaXB0LiA1IHllYXJzIG9mIGV4cGVyaWVuY2Uu"},
-  { id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", applicationDate: "2024-07-24", aiMatchScore: 85, status: "Screening", email: "bob@example.com", skills: ["Python", "Django", "SQL"], resumeText: "Data-driven Python developer, proficient in Django and SQL databases.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Qm9iIFdpbGxpYW1zJyBSZXN1bWUuIEV4cGVydCBQeXRob24gZGV2ZWxvcGVyLCBwcm9maWNpZW50IGluIERqYW5nbyBhbmQgU1FMLg==" },
-  { id: "app3", name: "Carol Davis", avatar: "https://placehold.co/100x100.png?text=CD", applicationDate: "2024-07-23", aiMatchScore: 78, status: "Shortlisted", email: "carol@example.com", skills: ["Java", "Spring Boot", "Microservices"], resumeText: "Experienced Java engineer specializing in Spring Boot and microservice architectures.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,Q2Fyb2wgRGF2aXMnIFJlc3VtZS4gRXhwZXJ0IGphdmEgZW5naW5lZXIgV2l0aCBKYXZhLCBTcHJpbmcgQm9vdCwgYW5kIE1pY3Jvc2VydmljZXMu" },
-  { id: "app4", name: "David Miller", avatar: "https://placehold.co/100x100.png?text=DM", applicationDate: "2024-07-22", status: "Not Selected", email: "david@example.com", skills: ["PHP", "Laravel"], resumeText: "Full-stack PHP developer with Laravel expertise.", jobTitleAppliedFor: "Software Engineer, Frontend" },
-  { id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", applicationDate: "2024-07-26", aiMatchScore: 95, status: "Interview", email: "eve@example.com", skills: ["JavaScript", "Vue.js", "Firebase"], resumeText: "Creative Vue.js developer with Firebase backend knowledge.", jobTitleAppliedFor: "Software Engineer, Frontend", mockResumeDataUri: "data:text/plain;base64,RXZlIEJyb3duJ3MgUmVzdW1lLiBWdWUuanMgYW5kIEZpcmViYXNlIGV4cGVydC4=" },
+  { 
+    id: "app1", name: "Alice Johnson", avatar: "https://placehold.co/100x100.png?text=AJ", applicationDate: "2024-07-25", aiMatchScore: 92, status: "New", email: "alice@example.com", 
+    skills: ["React", "Node.js", "TypeScript"], 
+    resumeText: "Highly skilled React developer with 5 years of experience in Node.js and TypeScript.", 
+    jobTitleAppliedFor: "Software Engineer, Frontend", 
+    mockResumeDataUri: "data:text/plain;base64,SGlnaGx5IHNraWxsZWQgUmVhY3QgZGV2ZWxvcGVyIHdpdGggNSB5ZWFycyBvZiBleHBlcmllbmNlIGluIE5vZGUuanMgYW5kIFR5cGVTY3JpcHQu"
+  },
+  { 
+    id: "app2", name: "Bob Williams", avatar: "https://placehold.co/100x100.png?text=BW", applicationDate: "2024-07-24", aiMatchScore: 85, status: "Screening", email: "bob@example.com", 
+    skills: ["Python", "Django", "SQL"], 
+    resumeText: "Data-driven Python developer, proficient in Django and SQL databases.", 
+    jobTitleAppliedFor: "Software Engineer, Frontend", 
+    mockResumeDataUri: "data:text/plain;base64,RGF0YS1kcml2ZW4gUHl0aG9uIGRldmVsb3BlciwgcHJvZmljaWVudCBpbiBEamFuZ28gYW5kIFNRTCBkYXRhYmFzZXMu" 
+  },
+  { 
+    id: "app3", name: "Carol Davis", avatar: "https://placehold.co/100x100.png?text=CD", applicationDate: "2024-07-23", aiMatchScore: 78, status: "Shortlisted", email: "carol@example.com", 
+    skills: ["Java", "Spring Boot", "Microservices"], 
+    resumeText: "Experienced Java engineer specializing in Spring Boot and microservice architectures.", 
+    jobTitleAppliedFor: "Software Engineer, Frontend", 
+    mockResumeDataUri: "data:text/plain;base64,RXhwZXJpZW5jZWQgSmF2YSBlbmdpbmVlciBzcGVjaWFsaXppbmcgaW4gU3ByaW5nIEJvb3QgYW5kIG1pY3Jvc2VydmljZSBhcmNoaXRlY3R1cmVzLg=="
+  },
+  { 
+    id: "app4", name: "David Miller", avatar: "https://placehold.co/100x100.png?text=DM", applicationDate: "2024-07-22", status: "Not Selected", email: "david@example.com", 
+    skills: ["PHP", "Laravel"], 
+    resumeText: "Full-stack PHP developer with Laravel expertise.", 
+    jobTitleAppliedFor: "Software Engineer, Frontend" 
+  },
+  { 
+    id: "app5", name: "Eve Brown", avatar: "https://placehold.co/100x100.png?text=EB", applicationDate: "2024-07-26", aiMatchScore: 95, status: "Interview", email: "eve@example.com", 
+    skills: ["JavaScript", "Vue.js", "Firebase"], 
+    resumeText: "Creative Vue.js developer with Firebase backend knowledge.", 
+    jobTitleAppliedFor: "Software Engineer, Frontend", 
+    mockResumeDataUri: "data:text/plain;base64,Q3JlYXRpdmUgVnVlLmpzIGRldmVsb3BlciB3aXRoIEZpcmViYXNlIGJhY2tlbmQga25vd2xlZGdlLg==" 
+  },
+  { 
+    id: "app6", name: "Liam Patel", avatar: "https://placehold.co/100x100.png?text=LP", applicationDate: "2024-08-01", aiMatchScore: 88, status: "New", email: "liam.patel@example.com", 
+    skills: ["Python", "Machine Learning", "TensorFlow", "Data Analysis"], 
+    resumeText: "Liam Patel - Data Scientist with 3 years of experience in machine learning and Python. Strong analytical skills and experience with TensorFlow.", 
+    jobTitleAppliedFor: "Data Scientist", 
+    mockResumeDataUri: "data:text/plain;base64,TGlhbSBQYXRlbCAtIERhdGEgU2NpZW50aXN0IHdpdGggMyB5ZWFycyBvZiBleHBlcmllbmNlIGluIG1hY2hpbmUgbGVhcm5pbmcgYW5kIFB5dGhvbi4gU3Ryb25nIGFuYWx5dGljYWwgc2tpbGxzIGFuZCBleHBlcmllbmNlIHdpdGggVGVuc29yRmxvdy4=" 
+  },
+  { 
+    id: "app7", name: "Olivia Chen", avatar: "https://placehold.co/100x100.png?text=OC", applicationDate: "2024-08-02", aiMatchScore: 91, status: "Screening", email: "olivia.chen@example.com", 
+    skills: ["JavaScript", "React", "Vue.js", "UI/UX Design"], 
+    resumeText: "Olivia Chen - Creative Frontend Developer with a passion for UI/UX. Proficient in React and Vue.js.", 
+    jobTitleAppliedFor: "Software Engineer, Frontend", 
+    mockResumeDataUri: "data:text/plain;base64,T2xpdmlhIENoZW4gLSBDcmVhdGl2ZSBGcm9udGVuZCBEZXZlbG9wZXIgd2l0aCBhIHBhc3Npb24gZm9yIFVJL1VYLjogUmVhY3QsIFZ1ZS5qcw=="
+  },
+  { 
+    id: "app8", name: "Noah Rodriguez", avatar: "https://placehold.co/100x100.png?text=NR", applicationDate: "2024-07-30", aiMatchScore: 75, status: "Interview", email: "noah.rodriguez@example.com", 
+    skills: ["Java", "Spring Boot", "AWS", "Microservices"], 
+    resumeText: "Noah Rodriguez - Backend Engineer specializing in Java, Spring Boot, and AWS microservices.", 
+    jobTitleAppliedFor: "Senior Backend Developer (Python)", 
+    mockResumeDataUri: "data:text/plain;base64,Tm9haCBSb2RyaWd1ZXogLSBCYWNrZW5kIEVuZ2luZWVyIHNwZWNpYWxpemluZyBpbiBKYXZhLCBTcHJpbmcgQm9vdCwgYW5kIEFXUyBtaWNyb3NlcnZpY2VzLg=="
+  },
+  { 
+    id: "app9", name: "Emma Wilson", avatar: "https://placehold.co/100x100.png?text=EW", applicationDate: "2024-07-28", aiMatchScore: 65, status: "Not Selected", email: "emma.wilson@example.com", 
+    skills: ["Project Management", "Agile", "Scrum"], 
+    resumeText: "Emma Wilson - Certified Scrum Master with experience in Agile project management.", 
+    jobTitleAppliedFor: "Product Manager", 
+    mockResumeDataUri: "data:text/plain;base64,RW1tYSBXaWxzb24gLSBDZXJ0aWZpZWQgU2NydW0gTWFzdGVyIHdpdGggZXhwZXJpZW5jZSBpbiBBZ2lsZSBwcm9qZWN0IG1hbmFnZW1lbnQu"
+  },
+  { 
+    id: "app10", name: "Lucas Garcia", avatar: "https://placehold.co/100x100.png?text=LG", applicationDate: "2024-08-03", status: "Hired", email: "lucas.garcia@example.com", 
+    skills: ["Full Stack Development", "React", "Node.js", "MongoDB"], 
+    resumeText: "Lucas Garcia - Versatile Full Stack Developer. Expertise in MERN stack.", 
+    jobTitleAppliedFor: "Software Engineer, Frontend", 
+    mockResumeDataUri: "data:text/plain;base64,THVjYXMgR2FyY2lhIC0gVmVyc2F0aWxlIEZ1bGwgU3RhY2sgRGV2ZWxvcGVyLiBFeHBlcnRpc2UgaW4gTUVSTiBzdGFjay4=" 
+  }
 ];
 
 const mockJobTitles: { [key: string]: { title: string, description: string } } = {
