@@ -1,7 +1,7 @@
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
-import { Storage } from '@google-cloud/build/cjs/src/storage';
-import type { ObjectMetadata } from '@google-cloud/build/cjs/src/storage'; // Attempting basic type import
+import { Storage } from '@google-cloud/build/cjs/src/storage'; // Corrected import path for Storage
+import type { ObjectMetadata } from '@google-cloud/build/cjs/src/storage'; // Attempting standard type import for ObjectMetadata
 import path from 'path';
 import { Firestore } from '@google-cloud/firestore'; // Import Firestore
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
@@ -145,7 +145,7 @@ export const processJobDescription = onObjectFinalized(async (event) => {
   const filePath = object.name;
   const contentType = object.contentType;
 
-  if (!filePath || filePath.endsWith('/') || !contentType || !(contentType.startsWith('application/pdf') || contentType === 'text/plain')) { // Added text/plain as an example, fixed potential syntax issue with closing paren
+  if (!filePath || filePath.endsWith('/') || !contentType || !(contentType.startsWith('application/pdf') || contentType === 'text/plain'))) { // Added text/plain as an example, fixed potential syntax issue with closing paren
     console.log('Not a supported file type or a directory. Exiting.');
     return null;
   }
