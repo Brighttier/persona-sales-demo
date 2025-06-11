@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "public": "persona-sales-demo",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
