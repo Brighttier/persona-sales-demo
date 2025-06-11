@@ -3,17 +3,19 @@ import { Storage } from '@google-cloud/storage';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { TextServiceClient } from '@google-cloud/text-embeddings'; // Import Vertex AI TextServiceClient
 import path from 'path';
+import { Firestore } from '@google-cloud/firestore'; // Import Firestore
 
 const storage = new Storage();
 const documentaiClient = new DocumentProcessorServiceClient();
 const textServiceClient = new TextServiceClient(); // Initialize Vertex AI TextServiceClient
+const firestore = new Firestore(); // Initialize Firestore
 
 const projectId = process.env.GCP_PROJECT || '';
 const location = 'us'; // Specify the location of your processor and Vertex AI endpoint
 const processorId = 'ce477c2c26f6cf38'; // Replace with your processor ID
 
 // Function to generate embeddings using Vertex AI
-async function generateEmbeddings(text: string): Promise<void> {
+async function generateEmbeddings(text: string, filePath: string): Promise<void> { // Added filePath parameter
   console.log('Generating embeddings for extracted text using Vertex AI...');
 
   const model = 'text-embedding-005';
@@ -33,15 +35,20 @@ async function generateEmbeddings(text: string): Promise<void> {
 
       console.log('Embeddings generated successfully:', embeddingVector);
 
-      // *** Implement your logic to save the embeddings ***
-      // For example, save to Firestore:
-      // import { Firestore } from '@google-cloud/firestore';
-      // const firestore = new Firestore();
-      // await firestore.collection('resumeEmbeddings').add({
-      //   text: text,
-      //   embedding: embeddingVector,
-      //   timestamp: new Date(),
-      // });
+      // *** Implement your logic to save the embeddings to Firestore ***
+      try {
+        const collectionRef = firestore.collection('resumeEmbeddings'); // Replace 'resumeEmbeddings' with your desired collection name
+        await collectionRef.add({
+          text: text,
+          embedding: embeddingVector,
+          filePath: filePath, // Store the original file path
+          timestamp: new Date(),
+        });
+        console.log('Embeddings and metadata saved to Firestore.');
+      } catch (firestoreError) {
+        console.error('Error saving embeddings to Firestore:', firestoreError);
+        // Decide how to handle Firestore errors (e.g., re-throw, log and continue)
+      }
 
     } else {
       console.log('No embeddings generated.');
@@ -54,20 +61,62 @@ async function generateEmbeddings(text: string): Promise<void> {
 }
 
 export const processResume = functions.storage.object().onFinalize(async (object) => {
-  // ... (rest of your existing code)
+  const fileBucket = object.bucket; // The Storage bucket that contains the file.
+  const filePath = object.name; // File path in the bucket.
+  const contentType = object.contentType; // File content type.
+
+  // Exit if this is a directory or not a supported file type
+  if (!filePath || filePath.endsWith('/') || !contentType || !contentType.startsWith('application/pdf')) {
+    console.log('Not a supported file type or a directory. Exiting.');
+    return null;
+  }
+
+  // Specify the path to watch in Cloud Storage
+  const watchPath = 'resumes/'; // Make sure this is correct
+  if (!filePath.startsWith(watchPath)) {
+    console.log('File is not in the watched path. Exiting.');
+    return null;
+  }
+
+  const bucket = storage.bucket(fileBucket);
+  const file = bucket.file(filePath);
+
+  // Get the document content as a buffer
+  const [content] = await file.download();
+
+  // Construct the processor name
+  const name = `projects/${projectId}/locations/${location}/processors/${processorId}`;
+
+  // Create the request for the Document AI API
+  const request = {
+    name,
+    rawDocument: {
+      content: content.toString('base64'),
+      mimeType: contentType,
+    },
+  };
 
   try {
-    // ... (Document AI processing code)
+    // Process the document
+    const [result] = await documentaiClient.processDocument(request);
+    const { document } = result;
 
     if (document && document.text) {
       const extractedText = document.text;
 
-      // ... (Save extracted text to Cloud Storage)
+      // Determine the output path for the extracted text
+      const fileName = path.basename(filePath);
+      const outputFileName = `${path.parse(fileName).name}.txt`;
+      const outputFilePath = `parsed_resumes/${outputFileName}`; // Make sure this is correct
+
+      // Save the extracted text to a new file in Cloud Storage
+      const outputFile = bucket.file(outputFilePath);
+      await outputFile.save(extractedText);
 
       console.log(`Extracted text saved to gs://${fileBucket}/${outputFilePath}`);
 
-      // Trigger the embedding generation process
-      await generateEmbeddings(extractedText); // Call the updated function
+      // Trigger the embedding generation process and pass the original file path
+      await generateEmbeddings(extractedText, filePath); // Pass filePath
 
       return null;
 
