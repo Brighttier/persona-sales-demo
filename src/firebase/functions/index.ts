@@ -3,7 +3,7 @@ import { Storage } from '@google-cloud/storage';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { TextServiceClient } from '@google-cloud/text-embeddings'; // Import Vertex AI TextServiceClient
 import path from 'path';
-import { Firestore } from '@google-cloud/firestore'; // Import Firestore
+import { Firestore } from '@google-cloud/firestore'; // Import Firestoreimport { v4 as uuidv4 } from 'uuid'; // Import uuid
 
 const storage = new Storage();
 const documentaiClient = new DocumentProcessorServiceClient();
@@ -13,6 +13,7 @@ const firestore = new Firestore(); // Initialize Firestore
 const projectId = process.env.GCP_PROJECT || '';
 const location = 'us'; // Specify the location of your processor and Vertex AI endpoint
 const processorId = 'ce477c2c26f6cf38'; // Replace with your processor ID
+const jobDescriptionProcessorId = 'your-job-description-processor-id'; // Replace with your job description processor ID
 
 // Function to generate embeddings using Vertex AI
 async function generateEmbeddings(text: string, filePath: string): Promise<void> { // Added filePath parameter
@@ -177,7 +178,10 @@ export const processJobDescription = functions.storage.object().onFinalize(async
       const outputFileName = `${path.parse(fileName).name}_job_description.txt`; // Differentiate output file name
       const outputFilePath = `processed_job_descriptions/${outputFileName}`; // Define output path for job descriptions
 
+      const jobDescriptionId = uuidv4(); // Generate a UUID
+
       const outputFile = bucket.file(outputFilePath);
+ await outputFile.setMetadata({ metadata: { jobId: jobDescriptionId } }); // Add UUID to metadata
       await outputFile.save(extractedText);
 
       console.log(`Extracted job description text saved to gs://${fileBucket}/${outputFilePath}`);
