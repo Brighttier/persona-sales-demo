@@ -1,7 +1,7 @@
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { Storage } from '@google-cloud/storage';
-import type { ObjectMetadata } from '@google-cloud/storage/build/cjs/src/storage.d.ts'; // Attempting direct type import
+import type { ObjectMetadata } from '@google-cloud/storage/build/cjs/src/storage'; // Attempting direct type import
 import path from 'path';
 import { Firestore } from '@google-cloud/firestore'; // Import Firestore
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
@@ -45,9 +45,9 @@ async function generateEmbeddings(text: string, filePath: string, { dataType }: 
         await collectionRef.add({
           text: text,
           // embedding: embeddingVector, // Temporarily commented out
-          filePath: filePath, // Store the original file path
+          filePath: filePath,
           timestamp: new Date(),
-          ...(dataType && { dataType }), // Include dataType if provided
+          ...(dataType && { dataType }),
         });
         console.log('Embeddings and metadata saved to Firestore.');
       } catch (firestoreError) {
@@ -65,20 +65,18 @@ async function generateEmbeddings(text: string, filePath: string, { dataType }: 
   // }
 }
 
-export const processResume = onObjectFinalized(async (event) => { // Corrected v2 syntax
-  const object: ObjectMetadata = event.data; // In v2, object metadata is in event.data
-  const fileBucket = object.bucket; // The Storage bucket that contains the file.
-  const filePath = object.name; // File path in the bucket.
-  const contentType = object.contentType; // File content type.
+export const processResume = onObjectFinalized(async (event) => {
+  const object: ObjectMetadata = event.data;
+  const fileBucket = object.bucket;
+  const filePath = object.name;
+  const contentType = object.contentType;
 
-  // Exit if this is a directory or not a supported file type
   if (!filePath || filePath.endsWith('/') || !contentType || !contentType.startsWith('application/pdf')) {
     console.log('Not a supported file type or a directory. Exiting.');
     return null;
   }
 
-  // Specify the path to watch in Cloud Storage
-  const watchPath = 'resumes/'; // Make sure this is correct
+  const watchPath = 'resumes/';
   if (!filePath.startsWith(watchPath)) {
     console.log('File is not in the watched path. Exiting.');
     return null;
@@ -87,13 +85,10 @@ export const processResume = onObjectFinalized(async (event) => { // Corrected v
   const bucket = storage.bucket(fileBucket);
   const file = bucket.file(filePath);
 
-  // Get the document content as a buffer
   const [content] = await file.download();
 
-  // Construct the processor name
   const name = `projects/${projectId}/locations/${location}/processors/${processorId}`; // Use processorId for resumes
 
-  // Create the request for the Document AI API
   const request = {
     name,
     rawDocument: {
@@ -103,25 +98,21 @@ export const processResume = onObjectFinalized(async (event) => { // Corrected v
   };
 
   try {
-    // Process the document
     const [result] = await documentaiClient.processDocument(request);
     const { document } = result;
 
     if (document && document.text) {
       const extractedText = document.text;
 
-      // Determine the output path for the extracted text
       const fileName = path.basename(filePath);
       const outputFileName = `${path.parse(fileName).name}.txt`;
       const outputFilePath = `parsed_resumes/${outputFileName}`; // Make sure this is correct
 
-      // Save the extracted text to a new file in Cloud Storage
       const outputFile = bucket.file(outputFilePath);
       await outputFile.save(extractedText);
 
       console.log(`Extracted text saved to gs://${fileBucket}/${outputFilePath}`);
 
-      // Trigger the embedding generation process and pass the original file path
       await generateEmbeddings(extractedText, filePath, { dataType: 'resume' }); // Pass filePath and dataType
 
       return null;
@@ -137,20 +128,18 @@ export const processResume = onObjectFinalized(async (event) => { // Corrected v
   }
 });
 
-// Cloud Function to process uploaded job descriptions
-export const processJobDescription = onObjectFinalized(async (event) => { // Corrected v2 syntax
-  const object: ObjectMetadata = event.data; // In v2, object metadata is in event.data
+export const processJobDescription = onObjectFinalized(async (event) => {
+  const object: ObjectMetadata = event.data;
   const fileBucket = object.bucket;
   const filePath = object.name;
   const contentType = object.contentType;
 
-  // Adjust supported file types for job descriptions if needed (e.g., '.txt', '.doc', '.docx')
-  if (!filePath || filePath.endsWith('/') || !contentType || !(contentType.startsWith('application/pdf') || contentType === 'text/plain')) { // Added text/plain as an example
+  if (!filePath || filePath.endsWith('/') || !contentType || !(contentType.startsWith('application/pdf') || contentType === 'text/plain'))) {
     console.log('Not a supported file type or a directory. Exiting.');
     return null;
   }
 
-  const watchPath = 'job_descriptions/'; // Watch path for job descriptions (define your path)
+  const watchPath = 'job_descriptions/';
   if (!filePath.startsWith(watchPath)) {
     console.log('File is not in the watched path. Exiting.');
     return null;
@@ -161,7 +150,6 @@ export const processJobDescription = onObjectFinalized(async (event) => { // Cor
 
   const [content] = await file.download();
 
-  // Use the appropriate processor ID for job descriptions
   const name = `projects/${projectId}/locations/${location}/processors/${jobDescriptionProcessorId}`; // Use jobDescriptionProcessorId
 
   const request = {
@@ -179,10 +167,9 @@ export const processJobDescription = onObjectFinalized(async (event) => { // Cor
     if (document && document.text) {
       const extractedText = document.text;
 
-      // Determine the output path for the extracted text
       const fileName = path.basename(filePath);
-      const outputFileName = `${path.parse(fileName).name}_job_description.txt`; // Differentiate output file name
-      const outputFilePath = `processed_job_descriptions/${outputFileName}`; // Define output path for job descriptions
+      const outputFileName = `${path.parse(fileName).name}_job_description.txt`;
+      const outputFilePath = `processed_job_descriptions/${outputFileName}`;
 
       const jobDescriptionId = uuidv4(); // Generate a UUID
 
