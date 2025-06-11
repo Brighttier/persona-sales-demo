@@ -1,7 +1,7 @@
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { Storage } from '@google-cloud/storage';
-import type { ObjectMetadata } from '@google-cloud/storage/build/cjs/src/storage';
+import type { ObjectMetadata } from '@google-cloud/storage/build/cjs/src/storage.d.ts';
 import path from 'path';
 import { Firestore } from '@google-cloud/firestore'; // Import Firestore
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
