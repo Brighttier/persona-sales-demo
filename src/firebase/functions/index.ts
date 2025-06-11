@@ -130,3 +130,69 @@ export const processResume = functions.storage.object().onFinalize(async (object
     return null;
   }
 });
+
+// Cloud Function to process uploaded job descriptions
+export const processJobDescription = functions.storage.object().onFinalize(async (object) => {
+  const fileBucket = object.bucket;
+  const filePath = object.name;
+  const contentType = object.contentType;
+
+  // Adjust supported file types for job descriptions if needed (e.g., '.txt', '.doc', '.docx')
+  if (!filePath || filePath.endsWith('/') || !contentType || !(contentType.startsWith('application/pdf') || contentType === 'text/plain')) { // Added text/plain as an example
+    console.log('Not a supported file type or a directory. Exiting.');
+    return null;
+  }
+
+  const watchPath = 'job_descriptions/'; // Watch path for job descriptions (define your path)
+  if (!filePath.startsWith(watchPath)) {
+    console.log('File is not in the watched path. Exiting.');
+    return null;
+  }
+
+  const bucket = storage.bucket(fileBucket);
+  const file = bucket.file(filePath);
+
+  const [content] = await file.download();
+
+  // Use the appropriate processor ID for job descriptions
+  const name = `projects/${projectId}/locations/${location}/processors/${jobDescriptionProcessorId}`;
+
+  const request = {
+    name,
+    rawDocument: {
+      content: content.toString('base64'),
+      mimeType: contentType,
+    },
+  };
+
+  try {
+    const [result] = await documentaiClient.processDocument(request);
+    const { document } = result;
+
+    if (document && document.text) {
+      const extractedText = document.text;
+
+      // Determine the output path for the extracted text
+      const fileName = path.basename(filePath);
+      const outputFileName = `${path.parse(fileName).name}_job_description.txt`; // Differentiate output file name
+      const outputFilePath = `processed_job_descriptions/${outputFileName}`; // Define output path for job descriptions
+
+      const outputFile = bucket.file(outputFilePath);
+      await outputFile.save(extractedText);
+
+      console.log(`Extracted job description text saved to gs://${fileBucket}/${outputFilePath}`);
+
+      await generateEmbeddings(extractedText, filePath, 'jobDescription'); // Call with dataType 'jobDescription'
+
+      return null;
+
+    } else {
+      console.log('No text extracted from the job description document.');
+      return null;
+    }
+
+  } catch (error) {
+    console.error('Error processing job description document with Document AI:', error);
+    return null;
+  }
+});
