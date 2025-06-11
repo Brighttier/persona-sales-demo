@@ -1,7 +1,7 @@
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
-import { Storage } from '@google-cloud/storage';
-import type { ObjectMetadata } from '@google-cloud/storage/build/cjs/src/storage'; // Attempting direct type import
+import { Storage } from '@google-cloud/build/cjs/src/storage';
+import type { ObjectMetadata } from '@google-cloud/storage'; // Attempting basic type import
 import path from 'path';
 import { Firestore } from '@google-cloud/firestore'; // Import Firestore
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
@@ -45,7 +45,7 @@ async function generateEmbeddings(text: string, filePath: string, { dataType }: 
         await collectionRef.add({
           text: text,
           // embedding: embeddingVector, // Temporarily commented out
-          filePath: filePath,\
+          filePath: filePath,
           timestamp: new Date(),
           ...(dataType && { dataType }),
         });
@@ -145,7 +145,7 @@ export const processJobDescription = onObjectFinalized(async (event) => {
   const filePath = object.name;
   const contentType = object.contentType;
 
-  if (!filePath || filePath.endsWith('/') || !contentType || !(contentType.startsWith('application/pdf') || contentType === 'text/plain'))) {
+  if (!filePath || filePath.endsWith('/') || !contentType || !(contentType.startsWith('application/pdf') || contentType === 'text/plain')) { // Added text/plain as an example, fixed potential syntax issue with closing paren
     console.log('Not a supported file type or a directory. Exiting.');
     return null;
   }
