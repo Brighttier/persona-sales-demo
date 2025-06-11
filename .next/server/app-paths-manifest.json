@@ -1,3 +1,4 @@
 {
-  "/page": "app/page.js"
+  "/dashboard/candidate/interviews/page": "app/dashboard/candidate/interviews/page.js",
+  "/dashboard/candidate/ai-interview/page": "app/dashboard/candidate/ai-interview/page.js"
 }
