@@ -1,6 +1,6 @@
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
-import { Storage } from '@google-cloud/build/cjs/src/storage'; // Corrected import path for Storage
+import { Storage } from '@google-cloud/storage'; // Corrected import path for Storage
 import type { ObjectMetadata } from '@google-cloud/build/cjs/src/storage'; // Attempting standard type import for ObjectMetadata
 import path from 'path';
 import { Firestore } from '@google-cloud/firestore'; // Import Firestore
