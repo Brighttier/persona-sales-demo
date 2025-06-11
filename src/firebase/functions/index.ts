@@ -1,7 +1,7 @@
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { Storage } from '@google-cloud/storage';
-import type { ObjectMetadata } from '@google-cloud/storage/build/cjs/src/storage'; // Attempting direct type import
+import type { ObjectMetadata } from '@google-cloud/storage'; // Attempting direct type import
 import path from 'path';
 import { Firestore } from '@google-cloud/firestore'; // Import Firestore
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
@@ -45,7 +45,7 @@ async function generateEmbeddings(text: string, filePath: string, { dataType }: 
         await collectionRef.add({
           text: text,
           // embedding: embeddingVector, // Temporarily commented out
-          filePath: filePath,
+          filePath: filePath,\
           timestamp: new Date(),
           ...(dataType && { dataType }),
         });
@@ -66,7 +66,13 @@ async function generateEmbeddings(text: string, filePath: string, { dataType }: 
 }
 
 export const processResume = onObjectFinalized(async (event) => {
-  const object: ObjectMetadata = event.data;
+  const object: ObjectMetadata | undefined = event.data;
+
+  if (!object) {
+    console.error('No object metadata found in the event.');
+    return null;
+  }
+
   const fileBucket = object.bucket;
   const filePath = object.name;
   const contentType = object.contentType;
@@ -85,19 +91,18 @@ export const processResume = onObjectFinalized(async (event) => {
   const bucket = storage.bucket(fileBucket);
   const file = bucket.file(filePath);
 
-  const [content] = await file.download();
-
-  const name = `projects/${projectId}/locations/${location}/processors/${processorId}`; // Use processorId for resumes
-
-  const request = {
-    name,
-    rawDocument: {
-      content: content.toString('base64'),
-      mimeType: contentType,
-    },
-  };
-
   try {
+    const [content] = await file.download();
+    const name = `projects/${projectId}/locations/${location}/processors/${processorId}`; // Use processorId for resumes
+
+    const request = {
+      name,
+      rawDocument: {
+        content: content.toString('base64'),
+        mimeType: contentType,
+      },
+    };
+
     const [result] = await documentaiClient.processDocument(request);
     const { document } = result;
 
@@ -106,14 +111,14 @@ export const processResume = onObjectFinalized(async (event) => {
 
       const fileName = path.basename(filePath);
       const outputFileName = `${path.parse(fileName).name}.txt`;
-      const outputFilePath = `parsed_resumes/${outputFileName}`; // Make sure this is correct
+      const outputFilePath = `parsed_resumes/${outputFileName}`;
 
       const outputFile = bucket.file(outputFilePath);
       await outputFile.save(extractedText);
 
       console.log(`Extracted text saved to gs://${fileBucket}/${outputFilePath}`);
 
-      await generateEmbeddings(extractedText, filePath, { dataType: 'resume' }); // Pass filePath and dataType
+      await generateEmbeddings(extractedText, filePath, { dataType: 'resume' });
 
       return null;
 
@@ -129,7 +134,13 @@ export const processResume = onObjectFinalized(async (event) => {
 });
 
 export const processJobDescription = onObjectFinalized(async (event) => {
-  const object: ObjectMetadata = event.data;
+  const object: ObjectMetadata | undefined = event.data;
+
+  if (!object) {
+    console.error('No object metadata found in the event.');
+    return null;
+  }
+
   const fileBucket = object.bucket;
   const filePath = object.name;
   const contentType = object.contentType;
@@ -148,19 +159,19 @@ export const processJobDescription = onObjectFinalized(async (event) => {
   const bucket = storage.bucket(fileBucket);
   const file = bucket.file(filePath);
 
-  const [content] = await file.download();
-
-  const name = `projects/${projectId}/locations/${location}/processors/${jobDescriptionProcessorId}`; // Use jobDescriptionProcessorId
-
-  const request = {
-    name,
-    rawDocument: {
-      content: content.toString('base64'),
-      mimeType: contentType,
-    },
-  };
-
   try {
+    const [content] = await file.download();
+
+    const name = `projects/${projectId}/locations/${location}/processors/${jobDescriptionProcessorId}`; // Use jobDescriptionProcessorId
+
+    const request = {
+      name,
+      rawDocument: {
+        content: content.toString('base64'),
+        mimeType: contentType,
+      },
+    };
+
     const [result] = await documentaiClient.processDocument(request);
     const { document } = result;
 
@@ -174,12 +185,16 @@ export const processJobDescription = onObjectFinalized(async (event) => {
       const jobDescriptionId = uuidv4(); // Generate a UUID
 
       const outputFile = bucket.file(outputFilePath);
-      await outputFile.setMetadata({ metadata: { jobId: jobDescriptionId } }); // Add UUID to metadata
+      // Object metadata is not directly mutable after creation this way.
+      // If you need to associate the UUID, save it alongside the file in Firestore
+      // or a separate metadata file, linked by filePath or generated ID.
+      // For now, commenting out setMetadata as it's likely incorrect usage.
+      // await outputFile.setMetadata({ metadata: { jobId: jobDescriptionId } }); // Add UUID to metadata
       await outputFile.save(extractedText);
 
       console.log(`Extracted job description text saved to gs://${fileBucket}/${outputFilePath}`);
 
-      await generateEmbeddings(extractedText, filePath, { dataType: 'jobDescription' }); // Call with dataType 'jobDescription'
+      await generateEmbeddings(extractedText, filePath, { dataType: 'jobDescription' });
 
       return null;
 
