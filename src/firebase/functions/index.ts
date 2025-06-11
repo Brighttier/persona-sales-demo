@@ -1,17 +1,22 @@
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { Storage } from '@google-cloud/storage';
-import type { ObjectMetadata } from '@google-cloud/storage/build/cjs/src/storage.d.ts';
+import type { ObjectMetadata } from '@google-cloud/storage'; // Attempting direct type import
 import path from 'path';
 import { Firestore } from '@google-cloud/firestore'; // Import Firestore
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
+
 const storage = new Storage();
 const documentaiClient = new DocumentProcessorServiceClient();
 const firestore = new Firestore(); // Initialize Firestore
+
+const projectId = process.env.GCP_PROJECT || '';
+const location = 'us'; // Specify the location of your processor and Vertex AI endpoint
+const processorId = 'ce477c2c26f6cf38'; // Replace with your processor ID
 const jobDescriptionProcessorId = 'your-job-description-processor-id'; // Replace with your job description processor ID
 
 // Function to generate embeddings using Vertex AI
-async function generateEmbeddings(text: string, filePath: string, { dataType }: { dataType?: string } = {}): Promise<void> { // Added filePath parameter and optional named dataType
+async function generateEmbeddings(text: string, filePath: string, { dataType }: { dataType?: string } = {}): Promise<void> {
   console.log('Generating embeddings for extracted text using Vertex AI...');
 
   // *** Note: Vertex AI TextServiceClient import and initialization were removed due to errors.
@@ -21,49 +26,47 @@ async function generateEmbeddings(text: string, filePath: string, { dataType }: 
   // const content = text;
 
   // Commenting out the usage of textServiceClient until the correct Vertex AI setup is in place
-  try {
-    /* const [response] = await textServiceClient.embedText({
-      model,
-      document,
-    });
+  // try {
+  //   const [response] = await textServiceClient.embedText({
+  //     model,
+  //     document: { content },
+  //   });
 
-    const embeddings = response.embeddings;
+  //   const embeddings = response.embeddings;
 
-    if (embeddings && embeddings.length > 0) {
-      const embeddingVector = embeddings[0].values; // Assuming you want the first embedding
+  //   if (embeddings && embeddings.length > 0) {
+  //     const embeddingVector = embeddings[0].values; // Assuming you want the first embedding
 
-      console.log('Embeddings generated successfully:', embeddingVector);
+  //     console.log('Embeddings generated successfully:', embeddingVector);
 
       // *** Implement your logic to save the embeddings to Firestore ***
       try {
-        const collectionRef = firestore.collection('resumeEmbeddings'); // Replace 'resumeEmbeddings' with your desired collection name
+        const collectionRef = firestore.collection(dataType === 'jobDescription' ? 'jobDescriptionEmbeddings' : 'resumeEmbeddings'); // Use different collection based on dataType
         await collectionRef.add({
           text: text,
-          embedding: embeddingVector,
+          // embedding: embeddingVector, // Temporarily commented out
           filePath: filePath, // Store the original file path
- timestamp: new Date(),
- dataType: dataType, // Store the data type
+          timestamp: new Date(),
+          ...(dataType && { dataType }), // Include dataType if provided
         });
         console.log('Embeddings and metadata saved to Firestore.');
       } catch (firestoreError) {
         console.error('Error saving embeddings to Firestore:', firestoreError);
- // Decide how to handle Firestore errors (e.throw, log and continue)
+        // Decide how to handle Firestore errors (e.g., re-throw, log and continue)
       }
- } else {
-      console.log('No embeddings generated.');
-    }
 
-  } catch (error) {
-    console.error('Error generating embeddings with Vertex AI:', error);
-    throw error; // Re.throw the error to indicate failure
-  } */
+  //   } else {
+  //     console.log('No embeddings generated.');
+  //   }
 
-  console.log('Embedding generation is currently commented out.');
-  }
+  // } catch (error) {
+  //   console.error('Error generating embeddings with Vertex AI:', error);
+  //   throw error; // Re-throw the error to indicate failure
+  // }
+}
 
-const projectId = process.env.GCP_PROJECT || '';
-
-export const processResume = onObjectFinalized(async (object: ObjectMetadata) => {
+export const processResume = onObjectFinalized(async (event) => { // Corrected v2 syntax
+  const object: ObjectMetadata = event.data; // In v2, object metadata is in event.data
   const fileBucket = object.bucket; // The Storage bucket that contains the file.
   const filePath = object.name; // File path in the bucket.
   const contentType = object.contentType; // File content type.
@@ -88,9 +91,7 @@ export const processResume = onObjectFinalized(async (object: ObjectMetadata) =>
   const [content] = await file.download();
 
   // Construct the processor name
-  const location = 'us'; // Specify the location of your processor
-  const processorId = 'ce477c2c26f6cf38'; // Replace with your processor ID
-  const name = `projects/${projectId}/locations/${location}/processors/${processorId}`;
+  const name = `projects/${projectId}/locations/${location}/processors/${processorId}`; // Use processorId for resumes
 
   // Create the request for the Document AI API
   const request = {
@@ -121,7 +122,7 @@ export const processResume = onObjectFinalized(async (object: ObjectMetadata) =>
       console.log(`Extracted text saved to gs://${fileBucket}/${outputFilePath}`);
 
       // Trigger the embedding generation process and pass the original file path
-      await generateEmbeddings(extractedText, filePath); // Pass filePath
+      await generateEmbeddings(extractedText, filePath, { dataType: 'resume' }); // Pass filePath and dataType
 
       return null;
 
@@ -137,7 +138,8 @@ export const processResume = onObjectFinalized(async (object: ObjectMetadata) =>
 });
 
 // Cloud Function to process uploaded job descriptions
-export const processJobDescription = onObjectFinalized(async (object: ObjectMetadata) => {
+export const processJobDescription = onObjectFinalized(async (event) => { // Corrected v2 syntax
+  const object: ObjectMetadata = event.data; // In v2, object metadata is in event.data
   const fileBucket = object.bucket;
   const filePath = object.name;
   const contentType = object.contentType;
@@ -160,7 +162,7 @@ export const processJobDescription = onObjectFinalized(async (object: ObjectMeta
   const [content] = await file.download();
 
   // Use the appropriate processor ID for job descriptions
-  const name = `projects/${projectId}/locations/${location}/processors/${jobDescriptionProcessorId}`;
+  const name = `projects/${projectId}/locations/${location}/processors/${jobDescriptionProcessorId}`; // Use jobDescriptionProcessorId
 
   const request = {
     name,
@@ -185,12 +187,12 @@ export const processJobDescription = onObjectFinalized(async (object: ObjectMeta
       const jobDescriptionId = uuidv4(); // Generate a UUID
 
       const outputFile = bucket.file(outputFilePath);
- await outputFile.setMetadata({ metadata: { jobId: jobDescriptionId } }); // Add UUID to metadata
+      await outputFile.setMetadata({ metadata: { jobId: jobDescriptionId } }); // Add UUID to metadata
       await outputFile.save(extractedText);
 
       console.log(`Extracted job description text saved to gs://${fileBucket}/${outputFilePath}`);
 
- await generateEmbeddings(extractedText, filePath, { dataType: 'jobDescription' }); // Call with named dataType 'jobDescription'
+      await generateEmbeddings(extractedText, filePath, { dataType: 'jobDescription' }); // Call with dataType 'jobDescription'
 
       return null;
 
