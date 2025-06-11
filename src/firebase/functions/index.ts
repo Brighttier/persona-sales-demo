@@ -1,5 +1,5 @@
 import * as functions from 'firebase-functions';
-import { Storage } from '@google-cloud/storage';
+import { Storage, ObjectMetadata } from '@google-cloud/storage';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { TextServiceClient } from '@google-cloud/text-embeddings'; // Import Vertex AI TextServiceClient
 import path from 'path';
@@ -16,7 +16,7 @@ const processorId = 'ce477c2c26f6cf38'; // Replace with your processor ID
 const jobDescriptionProcessorId = 'your-job-description-processor-id'; // Replace with your job description processor ID
 
 // Function to generate embeddings using Vertex AI
-async function generateEmbeddings(text: string, filePath: string): Promise<void> { // Added filePath parameter
+async function generateEmbeddings(text: string, filePath: string, dataType?: string): Promise<void> { // Added filePath parameter and optional dataType
   console.log('Generating embeddings for extracted text using Vertex AI...');
 
   const model = 'text-embedding-005';
@@ -44,6 +44,7 @@ async function generateEmbeddings(text: string, filePath: string): Promise<void>
           embedding: embeddingVector,
           filePath: filePath, // Store the original file path
           timestamp: new Date(),
+ dataType: dataType, // Store the data type
         });
         console.log('Embeddings and metadata saved to Firestore.');
       } catch (firestoreError) {
@@ -61,7 +62,7 @@ async function generateEmbeddings(text: string, filePath: string): Promise<void>
   }
 }
 
-export const processResume = functions.storage.object().onFinalize(async (object) => {
+export const processResume = functions.storage.object().onFinalize(async (object: ObjectMetadata) => {
   const fileBucket = object.bucket; // The Storage bucket that contains the file.
   const filePath = object.name; // File path in the bucket.
   const contentType = object.contentType; // File content type.
@@ -133,7 +134,7 @@ export const processResume = functions.storage.object().onFinalize(async (object
 });
 
 // Cloud Function to process uploaded job descriptions
-export const processJobDescription = functions.storage.object().onFinalize(async (object) => {
+export const processJobDescription = functions.storage.object().onFinalize(async (object: ObjectMetadata) => {
   const fileBucket = object.bucket;
   const filePath = object.name;
   const contentType = object.contentType;
@@ -186,7 +187,7 @@ export const processJobDescription = functions.storage.object().onFinalize(async
 
       console.log(`Extracted job description text saved to gs://${fileBucket}/${outputFilePath}`);
 
-      await generateEmbeddings(extractedText, filePath, 'jobDescription'); // Call with dataType 'jobDescription'
+ await generateEmbeddings(extractedText, filePath, { dataType: 'jobDescription' }); // Call with dataType 'jobDescription'
 
       return null;
 
