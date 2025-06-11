@@ -1,13 +1,13 @@
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
-import { Storage, type ObjectMetadata } from '@google-cloud/storage';
+import { Storage } from '@google-cloud/storage';
+import type { ObjectMetadata } from '@google-cloud/storage/build/src/storage';
 import path from 'path';
 import { Firestore } from '@google-cloud/firestore'; // Import Firestore
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
 const storage = new Storage();
 const documentaiClient = new DocumentProcessorServiceClient();
 const firestore = new Firestore(); // Initialize Firestore
-const projectId = process.env.GCP_PROJECT || '';
 const jobDescriptionProcessorId = 'your-job-description-processor-id'; // Replace with your job description processor ID
 
 // Function to generate embeddings using Vertex AI
@@ -49,8 +49,7 @@ async function generateEmbeddings(text: string, filePath: string, { dataType }: 
         console.error('Error saving embeddings to Firestore:', firestoreError);
  // Decide how to handle Firestore errors (e.throw, log and continue)
       }
-
-    } else {
+ } else {
       console.log('No embeddings generated.');
     }
 
@@ -61,7 +60,8 @@ async function generateEmbeddings(text: string, filePath: string, { dataType }: 
 
   console.log('Embedding generation is currently commented out.');
   }
-}
+
+const projectId = process.env.GCP_PROJECT || '';
 
 export const processResume = onObjectFinalized(async (object: ObjectMetadata) => {
   const fileBucket = object.bucket; // The Storage bucket that contains the file.
