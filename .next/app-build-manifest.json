@@ -21,10 +21,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/candidate/dashboard/page.js"
     ],
-    "/dashboard/candidate/interviews/page": [
+    "/dashboard/candidate/applications/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/candidate/interviews/page.js"
+      "static/chunks/app/dashboard/candidate/applications/page.js"
     ],
     "/dashboard/candidate/ai-interview/page": [
       "static/chunks/webpack.js",
