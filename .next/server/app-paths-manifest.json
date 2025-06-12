@@ -2,5 +2,6 @@
   "/page": "app/page.js",
   "/dashboard/candidate/dashboard/page": "app/dashboard/candidate/dashboard/page.js",
   "/dashboard/candidate/applications/page": "app/dashboard/candidate/applications/page.js",
+  "/dashboard/candidate/interviews/page": "app/dashboard/candidate/interviews/page.js",
   "/dashboard/candidate/ai-interview/page": "app/dashboard/candidate/ai-interview/page.js"
 }
