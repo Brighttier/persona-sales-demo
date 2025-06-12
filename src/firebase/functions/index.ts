@@ -145,7 +145,7 @@ export const processJobDescription = onObjectFinalized(async (event) => {
   const filePath = object.name;
   const contentType = object.contentType;
 
-  if (!filePath || filePath.endsWith('/') || !contentType || !(contentType.startsWith('application/pdf') || contentType === 'text/plain'))) { // Added text/plain as an example, fixed potential syntax issue with closing paren
+  if (!filePath || filePath.endsWith('/') || !contentType || !(contentType.startsWith('application/pdf') || contentType === 'text/plain'))), { // Added text/plain as an example, fixed potential syntax issue with closing paren
     console.log('Not a supported file type or a directory. Exiting.');
     return null;
   }
