@@ -107,7 +107,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
 
   // State for signed URL
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // Create conversation session and get signed URL from Cloud Function
   const createConversationSession = useCallback(async () => {
@@ -141,7 +141,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       }
       
       setSignedUrl(data.signedUrl);
-      setConversationId(data.conversationId);
+      setSessionId(data.data?.sessionId);
       return data.signedUrl;
     } catch (error) {
       console.error('Error creating conversation session:', error);
@@ -149,38 +149,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
   }, [jobContext]);
 
-  // End conversation session via Cloud Function
-  const endConversationSession = useCallback(async () => {
-    if (!conversationId) return;
-    
-    try {
-      const response = await fetch('https://us-central1-replit-4f946.cloudfunctions.net/elevenlabs-conversation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'end_session',
-          conversationId: conversationId,
-        }),
-      });
-      
-      if (!response.ok) {
-        console.warn(`Failed to end conversation session: ${response.status}`);
-        return;
-      }
-      
-      const data = await response.json();
-      if (data.success) {
-        console.log('Conversation session ended successfully:', conversationId);
-      } else {
-        console.warn('Failed to end conversation session:', data.error);
-      }
-    } catch (error) {
-      console.warn('Error ending conversation session:', error);
-      // Don't throw - this is not critical
-    }
-  }, [conversationId]);
+  // Note: ElevenLabs conversations end automatically when the WebSocket connection closes
+  // No explicit "end session" API call needed since we use signed URLs
 
   // ElevenLabs Conversation setup with proper configuration
   const conversation = useConversation({
@@ -399,8 +369,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       conversation.endSession().catch(e => console.error("CleanupResources: Error ending EL session:", e))
                                .finally(() => { isIntentionalDisconnectRef.current = false; });
       
-      // Also end session via Cloud Function for proper cleanup
-      endConversationSession();
+      // ElevenLabs conversations end automatically when WebSocket closes
     } else {
       console.log("CleanupResources: EL session not connected or already cleaned up.");
     }
@@ -437,7 +406,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
     isInterviewActiveRef.current = false;
     console.log("CleanupResources: Finished.");
-  }, [conversation, endConversationSession]);
+  }, [conversation]);
 
   const submitForFinalFeedback = useCallback(async (videoBlob: Blob | null) => {
     if (!videoBlob || videoBlob.size === 0) {

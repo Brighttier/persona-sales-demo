@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { Firestore } from '@google-cloud/firestore';
-import * as cors from 'cors';
+import cors from 'cors';
 
 const corsHandler = cors({ origin: true });
 const secretManager = new SecretManagerServiceClient();
@@ -12,8 +12,7 @@ const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/';
 const AGENT_ID = 'EVQJtCNSo0L6uHQnImQu';
 
 interface ConversationRequest {
-  action: 'create_session' | 'get_signed_url' | 'end_session';
-  conversationId?: string;
+  action: 'create_session' | 'get_signed_url';
   userId?: string;
   candidateId?: string;
   jobId?: string;
@@ -25,7 +24,6 @@ interface ConversationResponse {
   data?: any;
   error?: string;
   signedUrl?: string;
-  conversationId?: string;
 }
 
 async function getSecret(secretName: string): Promise<string> {
@@ -39,63 +37,35 @@ async function getSecret(secretName: string): Promise<string> {
   }
 }
 
-async function createConversationSession(
-  apiKey: string,
-  metadata?: Record<string, any>
-): Promise<{ conversationId: string }> {
-  const response = await fetch(`${ELEVENLABS_API_URL}conversational-ai/conversations`, {
-    method: 'POST',
+async function createSignedUrl(apiKey: string): Promise<string> {
+  const response = await fetch(`${ELEVENLABS_API_URL}convai/conversation/get_signed_url?agent_id=${AGENT_ID}`, {
+    method: 'GET',
     headers: {
       'xi-api-key': apiKey,
-      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      agent_id: AGENT_ID,
-      ...(metadata && { metadata })
-    }),
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to create conversation: ${response.status} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  return { conversationId: data.conversation_id };
-}
-
-async function getSignedUrl(apiKey: string, conversationId: string): Promise<string> {
-  const response = await fetch(
-    `${ELEVENLABS_API_URL}conversational-ai/conversations/${conversationId}/get_signed_url`,
-    {
-      method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
 
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Failed to get signed URL: ${response.status} - ${errorText}`);
   }
 
-  const data = await response.json();
+  const data = await response.json() as { signed_url: string };
   return data.signed_url;
 }
 
+
 async function storeConversationMetadata(
-  conversationId: string,
+  sessionId: string,
   userId?: string,
   candidateId?: string,
   jobId?: string,
   metadata?: Record<string, any>
 ) {
   try {
-    const doc = firestore.collection('conversation-sessions').doc(conversationId);
+    const doc = firestore.collection('conversation-sessions').doc(sessionId);
     await doc.set({
-      conversationId,
+      sessionId,
       agentId: AGENT_ID,
       userId,
       candidateId,
@@ -105,26 +75,13 @@ async function storeConversationMetadata(
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
-    console.log(`Stored conversation metadata for ${conversationId}`);
+    console.log(`Stored conversation metadata for ${sessionId}`);
   } catch (error) {
     console.error('Error storing conversation metadata:', error);
     // Don't throw - this is not critical for the conversation to work
   }
 }
 
-async function updateConversationStatus(conversationId: string, status: string) {
-  try {
-    const doc = firestore.collection('conversation-sessions').doc(conversationId);
-    await doc.update({
-      status,
-      updatedAt: new Date().toISOString(),
-      ...(status === 'ended' && { endedAt: new Date().toISOString() })
-    });
-    console.log(`Updated conversation ${conversationId} status to ${status}`);
-  } catch (error) {
-    console.error('Error updating conversation status:', error);
-  }
-}
 
 export const elevenLabsConversation = async (req: Request, res: Response): Promise<void> => {
   return new Promise((resolve) => {
@@ -154,7 +111,7 @@ export const elevenLabsConversation = async (req: Request, res: Response): Promi
           return;
         }
 
-        const { action, conversationId, userId, candidateId, jobId, metadata }: ConversationRequest = req.body;
+        const { action, userId, candidateId, jobId, metadata }: ConversationRequest = req.body;
 
         if (!action) {
           res.status(400).json({ success: false, error: 'Action is required' });
@@ -175,12 +132,12 @@ export const elevenLabsConversation = async (req: Request, res: Response): Promi
         switch (action) {
           case 'create_session':
             try {
-              const sessionData = await createConversationSession(apiKey, metadata);
-              const signedUrl = await getSignedUrl(apiKey, sessionData.conversationId);
+              const signedUrl = await createSignedUrl(apiKey);
+              const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
               
               // Store conversation metadata for webhook processing
               await storeConversationMetadata(
-                sessionData.conversationId,
+                sessionId,
                 userId,
                 candidateId,
                 jobId,
@@ -189,9 +146,8 @@ export const elevenLabsConversation = async (req: Request, res: Response): Promi
 
               result = {
                 success: true,
-                conversationId: sessionData.conversationId,
                 signedUrl,
-                data: sessionData
+                data: { sessionId }
               };
             } catch (error) {
               console.error('Error creating conversation session:', error);
@@ -203,35 +159,14 @@ export const elevenLabsConversation = async (req: Request, res: Response): Promi
             break;
 
           case 'get_signed_url':
-            if (!conversationId) {
-              result = { success: false, error: 'Conversation ID is required for signed URL' };
-              break;
-            }
             try {
-              const signedUrl = await getSignedUrl(apiKey, conversationId);
+              const signedUrl = await createSignedUrl(apiKey);
               result = { success: true, signedUrl };
             } catch (error) {
               console.error('Error getting signed URL:', error);
               result = {
                 success: false,
                 error: error instanceof Error ? error.message : 'Failed to get signed URL'
-              };
-            }
-            break;
-
-          case 'end_session':
-            if (!conversationId) {
-              result = { success: false, error: 'Conversation ID is required to end session' };
-              break;
-            }
-            try {
-              await updateConversationStatus(conversationId, 'ended');
-              result = { success: true, data: { conversationId, status: 'ended' } };
-            } catch (error) {
-              console.error('Error ending session:', error);
-              result = {
-                success: false,
-                error: error instanceof Error ? error.message : 'Failed to end session'
               };
             }
             break;

@@ -2,7 +2,7 @@
   "name": "elevenlabs-conversation",
   "version": "1.0.0",
   "description": "Google Cloud Function for ElevenLabs Conversational AI integration",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
     "start": "npm run build && functions-framework --target=elevenLabsConversation",

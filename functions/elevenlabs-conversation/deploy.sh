@@ -19,7 +19,7 @@ gcloud functions deploy elevenlabs-conversation \
   --region=us-central1 \
   --source=. \
   --entry-point=elevenLabsConversation \
-  --trigger=https \
+  --trigger-http \
   --allow-unauthenticated \
   --memory=512MB \
   --timeout=60s \

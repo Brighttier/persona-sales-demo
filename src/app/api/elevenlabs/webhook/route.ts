@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get headers
-    const headersList = headers();
+    const headersList = await headers();
     const signature = headersList.get('elevenlabs-signature');
     const timestamp = headersList.get('elevenlabs-timestamp');
 
