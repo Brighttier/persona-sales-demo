@@ -105,6 +105,27 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const stageRef = useRef(stage);
   useEffect(() => { stageRef.current = stage; }, [stage]);
 
+  // State for signed URL
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+
+  // Get signed URL from server
+  const getSignedUrl = useCallback(async () => {
+    try {
+      const response = await fetch('/api/elevenlabs/signed-url');
+      if (!response.ok) {
+        throw new Error(`Failed to get signed URL: ${response.status}`);
+      }
+      const data = await response.json();
+      setSignedUrl(data.signed_url);
+      setConversationId(data.conversation_id);
+      return data.signed_url;
+    } catch (error) {
+      console.error('Error getting signed URL:', error);
+      throw error;
+    }
+  }, []);
+
   // ElevenLabs Conversation setup with proper configuration
   const conversation = useConversation({
     onConnect: useCallback(() => {
@@ -532,13 +553,15 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           if (prev === null || prev <= 1) {
             if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
             countdownIntervalRef.current = null;
-            console.log("Countdown finished. Starting EL session.");
+            console.log("Countdown finished. Getting signed URL and starting EL session.");
             
-            // Start ElevenLabs session with your agent ID
-            conversation.startSession({
-              agentId: 'EVQJtCNSo0L6uHQnImQu'
+            // Get signed URL and start ElevenLabs session
+            getSignedUrl().then(url => {
+              return conversation.startSession({
+                url: url
+              });
             }).then(() => {
-              console.log("EL session started successfully");
+              console.log("EL session started successfully with signed URL");
             }).catch(err => {
               console.error("Failed to start EL session:", err);
               handleElevenError(err as Error, "startSession EL");
@@ -567,7 +590,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       cleanupResources();
       resetFullInterview();
     }
-  }, [toast, resetFullInterview, cleanupResources, handleElevenError, conversation]);
+  }, [toast, resetFullInterview, cleanupResources, handleElevenError, conversation, getSignedUrl]);
 
   const handleConsentAndStart = () => {
     resetFullInterview();
