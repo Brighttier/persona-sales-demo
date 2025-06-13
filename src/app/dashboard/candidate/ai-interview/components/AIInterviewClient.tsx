@@ -116,12 +116,12 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const [elevenLabsAvailable, setElevenLabsAvailable] = useState<boolean | null>(null);
   
   useEffect(() => {
-    // Check if ElevenLabs API is available
-    fetch('/api/elevenlabs/tts')
+    // Check if ElevenLabs Conversational AI is available
+    fetch('/api/elevenlabs/conversation')
       .then(res => res.json())
       .then(data => {
         setElevenLabsAvailable(data.hasApiKey);
-        console.log('ElevenLabs API Status:', data);
+        console.log('ElevenLabs Conversational AI Status:', data);
       })
       .catch(err => {
         console.error('Failed to check ElevenLabs status:', err);
@@ -276,6 +276,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   }, [toast, cleanupResources, resetFullInterview]);
 
   const conversation = ElevenReact.useConversation({
+      agentId: "EVQJtCNSo0L6uHQnImQuThe", // Your conversational agent ID
       onConnect: useCallback(() => {
           if (isProcessingErrorRef.current) { console.warn("EL onConnect: Prevented due to active error processing."); isStartingSessionRef.current = false; return; }
           console.log("EL onConnect: Agent connected. Setting up MediaRecorder.");
@@ -508,25 +509,26 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   }, [conversationMessages, stage]);
 
 
-  // Debug logging for ElevenLabs API key
-  useEffect(() => {
-    console.log('ElevenLabs API Key Status:', {
-      hasKey: !!elevenLabsApiKey,
-      keyLength: elevenLabsApiKey?.length || 0,
-      envVars: Object.keys(process.env).filter(key => key.includes('ELEVEN')),
-    });
-  }, [elevenLabsApiKey]);
+  // Show loading while checking ElevenLabs availability
+  if (elevenLabsAvailable === null) {
+    return (
+      <Alert className="shadow-lg mt-6">
+        <Loader2 className="h-4 w-4 animate-spin" /> 
+        <AlertTitle>Checking Configuration</AlertTitle>
+        <AlertDescription>Verifying ElevenLabs API availability...</AlertDescription>
+      </Alert>
+    );
+  }
 
-  if (!elevenLabsApiKey) {
+  // Show error if ElevenLabs is not available
+  if (elevenLabsAvailable === false) {
     return (
       <Alert variant="destructive" className="shadow-lg mt-6">
-        <AlertCircle className="h-4 w-4" /> <AlertTitle>Configuration Error</AlertTitle>
+        <AlertCircle className="h-4 w-4" /> 
+        <AlertTitle>Configuration Error</AlertTitle>
         <AlertDescription>
-          The ElevenLabs API Key is missing. Please set NEXT_PUBLIC_ELEVENLABS_API_KEY.
-          <br />
-          <small className="text-xs mt-2 block">
-            Debug: Environment variables available: {Object.keys(process.env).filter(key => key.includes('ELEVEN')).join(', ') || 'None found'}
-          </small>
+          The ElevenLabs API is not properly configured on the server. 
+          Please ensure the ELEVENLABS_API_KEY environment variable is set.
         </AlertDescription>
       </Alert>
     );
