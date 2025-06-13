@@ -1,25 +1,59 @@
-# Settings for Backend (on Cloud Run).
-# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
+# Settings for Persona Sales Demo Backend (on Cloud Run)
+# Optimized for Next.js production deployment
 runConfig:
   minInstances: 0
-  # maxInstances: 100
-  # concurrency: 80
-  # cpu: 1
-  # memoryMiB: 512
+  maxInstances: 10
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 1024
 
-# Environment variables and secrets.
+# Environment variables and secrets for production
 env:
-  # Configure environment variables.
-  # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
-  # - variable: MESSAGE
-  #   value: Hello world!
-  #   availability:
-  #     - BUILD
-  #     - RUNTIME
+  # Firebase Configuration (Public)
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyAq_fOXtlSMfIEw-C9EQf-_FsqtoCOg2Qk
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: replit-4f946.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: replit-4f946
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: replit-4f946.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "1091951299632"
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:1091951299632:web:4680336f7f98a75c4f71f5
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: GCP_PROJECT
+    value: replit-4f946
+    availability:
+      - BUILD
+      - RUNTIME
 
-  # Grant access to secrets in Cloud Secret Manager.
-  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
-  # - variable: MY_SECRET
-  #   secret: mySecretRef
+  # API Keys (Secrets) - Store these in Secret Manager
   - variable: ELEVEN_LABS_API_KEY
-    secret: eleven-labs-api-key # Make sure 'eleven-labs-api-key' matches your secret name in Secret Manager
+    secret: eleven-labs-api-key
+    availability:
+      - RUNTIME
