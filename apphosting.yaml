@@ -52,14 +52,7 @@ env:
       - BUILD
       - RUNTIME
 
-  # API Keys (Secrets) - Store these in Secret Manager
-  # ElevenLabs API key for server-side usage only (client uses signed URLs)
-  - variable: ELEVENLABS_API_KEY
-    secret: NEXT_PUBLIC_ELEVENLABS_API_KEY
-    availability:
-      - RUNTIME
-  
-  # ElevenLabs webhook secret for validating webhook signatures
+  # ElevenLabs webhook secret for validating webhook signatures (server-side only)
   - variable: ELEVENLABS_WEBHOOK_SECRET
     secret: ELEVENLABS_WEBHOOK_SECRET
     availability:
