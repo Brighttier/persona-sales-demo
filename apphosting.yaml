@@ -58,3 +58,9 @@ env:
     secret: NEXT_PUBLIC_ELEVENLABS_API_KEY
     availability:
       - RUNTIME
+  
+  # ElevenLabs webhook secret for validating webhook signatures
+  - variable: ELEVENLABS_WEBHOOK_SECRET
+    secret: ELEVENLABS_WEBHOOK_SECRET
+    availability:
+      - RUNTIME
