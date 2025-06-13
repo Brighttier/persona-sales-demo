@@ -8,7 +8,7 @@ runConfig:
   # memoryMiB: 512
 
 # Environment variables and secrets.
-# env:
+env:
   # Configure environment variables.
   # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
   # - variable: MESSAGE
@@ -21,3 +21,5 @@ runConfig:
   # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
   # - variable: MY_SECRET
   #   secret: mySecretRef
+  - variable: ELEVEN_LABS_API_KEY
+    secret: eleven-labs-api-key # Make sure 'eleven-labs-api-key' matches your secret name in Secret Manager
