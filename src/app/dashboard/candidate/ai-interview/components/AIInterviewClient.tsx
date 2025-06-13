@@ -208,7 +208,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         isInterviewActiveRef.current = false;
         handleElevenError(e as Error, "onConnect MediaRecorder Init");
       }
-    }, [toast]),
+    }, [toast, handleElevenError, submitForFinalFeedback, cleanupResources, resetFullInterview, handleFinishInterview]),
 
     onDisconnect: useCallback(() => {
       console.log("EL onDisconnect. Intentional:", isIntentionalDisconnectRef.current, "ProcessingError:", isProcessingErrorRef.current, "StartingSession:", isStartingSessionRef.current, "InterviewActive:", isInterviewActiveRef.current);
@@ -232,7 +232,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       } else {
         console.log("EL onDisconnect: Disconnected in a non-active state, likely after intentional end or handled error.");
       }
-    }, [toast]),
+    }, [toast, handleFinishInterview, handleElevenError]),
 
     onMessage: useCallback((message: any) => {
       if (isProcessingErrorRef.current) return;
@@ -280,11 +280,11 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           setFullTranscript(prev => prev + `\\nCandidate: ${textContent}`);
         }
       }
-    }, []),
+    }, [conversation]),
 
     onError: useCallback((message: string, context?: any) => {
       handleElevenError(new Error(message), context ? `useConversation onError: ${context}` : "useConversation onError");
-    }, []),
+    }, [handleElevenError]),
   });
 
   const { status, isSpeaking } = conversation;
