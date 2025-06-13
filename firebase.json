@@ -40,6 +40,28 @@
         "firebase-debug.*.log",
         "functions"
       ]
+    },
+    {
+      "backendId": "persona-backend",
+      "rootDir": "/home/user/persona-sales-demo/",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
+      ]
+    },
+    {
+      "backendId": "persona-backend",
+      "rootDir": "/",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
+      ]
     }
   ]
 }
