@@ -112,9 +112,22 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const stageRef = useRef(stage);
   useEffect(() => { stageRef.current = stage; }, [stage]);
 
-  // Get ElevenLabs API key with fallback
-  const elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || 
-                          (typeof window !== 'undefined' && (window as any).NEXT_PUBLIC_ELEVENLABS_API_KEY);
+  // Check if ElevenLabs API is available server-side
+  const [elevenLabsAvailable, setElevenLabsAvailable] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    // Check if ElevenLabs API is available
+    fetch('/api/elevenlabs/tts')
+      .then(res => res.json())
+      .then(data => {
+        setElevenLabsAvailable(data.hasApiKey);
+        console.log('ElevenLabs API Status:', data);
+      })
+      .catch(err => {
+        console.error('Failed to check ElevenLabs status:', err);
+        setElevenLabsAvailable(false);
+      });
+  }, []);
 
   const resetFullInterview = useCallback(() => {
     console.log("ResetFullInterview: Resetting states and refs...");
