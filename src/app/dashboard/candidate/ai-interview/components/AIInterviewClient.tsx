@@ -30,7 +30,7 @@ type Message = { sender: "user" | "agent"; text: string; timestamp: number };
 
 const SESSION_COUNTDOWN_SECONDS = 3;
 const MAX_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 minutes
-const ELEVENLABS_AGENT_ID = "EVQJtCNSo0L6uHQnImQu";
+const ELEVENLABS_AGENT_ID = "EVQJtCNSo0L6uHQnImQuThe";
 
 const formatFeedbackText = (text: string | undefined): React.ReactNode => {
   if (!text) return "No content available.";
@@ -275,8 +275,25 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     setTimeout(() => { isProcessingErrorRef.current = false; }, 2000); // Cooldown
   }, [toast, cleanupResources, resetFullInterview]);
 
+  // Get API key from server-side endpoint
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Get a temporary API key or token from server
+    fetch('/api/elevenlabs/conversation')
+      .then(res => res.json())
+      .then(data => {
+        if (data.hasApiKey) {
+          // Get the API key from environment variable that's available on client-side
+          setApiKey(process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || null);
+        }
+      })
+      .catch(err => console.error('Failed to get API config:', err));
+  }, []);
+
   const conversation = ElevenReact.useConversation({
       agentId: "EVQJtCNSo0L6uHQnImQuThe", // Your conversational agent ID
+      ...(apiKey && { apiKey }), // Provide API key if available
       onConnect: useCallback(() => {
           if (isProcessingErrorRef.current) { console.warn("EL onConnect: Prevented due to active error processing."); isStartingSessionRef.current = false; return; }
           console.log("EL onConnect: Agent connected. Setting up MediaRecorder.");
@@ -406,7 +423,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       return;
     }
     setMediaError(null); setFeedbackResult(null);
-    if (!elevenLabsApiKey) { setMediaError("Config Error: ElevenLabs API Key missing."); toast({variant: "destructive", title: "Config Error", description: "ElevenLabs API Key missing."}); resetFullInterview(); return; }
+    if (!apiKey) { setMediaError("Config Error: ElevenLabs API Key missing."); toast({variant: "destructive", title: "Config Error", description: "ElevenLabs API Key missing."}); resetFullInterview(); return; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setMediaError("Media recording not supported."); toast({ variant: "destructive", title: "Unsupported Browser", description: "Media recording not supported." }); setCameraPermission(false); setMicPermission(false); resetFullInterview(); return; }
 
     isStartingSessionRef.current = true;
@@ -484,7 +501,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       setMediaError(desc); toast({ variant: "destructive", title: "Media Error", description: desc });
       isStartingSessionRef.current = false; cleanupResources(); resetFullInterview();
     }
-  }, [toast, elevenLabsApiKey, resetFullInterview, cleanupResources, handleElevenError]);
+  }, [toast, apiKey, resetFullInterview, cleanupResources, handleElevenError]);
 
   const handleConsentAndStart = () => {
     resetFullInterview(); 

@@ -53,8 +53,15 @@ env:
       - RUNTIME
 
   # API Keys (Secrets) - Store these in Secret Manager
-  # ElevenLabs API key should be server-side only for security
+  # ElevenLabs API key for server-side usage
   - variable: ELEVENLABS_API_KEY
     secret: NEXT_PUBLIC_ELEVENLABS_API_KEY
     availability:
+      - RUNTIME
+  
+  # ElevenLabs API key for client-side React SDK (required by @11labs/react)
+  - variable: NEXT_PUBLIC_ELEVENLABS_API_KEY
+    secret: NEXT_PUBLIC_ELEVENLABS_API_KEY
+    availability:
+      - BUILD
       - RUNTIME
