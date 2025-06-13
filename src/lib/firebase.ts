@@ -22,22 +22,35 @@ export const db = getFirestore(app);
 export const functions = getFunctions(app);
 export const storage = getStorage(app);
 
-// Connect to emulators in development
+// Connect to emulators in development (only if explicitly configured)
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-  // Only connect if not already connected
-  try {
-    const authEmulatorHost = process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST || 'localhost:9099';
-    const firestoreEmulatorHost = process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST || 'localhost:8080';
-    const functionsEmulatorHost = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_EMULATOR_HOST || 'localhost:5001';
+  // Only connect to emulators if they are explicitly configured
+  if (process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST || 
+      process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST || 
+      process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_EMULATOR_HOST) {
     
-    connectAuthEmulator(auth, `http://${authEmulatorHost}`, { disableWarnings: true });
-    const [firestoreHost, firestorePort] = firestoreEmulatorHost.split(':');
-    connectFirestoreEmulator(db, firestoreHost, parseInt(firestorePort));
-    const [functionsHost, functionsPort] = functionsEmulatorHost.split(':');
-    connectFunctionsEmulator(functions, functionsHost, parseInt(functionsPort));
-  } catch (error) {
-    // Emulators already connected
-    console.log('Firebase emulators already connected');
+    try {
+      if (process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST) {
+        connectAuthEmulator(auth, `http://${process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST}`, { disableWarnings: true });
+        console.log('Connected to Auth emulator');
+      }
+      
+      if (process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST) {
+        const [firestoreHost, firestorePort] = process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST.split(':');
+        connectFirestoreEmulator(db, firestoreHost, parseInt(firestorePort));
+        console.log('Connected to Firestore emulator');
+      }
+      
+      if (process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_EMULATOR_HOST) {
+        const [functionsHost, functionsPort] = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_EMULATOR_HOST.split(':');
+        connectFunctionsEmulator(functions, functionsHost, parseInt(functionsPort));
+        console.log('Connected to Functions emulator');
+      }
+    } catch (error) {
+      console.log('Firebase emulators already connected or failed to connect:', error);
+    }
+  } else {
+    console.log('Using production Firebase services');
   }
 }
 
