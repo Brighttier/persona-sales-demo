@@ -26,9 +26,15 @@ export const storage = getStorage(app);
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   // Only connect if not already connected
   try {
-    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-    connectFirestoreEmulator(db, 'localhost', 8080);
-    connectFunctionsEmulator(functions, 'localhost', 5001);
+    const authEmulatorHost = process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST || 'localhost:9099';
+    const firestoreEmulatorHost = process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST || 'localhost:8080';
+    const functionsEmulatorHost = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_EMULATOR_HOST || 'localhost:5001';
+    
+    connectAuthEmulator(auth, `http://${authEmulatorHost}`, { disableWarnings: true });
+    const [firestoreHost, firestorePort] = firestoreEmulatorHost.split(':');
+    connectFirestoreEmulator(db, firestoreHost, parseInt(firestorePort));
+    const [functionsHost, functionsPort] = functionsEmulatorHost.split(':');
+    connectFunctionsEmulator(functions, functionsHost, parseInt(functionsPort));
   } catch (error) {
     // Emulators already connected
     console.log('Firebase emulators already connected');
