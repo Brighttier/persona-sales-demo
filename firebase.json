@@ -1,10 +1,16 @@
 {
   "hosting": {
-    "public": "/home/user/persona-sales-demo/persona-sales-demo/out",
+    "public": "out",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   },
   "apphosting": [
