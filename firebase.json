@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "persona-sales-demo/out",
+    "public": "/home/user/persona-sales-demo/persona-sales-demo/out",
     "ignore": [
       "firebase.json",
       "**/.*",
