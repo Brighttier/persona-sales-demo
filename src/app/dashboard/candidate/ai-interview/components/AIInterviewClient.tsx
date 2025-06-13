@@ -109,22 +109,78 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
-  // Get signed URL from server
-  const getSignedUrl = useCallback(async () => {
+  // Create conversation session and get signed URL from Cloud Function
+  const createConversationSession = useCallback(async () => {
     try {
-      const response = await fetch('/api/elevenlabs/signed-url');
+      const response = await fetch('https://us-central1-replit-4f946.cloudfunctions.net/elevenlabs-conversation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'create_session',
+          userId: 'current-user', // TODO: Get from auth context
+          candidateId: 'current-candidate', // TODO: Get from context
+          jobId: jobContext.jobTitle, // Use job title as identifier for now
+          metadata: {
+            jobTitle: jobContext.jobTitle,
+            jobDescription: jobContext.jobDescription,
+            timestamp: new Date().toISOString(),
+            source: 'ai-interview-client'
+          }
+        }),
+      });
+      
       if (!response.ok) {
-        throw new Error(`Failed to get signed URL: ${response.status}`);
+        throw new Error(`Failed to create conversation session: ${response.status}`);
       }
+      
       const data = await response.json();
-      setSignedUrl(data.signed_url);
-      setConversationId(data.conversation_id);
-      return data.signed_url;
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to create conversation session');
+      }
+      
+      setSignedUrl(data.signedUrl);
+      setConversationId(data.conversationId);
+      return data.signedUrl;
     } catch (error) {
-      console.error('Error getting signed URL:', error);
+      console.error('Error creating conversation session:', error);
       throw error;
     }
-  }, []);
+  }, [jobContext]);
+
+  // End conversation session via Cloud Function
+  const endConversationSession = useCallback(async () => {
+    if (!conversationId) return;
+    
+    try {
+      const response = await fetch('https://us-central1-replit-4f946.cloudfunctions.net/elevenlabs-conversation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'end_session',
+          conversationId: conversationId,
+        }),
+      });
+      
+      if (!response.ok) {
+        console.warn(`Failed to end conversation session: ${response.status}`);
+        return;
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        console.log('Conversation session ended successfully:', conversationId);
+      } else {
+        console.warn('Failed to end conversation session:', data.error);
+      }
+    } catch (error) {
+      console.warn('Error ending conversation session:', error);
+      // Don't throw - this is not critical
+    }
+  }, [conversationId]);
 
   // ElevenLabs Conversation setup with proper configuration
   const conversation = useConversation({
@@ -342,6 +398,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       isIntentionalDisconnectRef.current = true;
       conversation.endSession().catch(e => console.error("CleanupResources: Error ending EL session:", e))
                                .finally(() => { isIntentionalDisconnectRef.current = false; });
+      
+      // Also end session via Cloud Function for proper cleanup
+      endConversationSession();
     } else {
       console.log("CleanupResources: EL session not connected or already cleaned up.");
     }
@@ -378,7 +437,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
     }
     isInterviewActiveRef.current = false;
     console.log("CleanupResources: Finished.");
-  }, [conversation]);
+  }, [conversation, endConversationSession]);
 
   const submitForFinalFeedback = useCallback(async (videoBlob: Blob | null) => {
     if (!videoBlob || videoBlob.size === 0) {
@@ -573,8 +632,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             countdownIntervalRef.current = null;
             console.log("Countdown finished. Getting signed URL and starting EL session.");
             
-            // Get signed URL and start ElevenLabs session
-            getSignedUrl().then(url => {
+            // Create conversation session and start ElevenLabs session
+            createConversationSession().then(url => {
               return conversation.startSession({
                 signedUrl: url
               });
@@ -608,7 +667,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
       cleanupResources();
       resetFullInterview();
     }
-  }, [toast, resetFullInterview, cleanupResources, handleElevenError, conversation, getSignedUrl]);
+  }, [toast, resetFullInterview, cleanupResources, handleElevenError, conversation, createConversationSession]);
 
   const handleConsentAndStart = () => {
     resetFullInterview();
