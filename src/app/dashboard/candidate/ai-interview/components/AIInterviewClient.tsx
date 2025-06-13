@@ -30,7 +30,7 @@ type Message = { sender: "user" | "agent"; text: string; timestamp: number };
 
 const SESSION_COUNTDOWN_SECONDS = 3;
 const MAX_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 minutes
-const ELEVENLABS_AGENT_ID = "EVQJtCNSo0L6uHQnImQuThe";
+const ELEVENLABS_AGENT_ID = "EVQJtCNSo0L6uHQnImQu";
 
 const formatFeedbackText = (text: string | undefined): React.ReactNode => {
   if (!text) return "No content available.";
@@ -292,7 +292,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   }, []);
 
   const conversation = ElevenReact.useConversation({
-      agentId: "EVQJtCNSo0L6uHQnImQuThe", // Your conversational agent ID
+      agentId: "EVQJtCNSo0L6uHQnImQu", // Your conversational agent ID
       ...(apiKey && { apiKey }), // Provide API key if available
       onConnect: useCallback(() => {
           if (isProcessingErrorRef.current) { console.warn("EL onConnect: Prevented due to active error processing."); isStartingSessionRef.current = false; return; }

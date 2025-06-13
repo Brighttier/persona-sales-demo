@@ -4,7 +4,7 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/';
 
 // Your conversational agent ID
-const CONVERSATIONAL_AGENT_ID = 'EVQJtCNSo0L6uHQnImQuThe';
+const CONVERSATIONAL_AGENT_ID = 'EVQJtCNSo0L6uHQnImQu';
 
 export async function POST(request: NextRequest) {
   try {
