@@ -5,10 +5,20 @@ import type { ObjectMetadata } from '@google-cloud/build/cjs/src/storage'; // At
 import path from 'path';
 import { Firestore } from '@google-cloud/firestore'; // Import Firestore
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
+// Import Vertex AI TextServiceClient
+const { TextServiceClient } = require("@google-cloud/aiplatform").v1beta1;
+
+// Import the new matching functions
+import { matchCandidatesToJob } from './matchCandidatesToJob';
+import { onNewJobApplication } from './onNewJobApplication'; // Import the new trigger function
 
 const storage = new Storage();
 const documentaiClient = new DocumentProcessorServiceClient();
 const firestore = new Firestore(); // Initialize Firestore
+// Initialize Vertex AI TextServiceClient
+const textServiceClient = new TextServiceClient({
+  apiEndpoint: 'us-central1-aiplatform.googleapis.com',
+});
 
 const projectId = process.env.GCP_PROJECT || '';
 const location = 'us'; // Specify the location of your processor and Vertex AI endpoint
@@ -19,32 +29,29 @@ const jobDescriptionProcessorId = 'your-job-description-processor-id'; // Replac
 async function generateEmbeddings(text: string, filePath: string, { dataType }: { dataType?: string } = {}): Promise<void> {
   console.log('Generating embeddings for extracted text using Vertex AI...');
 
-  // *** Note: Vertex AI TextServiceClient import and initialization were removed due to errors.
-  // You will need to add the correct import and initialization for Vertex AI Text Embeddings. ***
+  const model = `projects/${projectId}/locations/us-central1/endpoints/text-embeddings@005`; // Correct model path for text-embedding-005
+  const content = text;
 
-  // const model = 'text-embedding-005';
-  // const content = text;
+  try {
+    const [response] = await textServiceClient.embedText({
+      endpoint: `projects/${projectId}/locations/us-central1`,
+      model: model,
+      content: { content: content }, // Structure content correctly
+    });
 
-  // Commenting out the usage of textServiceClient until the correct Vertex AI setup is in place
-  // try {
-  //   const [response] = await textServiceClient.embedText({
-  //     model,
-  //     document: { content },
-  //   });
+    const embeddings = response.embeddings;
 
-  //   const embeddings = response.embeddings;
+    if (embeddings && embeddings.length > 0) {
+      const embeddingVector = embeddings[0].values; // Assuming you want the first embedding
 
-  //   if (embeddings && embeddings.length > 0) {
-  //     const embeddingVector = embeddings[0].values; // Assuming you want the first embedding
+      console.log('Embeddings generated successfully.'); // Log success without printing the whole vector
 
-  //     console.log('Embeddings generated successfully:', embeddingVector);
-
-      // *** Implement your logic to save the embeddings to Firestore ***
+      // Implement your logic to save the embeddings to Firestore
       try {
         const collectionRef = firestore.collection(dataType === 'jobDescription' ? 'jobDescriptionEmbeddings' : 'resumeEmbeddings'); // Use different collection based on dataType
         await collectionRef.add({
           text: text,
-          // embedding: embeddingVector, // Temporarily commented out
+          embedding: embeddingVector, // Uncommented
           filePath: filePath,
           timestamp: new Date(),
           ...(dataType && { dataType }),
@@ -55,14 +62,14 @@ async function generateEmbeddings(text: string, filePath: string, { dataType }: 
         // Decide how to handle Firestore errors (e.g., re-throw, log and continue)
       }
 
-  //   } else {
-  //     console.log('No embeddings generated.');
-  //   }
+    } else {
+      console.log('No embeddings generated.');
+    }
 
-  // } catch (error) {
-  //   console.error('Error generating embeddings with Vertex AI:', error);
-  //   throw error; // Re-throw the error to indicate failure
-  // }
+  } catch (error) {
+    console.error('Error generating embeddings with Vertex AI:', error);
+    throw error; // Re-throw the error to indicate failure
+  }
 }
 
 export const processResume = onObjectFinalized(async (event) => {
@@ -145,7 +152,7 @@ export const processJobDescription = onObjectFinalized(async (event) => {
   const filePath = object.name;
   const contentType = object.contentType;
 
-  if (!filePath || filePath.endsWith('/') || !contentType || !(contentType.startsWith('application/pdf') || contentType === 'text/plain'))), { // Added text/plain as an example, fixed potential syntax issue with closing paren
+  if (!filePath || filePath.endsWith('/') || !contentType || !(contentType.startsWith('application/pdf') || contentType === 'text/plain')) {
     console.log('Not a supported file type or a directory. Exiting.');
     return null;
   }
@@ -208,3 +215,6 @@ export const processJobDescription = onObjectFinalized(async (event) => {
     return null;
   }
 });
+
+// Export the matching functions
+export { matchCandidatesToJob, onNewJobApplication };
