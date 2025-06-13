@@ -12,6 +12,16 @@ const { TextServiceClient } = require("@google-cloud/aiplatform").v1beta1;
 import { matchCandidatesToJob } from './matchCandidatesToJob';
 import { onNewJobApplication } from './onNewJobApplication'; // Import the new trigger function
 
+// Import enhanced functions
+import { processResumeEnhanced } from './enhancedResumeProcessor';
+import { enhancedMatchCandidatesToJob } from './enhancedMatchingEngine';
+
+// Import Genkit wrapper functions
+import { 
+  aiInterviewSimulationFunction, 
+  aiCandidateScreeningFunction 
+} from './genkitWrappers';
+
 const storage = new Storage();
 const documentaiClient = new DocumentProcessorServiceClient();
 const firestore = new Firestore(); // Initialize Firestore
@@ -218,3 +228,15 @@ export const processJobDescription = onObjectFinalized(async (event) => {
 
 // Export the matching functions
 export { matchCandidatesToJob, onNewJobApplication };
+
+// Export enhanced functions
+export { 
+  processResumeEnhanced,
+  enhancedMatchCandidatesToJob
+};
+
+// Export Genkit wrapper functions
+export { 
+  aiInterviewSimulationFunction as aiInterviewSimulation,
+  aiCandidateScreeningFunction as aiCandidateScreening
+};

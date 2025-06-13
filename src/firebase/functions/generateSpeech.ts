@@ -5,7 +5,7 @@ const ELEVEN_LABS_API_KEY = process.env.ELEVEN_LABS_API_KEY;
 const ELEVEN_LABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech/'; // Base URL for text-to-speech
 
 // Replace with a default voice ID from Eleven Labs if not provided by the frontend
-const DEFAULT_VOICE_ID = '21m00Tcm4ops0 traigoC'; // Example: Rachel voice ID
+const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Example: Rachel voice ID
 
 export const generateSpeech = functions.https.onCall(async (data, context) => {
   // Optional: Check if the user is authenticated
@@ -16,7 +16,7 @@ export const generateSpeech = functions.https.onCall(async (data, context) => {
   const { text, voiceId = DEFAULT_VOICE_ID } = data; // Get text and optional voiceId from request data
 
   if (!text) {
-    throw new functions.https.HttpsError('invalid-argument', 'The 'text' parameter is required.');
+    throw new functions.https.HttpsError('invalid-argument', 'The text parameter is required.');
   }
 
   if (!ELEVEN_LABS_API_KEY) {

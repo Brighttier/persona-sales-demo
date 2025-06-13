@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import AIInterviewConsent from "./AIInterviewConsent";
 
 import type { AiInterviewSimulationInput, AiInterviewSimulationOutput } from "@/ai/flows/ai-interview-simulation";
-import { aiInterviewSimulation } from "@/ai/flows/ai-interview-simulation";
+import { genkitService, fileToDataUri, validateVideoDataUri, handleGenkitError } from "@/lib/genkit";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -185,7 +185,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           videoDataUri,
           fullTranscript: fullTranscript || "No transcript captured.",
         };
-        const result = await aiInterviewSimulation(input);
+        const result = await genkitService.runAIInterview(input);
         setFeedbackResult(result);
         setStage("feedback");
         toast({ title: "Feedback Received!", description: "AI has analyzed your interview." });
@@ -195,9 +195,10 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         cleanupResources(); 
         resetFullInterview();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting feedback:", error);
-      toast({ variant: "destructive", title: "Feedback Error", description: "Could not get AI feedback." });
+      const errorMessage = handleGenkitError(error);
+      toast({ variant: "destructive", title: "Feedback Error", description: errorMessage });
       cleanupResources(); 
       resetFullInterview();
     }

@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
 import { Firestore } from '@google-cloud/firestore';
-import { TextServiceClient } from '@google-cloud/aiplatform'.v1beta1;
+import { TextServiceClient } from '@google-cloud/aiplatform';
 
 const firestore = new Firestore();
 
@@ -39,7 +39,7 @@ export const matchCandidatesToJob = functions.https.onCall(async (data, context)
   const { jobId, candidateIds } = data; // jobId is required, candidateIds is optional
 
   if (!jobId) {
-    throw new functions.https.HttpsError('invalid-argument', 'The 'jobId' parameter is required.');
+    throw new functions.https.HttpsError('invalid-argument', 'The jobId parameter is required.');
   }
 
   try {
@@ -50,14 +50,14 @@ export const matchCandidatesToJob = functions.https.onCall(async (data, context)
       .get();
 
     if (jobEmbeddingSnapshot.empty) {
-      throw new functions.https.HttpsError('not-found', `Job description embedding not found for jobId: ${jobId}.`);
+      throw new functions.https.HttpsError('not-found', `Job description embedding not found for jobId: ${jobId}`);
     }
 
     const jobEmbeddingData = jobEmbeddingSnapshot.docs[0].data();
     const jobEmbeddingVector = jobEmbeddingData.embedding;
 
     if (!jobEmbeddingVector) {
-         throw new functions.https.HttpsError('internal', `Job embedding vector is missing for jobId: ${jobId}.`);
+         throw new functions.https.HttpsError('internal', `Job embedding vector is missing for jobId: ${jobId}`);
     }
 
     // 2. Fetch candidate embeddings

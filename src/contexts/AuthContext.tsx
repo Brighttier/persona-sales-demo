@@ -1,79 +1,211 @@
-
 "use client";
 
-import type { User, UserRole} from '@/config/roles';
-import { DEMO_USERS, USER_ROLES } from '@/config/roles';
+import type { User as FirebaseUser } from 'firebase/auth';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  updateProfile
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+import type { UserRole } from '@/config/roles';
 import { useRouter } from 'next/navigation';
-import type { ReactNode} from 'react';
+import type { ReactNode } from 'react';
 import { createContext, useCallback, useEffect, useState } from 'react';
+
+export interface User {
+  uid: string;
+  email: string;
+  displayName?: string;
+  role: UserRole;
+  createdAt?: Date;
+  updatedAt?: Date;
+  profileComplete?: boolean;
+}
 
 interface AuthContextType {
   user: User | null;
+  firebaseUser: FirebaseUser | null;
   role: UserRole | null;
   isLoading: boolean;
-  login: (role: UserRole) => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, displayName: string, role: UserRole) => Promise<void>;
+  logout: () => Promise<void>;
+  updateUserProfile: (updates: Partial<User>) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'persona-ai-user';
-const COOKIE_KEY = 'persona-ai-user'; // Same key for cookie, used by middleware
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // setIsLoading(true); // Initial state is already true
-    try {
-      const storedUser = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedUser) {
-        const parsedUser: User = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setRole(parsedUser.role);
-        // Sync cookie: if user found in localStorage, ensure cookie is set for middleware
-        const userJson = JSON.stringify(parsedUser);
-        document.cookie = `${COOKIE_KEY}=${encodeURIComponent(userJson)}; path=/; max-age=${60 * 60 * 24 * 7}`; // Expires in 7 days
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setIsLoading(true);
+      
+      if (firebaseUser) {
+        setFirebaseUser(firebaseUser);
+        
+        try {
+          // Get user profile from Firestore
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const user: User = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email!,
+              displayName: firebaseUser.displayName || userData.displayName,
+              role: userData.role,
+              createdAt: userData.createdAt?.toDate(),
+              updatedAt: userData.updatedAt?.toDate(),
+              profileComplete: userData.profileComplete
+            };
+            
+            setUser(user);
+            setRole(user.role);
+          } else {
+            // User document doesn't exist, create it with default role
+            const defaultRole: UserRole = 'candidate';
+            const newUser: User = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email!,
+              displayName: firebaseUser.displayName || '',
+              role: defaultRole,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              profileComplete: false
+            };
+            
+            await setDoc(doc(db, 'users', firebaseUser.uid), {
+              ...newUser,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+            
+            setUser(newUser);
+            setRole(defaultRole);
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          setUser(null);
+          setRole(null);
+        }
       } else {
-        // No user in localStorage, ensure cookie is also cleared for consistency
-        document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`; // Expire cookie
+        setFirebaseUser(null);
+        setUser(null);
+        setRole(null);
       }
-    } catch (error) {
-      console.error("Failed to load user from localStorage or sync cookie", error);
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`; // Clear potentially problematic cookie
-    } finally {
+      
       setIsLoading(false);
-    }
-  }, []); // Empty dependency array means this runs once on mount
+    });
 
-  const login = useCallback((selectedRole: UserRole) => {
-    const demoUser = DEMO_USERS[selectedRole];
-    if (demoUser) {
-      setUser(demoUser);
-      setRole(demoUser.role);
-      const userJson = JSON.stringify(demoUser);
-      localStorage.setItem(LOCAL_STORAGE_KEY, userJson);
-      // Set cookie for middleware
-      document.cookie = `${COOKIE_KEY}=${encodeURIComponent(userJson)}; path=/; max-age=${60 * 60 * 24 * 7}`; // Expires in 7 days
-      router.push(`/dashboard/${demoUser.role}/dashboard`);
+    return () => unsubscribe();
+  }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // User state will be updated by onAuthStateChanged
+      
+      // Redirect based on role (will be determined after user data is loaded)
+      setTimeout(() => {
+        if (user?.role) {
+          router.push(`/dashboard/${user.role}/dashboard`);
+        }
+      }, 100);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw new Error(error.message || 'Failed to sign in');
+    }
+  }, [router, user?.role]);
+
+  const register = useCallback(async (
+    email: string, 
+    password: string, 
+    displayName: string, 
+    role: UserRole
+  ) => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Update Firebase Auth profile
+      await updateProfile(result.user, { displayName });
+      
+      // Create user document in Firestore
+      const newUser: User = {
+        uid: result.user.uid,
+        email: result.user.email!,
+        displayName,
+        role,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        profileComplete: false
+      };
+      
+      await setDoc(doc(db, 'users', result.user.uid), {
+        ...newUser,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      router.push(`/dashboard/${role}/dashboard`);
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      throw new Error(error.message || 'Failed to create account');
     }
   }, [router]);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    setRole(null);
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-    // Clear cookie for middleware
-    document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`; // Expire cookie
-    router.push('/login');
+  const logout = useCallback(async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      throw new Error(error.message || 'Failed to sign out');
+    }
   }, [router]);
+
+  const updateUserProfile = useCallback(async (updates: Partial<User>) => {
+    if (!user) return;
+    
+    try {
+      // Update Firestore document
+      await updateDoc(doc(db, 'users', user.uid), {
+        ...updates,
+        updatedAt: new Date()
+      });
+      
+      // Update Firebase Auth profile if displayName is being updated
+      if (updates.displayName && firebaseUser) {
+        await updateProfile(firebaseUser, { displayName: updates.displayName });
+      }
+      
+      // Update local state
+      setUser(prev => prev ? { ...prev, ...updates, updatedAt: new Date() } : null);
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      throw new Error(error.message || 'Failed to update profile');
+    }
+  }, [user, firebaseUser]);
 
   return (
-    <AuthContext.Provider value={{ user, role, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      firebaseUser, 
+      role, 
+      isLoading, 
+      login, 
+      register, 
+      logout, 
+      updateUserProfile 
+    }}>
       {children}
     </AuthContext.Provider>
   );
