@@ -163,6 +163,46 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
           const newBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
           console.log("MediaRecorder onstop: New blob created. Size:", newBlob.size);
           setRecordedVideoBlob(newBlob);
+          
+          // Submit for feedback if we have video data
+          if (newBlob.size > 0 && (stageRef.current === 'interviewing' || stageRef.current === 'submitting' || isIntentionalDisconnectRef.current)) {
+            if (stageRef.current !== 'feedback' && stageRef.current !== 'submitting') {
+              // We'll handle this in a useEffect to avoid circular dependencies
+              setTimeout(() => {
+                if (newBlob.size > 0) {
+                  setStage("submitting");
+                  const reader = new FileReader();
+                  reader.readAsDataURL(newBlob);
+                  reader.onloadend = async () => {
+                    try {
+                      const videoDataUri = reader.result as string;
+                      const input: AiInterviewSimulationInput = {
+                        jobDescription: jobContext.jobDescription,
+                        candidateResume: jobContext.candidateResume,
+                        videoDataUri,
+                        fullTranscript: fullTranscript || "No transcript captured.",
+                      };
+                      const result = await genkitService.runAIInterview(input);
+                      setFeedbackResult(result);
+                      setStage("feedback");
+                      toast({ title: "Feedback Received!", description: "AI has analyzed your interview." });
+                    } catch (error: any) {
+                      console.error("Error getting feedback:", error);
+                      const errorMessage = handleGenkitError(error);
+                      toast({ variant: "destructive", title: "Feedback Error", description: errorMessage });
+                      setStage("consent");
+                    }
+                  };
+                  reader.onerror = () => {
+                    toast({ variant: "destructive", title: "File Read Error", description: "Could not process video for submission." });
+                    setStage("consent");
+                  }
+                }
+              }, 100);
+            }
+          } else if (newBlob.size === 0 && (stageRef.current === 'interviewing' || stageRef.current === 'submitting')) {
+            toast({ variant: "destructive", title: "Recording Issue", description: "No video data was recorded." });
+          }
           recordedChunksRef.current = [];
         };
         
@@ -266,15 +306,6 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   });
 
   const { status, isSpeaking } = conversation;
-
-  // Handle recording blob submission
-  useEffect(() => {
-    if (recordedVideoBlob && recordedVideoBlob.size > 0 && 
-        (stage === 'interviewing' || stage === 'submitting') && 
-        !isProcessingErrorRef.current) {
-      submitForFinalFeedback(recordedVideoBlob);
-    }
-  }, [recordedVideoBlob, stage, submitForFinalFeedback]);
 
   const resetFullInterview = useCallback(() => {
     console.log("ResetFullInterview: Resetting states and refs...");
@@ -545,7 +576,7 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
             // Get signed URL and start ElevenLabs session
             getSignedUrl().then(url => {
               return conversation.startSession({
-                url: url
+                signedUrl: url
               });
             }).then(() => {
               console.log("EL session started successfully with signed URL");
