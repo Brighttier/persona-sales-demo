@@ -52,6 +52,20 @@ env:
       - BUILD
       - RUNTIME
 
+  # Dummy ElevenLabs API key to satisfy client library (actual API calls use Cloud Function)
+  - variable: NEXT_PUBLIC_ELEVENLABS_API_KEY
+    value: "signed-url-mode"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # ElevenLabs Agent ID for the conversational AI agent
+  - variable: NEXT_PUBLIC_AGENT_ID
+    value: "EVQJtCNSo0L6uHQnImQu"
+    availability:
+      - BUILD
+      - RUNTIME
+
   # ElevenLabs webhook secret for validating webhook signatures (server-side only)
   - variable: ELEVENLABS_WEBHOOK_SECRET
     secret: ELEVENLABS_WEBHOOK_SECRET
