@@ -152,8 +152,11 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   // Note: ElevenLabs conversations end automatically when the WebSocket connection closes
   // No explicit "end session" API call needed since we use signed URLs
 
-  // ElevenLabs Conversation setup with proper configuration
+  // ElevenLabs Conversation setup with signed URL approach (no API key needed)
+  console.log('Initializing useConversation hook with signed URL approach');
   const conversation = useConversation({
+    // Explicitly disable API key usage - we use signed URLs instead
+    apiKey: null,
     onConnect: useCallback(() => {
       if (isProcessingErrorRef.current) {
         console.warn("EL onConnect: Prevented due to active error processing.");
