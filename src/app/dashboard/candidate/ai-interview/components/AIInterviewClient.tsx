@@ -112,7 +112,9 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const stageRef = useRef(stage);
   useEffect(() => { stageRef.current = stage; }, [stage]);
 
-  const elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
+  // Get ElevenLabs API key with fallback
+  const elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || 
+                          (typeof window !== 'undefined' && (window as any).NEXT_PUBLIC_ELEVENLABS_API_KEY);
 
   const resetFullInterview = useCallback(() => {
     console.log("ResetFullInterview: Resetting states and refs...");
@@ -493,11 +495,26 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   }, [conversationMessages, stage]);
 
 
+  // Debug logging for ElevenLabs API key
+  useEffect(() => {
+    console.log('ElevenLabs API Key Status:', {
+      hasKey: !!elevenLabsApiKey,
+      keyLength: elevenLabsApiKey?.length || 0,
+      envVars: Object.keys(process.env).filter(key => key.includes('ELEVEN')),
+    });
+  }, [elevenLabsApiKey]);
+
   if (!elevenLabsApiKey) {
     return (
       <Alert variant="destructive" className="shadow-lg mt-6">
         <AlertCircle className="h-4 w-4" /> <AlertTitle>Configuration Error</AlertTitle>
-        <AlertDescription>The ElevenLabs API Key is missing. Please set NEXT_PUBLIC_ELEVENLABS_API_KEY.</AlertDescription>
+        <AlertDescription>
+          The ElevenLabs API Key is missing. Please set NEXT_PUBLIC_ELEVENLABS_API_KEY.
+          <br />
+          <small className="text-xs mt-2 block">
+            Debug: Environment variables available: {Object.keys(process.env).filter(key => key.includes('ELEVEN')).join(', ') || 'None found'}
+          </small>
+        </AlertDescription>
       </Alert>
     );
   }

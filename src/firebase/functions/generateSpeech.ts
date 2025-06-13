@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions';
 import fetch from 'node-fetch'; // Assuming node-fetch is available or will be installed
 
-const ELEVEN_LABS_API_KEY = process.env.ELEVEN_LABS_API_KEY;
+const ELEVEN_LABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVEN_LABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech/'; // Base URL for text-to-speech
 
 // Replace with a default voice ID from Eleven Labs if not provided by the frontend
