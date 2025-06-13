@@ -1,4 +1,7 @@
 {
+  "firebase_hosting": {
+    "deploymentHostingUrl": "https://persona-demo-829b8.web.app"
+  },
   "gemini_api": {},
   "secrets_manager": {}
 }

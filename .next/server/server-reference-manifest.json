@@ -1,39 +1,5 @@
 {
-  "node": {
-    "40b3986aa0e2405743af6ebe0a1ad67813cf37d15f": {
-      "workers": {
-        "app/dashboard/candidate/ai-interview/page": {
-          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Fuser%2Fpersona-sales-demo%2Fsrc%2Fai%2Fflows%2Fai-interview-simulation.ts%22%2C%5B%7B%22id%22%3A%2240b3986aa0e2405743af6ebe0a1ad67813cf37d15f%22%2C%22exportedName%22%3A%22aiInterviewSimulation%22%7D%5D%5D%5D&__client_imported__=true!",
-          "async": false
-        }
-      },
-      "layer": {
-        "app/dashboard/candidate/ai-interview/page": "action-browser"
-      }
-    },
-    "4045d7a36efcaa94927cbd37ac20904ffd3f304412": {
-      "workers": {
-        "app/dashboard/candidate/profile/page": {
-          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Fuser%2Fpersona-sales-demo%2Fsrc%2Fai%2Fflows%2Fprofile-enrichment.ts%22%2C%5B%7B%22id%22%3A%224045d7a36efcaa94927cbd37ac20904ffd3f304412%22%2C%22exportedName%22%3A%22enrichProfile%22%7D%5D%5D%5D&__client_imported__=true!",
-          "async": false
-        }
-      },
-      "layer": {
-        "app/dashboard/candidate/profile/page": "action-browser"
-      }
-    },
-    "406c36f2f254b9748c8bee626857ad49c1f5180d53": {
-      "workers": {
-        "app/dashboard/recruiter/job-listings/new/page": {
-          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Fuser%2Fpersona-sales-demo%2Fsrc%2Fai%2Fflows%2Fgenerate-job-posting-flow.ts%22%2C%5B%7B%22id%22%3A%22406c36f2f254b9748c8bee626857ad49c1f5180d53%22%2C%22exportedName%22%3A%22generateJobPostingDetails%22%7D%5D%5D%5D&__client_imported__=true!",
-          "async": false
-        }
-      },
-      "layer": {
-        "app/dashboard/recruiter/job-listings/new/page": "action-browser"
-      }
-    }
-  },
+  "node": {},
   "edge": {},
   "encryptionKey": "/enKzx/y1M04VtHjNhLRt/UNFbk8EjlCBxvovo1sHoc="
 }
