@@ -1,13 +1,6 @@
 
 "use client";
 
-export async function generateStaticParams() {
-  return [
-    { candidateId: 'candidate-1' },
-    { candidateId: 'candidate-2' },
-  ];
-}
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
