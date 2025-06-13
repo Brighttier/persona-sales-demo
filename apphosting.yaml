@@ -53,7 +53,8 @@ env:
       - RUNTIME
 
   # API Keys (Secrets) - Store these in Secret Manager
-  - variable: ELEVEN_LABS_API_KEY
+  - variable: NEXT_PUBLIC_ELEVENLABS_API_KEY
     secret: eleven-labs-api-key
     availability:
+      - BUILD
       - RUNTIME
