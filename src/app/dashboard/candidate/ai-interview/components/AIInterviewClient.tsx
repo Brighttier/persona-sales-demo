@@ -7,12 +7,10 @@ import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, Loader2, Timer, AlertCircle, BotMessageSquare, User, Film, Brain, ThumbsUp, ThumbsDown, MessageSquare as MessageSquareIcon, Star, Users as UsersIcon, Mic, VideoOff } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as ElevenReact from '@11labs/react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
 import { cn } from "@/lib/utils";
 import AIInterviewConsent from "./AIInterviewConsent";
 
-import type { AiInterviewSimulationInput, AiInterviewSimulationOutput } from "@/ai/flows/ai-interview-simulation";
+import type { AiInterviewSimulationInput, AiInterviewSimulationOutput } from "../../../../../ai/flows/ai-interview-simulation";
 import { genkitService, handleGenkitError } from "@/lib/genkit";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

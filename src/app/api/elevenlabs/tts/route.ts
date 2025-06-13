@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/';
+const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
 
 // Your conversational agent ID
 const CONVERSATIONAL_AGENT_ID = 'EVQJtCNSo0L6uHQnImQu';
