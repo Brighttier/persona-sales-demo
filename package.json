@@ -12,8 +12,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@11labs/react": "^0.1.4",
     "@elevenlabs/elevenlabs-js": "^2.1.0",
+    "@elevenlabs/react": "^0.1.7",
     "@genkit-ai/googleai": "^1.8.0",
     "@genkit-ai/next": "^1.8.0",
     "@google-cloud/documentai": "^9.2.0",
