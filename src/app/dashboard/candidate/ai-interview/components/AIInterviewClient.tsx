@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, CheckCircle, Loader2, Timer, AlertCircle, BotMessageSquare, User, Film, Brain, ThumbsUp, ThumbsDown, MessageSquare as MessageSquareIcon, Star, Users as UsersIcon, Mic, Volume2, VideoOff } from "lucide-react";
+import { CheckCircle, Loader2, Timer, AlertCircle, BotMessageSquare, User, Film, Brain, ThumbsUp, ThumbsDown, MessageSquare as MessageSquareIcon, Star, Users as UsersIcon, Mic, VideoOff } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as ElevenReact from '@11labs/react';
 import { useRouter } from 'next/navigation';
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import AIInterviewConsent from "./AIInterviewConsent";
 
 import type { AiInterviewSimulationInput, AiInterviewSimulationOutput } from "@/ai/flows/ai-interview-simulation";
-import { genkitService, fileToDataUri, validateVideoDataUri, handleGenkitError } from "@/lib/genkit";
+import { genkitService, handleGenkitError } from "@/lib/genkit";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -82,8 +82,6 @@ const formatFeedbackText = (text: string | undefined): React.ReactNode => {
 
 export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
   const { toast } = useToast();
-  const router = useRouter();
-  const { role } = useAuth();
 
   const [stage, setStage] = useState<InterviewStage>("consent");
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -408,8 +406,8 @@ export function AIInterviewClient({ jobContext }: AIInterviewClientProps) {
         }
       }, []),
 
-      onError: useCallback((error: Error) => {
-          handleElevenError(error, "useConversation onError");
+      onError: useCallback((message: string, context?: any) => {
+          handleElevenError(new Error(message), context ? `useConversation onError: ${context}` : "useConversation onError");
       }, [handleElevenError]),
   });
   const conversationRef = useRef(conversation);
