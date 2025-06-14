@@ -102,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Only attempt to fetch user profile if online
         if (isOnline) {
+
           try {
             console.log('Fetching user document for:', firebaseUser.uid);
             // Get user profile from Firestore with retry logic
