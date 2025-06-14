@@ -83,7 +83,7 @@ export default function CandidateDashboardPage() {
     <div className="space-y-8">
       <Card className="shadow-xl bg-gradient-to-r from-primary/10 via-background to-background">
         <CardHeader>
-          <CardTitle className="text-3xl">Welcome back, {user.name.split(" ")[0]}!</CardTitle>
+          <CardTitle className="text-3xl">Welcome back, {user.displayName?.split(" ")[0] || 'there'}!</CardTitle>
           <CardDescription>Here's an overview of your job search journey.</CardDescription>
         </CardHeader>
       </Card>
