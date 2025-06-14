@@ -38,12 +38,47 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Utility function to retry Firestore operations
+async function getDocWithRetry(docRef: any, maxRetries = 3): Promise<any> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await getDoc(docRef);
+    } catch (error: any) {
+      console.warn(`Attempt ${attempt} failed:`, error.message);
+      
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Wait before retrying (exponential backoff)
+      const delay = Math.pow(2, attempt - 1) * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(true);
   const router = useRouter();
+
+  // Monitor network connectivity
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    setIsOnline(navigator.onLine);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -53,8 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setFirebaseUser(firebaseUser);
         
         try {
-          // Get user profile from Firestore
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          // Get user profile from Firestore with retry logic
+          const userDoc = await getDocWithRetry(doc(db, 'users', firebaseUser.uid));
           
           if (userDoc.exists()) {
             const userData = userDoc.data();
@@ -92,8 +127,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(newUser);
             setRole(defaultRole);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error fetching user profile:', error);
+          
+          // Provide better error messaging for offline scenarios
+          if (!isOnline) {
+            console.warn('User is offline, unable to fetch profile');
+          } else if (error.code === 'unavailable') {
+            console.warn('Firebase is temporarily unavailable');
+          }
+          
           setUser(null);
           setRole(null);
         }
