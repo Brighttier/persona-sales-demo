@@ -15,6 +15,17 @@ import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { createContext, useCallback, useEffect, useState } from 'react';
 
+// Cookie utility functions
+function setCookie(name: string, value: string, days: number = 7) {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+}
+
+function deleteCookie(name: string) {
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+}
+
 export interface User {
   uid: string;
   email: string;
@@ -105,6 +116,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
             setUser(user);
             setRole(user.role);
+            
+            // Set cookie for middleware
+            setCookie('persona-ai-user', JSON.stringify(user));
           } else {
             // User document doesn't exist, create it with default role
             const defaultRole: UserRole = 'candidate';
@@ -126,6 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
             setUser(newUser);
             setRole(defaultRole);
+            
+            // Set cookie for middleware
+            setCookie('persona-ai-user', JSON.stringify(newUser));
           }
         } catch (error: any) {
           console.error('Error fetching user profile:', error);
@@ -139,11 +156,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           setUser(null);
           setRole(null);
+          
+          // Clear cookie on error
+          deleteCookie('persona-ai-user');
         }
       } else {
         setFirebaseUser(null);
         setUser(null);
         setRole(null);
+        
+        // Clear cookie when user signs out
+        deleteCookie('persona-ai-user');
       }
       
       setIsLoading(false);
@@ -155,19 +178,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // User state will be updated by onAuthStateChanged
-      
-      // Redirect based on role (will be determined after user data is loaded)
-      setTimeout(() => {
-        if (user?.role) {
-          router.push(`/dashboard/${user.role}/dashboard`);
-        }
-      }, 100);
+      // User state and redirection will be handled by onAuthStateChanged
+      // No need to manually redirect here as the middleware will handle it
     } catch (error: any) {
       console.error('Login error:', error);
       throw new Error(error.message || 'Failed to sign in');
     }
-  }, [router, user?.role]);
+  }, []);
 
   const register = useCallback(async (
     email: string, 
@@ -231,7 +248,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       // Update local state
-      setUser(prev => prev ? { ...prev, ...updates, updatedAt: new Date() } : null);
+      const updatedUser = user ? { ...user, ...updates, updatedAt: new Date() } : null;
+      setUser(updatedUser);
+      
+      // Update cookie with new user data
+      if (updatedUser) {
+        setCookie('persona-ai-user', JSON.stringify(updatedUser));
+      }
     } catch (error: any) {
       console.error('Profile update error:', error);
       throw new Error(error.message || 'Failed to update profile');
