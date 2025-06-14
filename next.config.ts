@@ -17,7 +17,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  allowedDevOrigins: ['https://7000-firebase-studio-1747828800055.cluster-ejd22kqny5htuv5dfowoyipt52.cloudworkstations.dev'],
+  allowedDevOrigins: [
+    'https://7000-firebase-studio-1747828800055.cluster-ejd22kqny5htuv5dfowoyipt52.cloudworkstations.dev',
+    'https://7000-firebase-persona-sales-demo-1749601785718.cluster-nzwlpk54dvagsxetkvxzbvslyi.cloudworkstations.dev'
+  ],
   async headers() {
     return [
       {
