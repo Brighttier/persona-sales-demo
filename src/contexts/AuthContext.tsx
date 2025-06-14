@@ -74,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const router = useRouter();
 
   // Monitor network connectivity
@@ -94,58 +95,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('Auth state change:', firebaseUser?.uid || 'null');
-      setIsLoading(true);
+      if (isInitialLoad) setIsLoading(true);
       
       if (firebaseUser) {
         setFirebaseUser(firebaseUser);
         
-        try {
-          console.log('Fetching user document for:', firebaseUser.uid);
-          // Get user profile from Firestore with retry logic
-          const userDoc = await getDocWithRetry(doc(db, 'users', firebaseUser.uid));
-          
-          if (userDoc.exists()) {
-            console.log('User document found:', userDoc.data());
-            const userData = userDoc.data();
-            const user: User = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email!,
-              displayName: firebaseUser.displayName || userData.displayName,
-              role: userData.role,
-              createdAt: userData.createdAt?.toDate(),
-              updatedAt: userData.updatedAt?.toDate(),
-              profileComplete: userData.profileComplete
-            };
+        // Only attempt to fetch user profile if online
+        if (isOnline) {
+          try {
+            console.log('Fetching user document for:', firebaseUser.uid);
+            // Get user profile from Firestore with retry logic
+            const userDoc = await getDocWithRetry(doc(db, 'users', firebaseUser.uid));
             
-            setUser(user);
-            setRole(user.role);
+            if (userDoc.exists()) {
+              console.log('User document found:', userDoc.data());
+              const userData = userDoc.data();
+              const user: User = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email!,
+                displayName: firebaseUser.displayName || userData.displayName,
+                role: userData.role,
+                createdAt: userData.createdAt?.toDate(),
+                updatedAt: userData.updatedAt?.toDate(),
+                profileComplete: userData.profileComplete
+              };
+              
+              setUser(user);
+              setRole(user.role);
+              
+              // Set cookie for middleware
+              setCookie('persona-ai-user', JSON.stringify(user));
+            } else {
+              // User document doesn't exist, create it with default role
+              const defaultRole: UserRole = 'candidate';
+              const newUser: User = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email!,
+                displayName: firebaseUser.displayName || '',
+                role: defaultRole,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                profileComplete: false
+              };
+              
+              await setDoc(doc(db, 'users', firebaseUser.uid), {
+                ...newUser,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+              
+              setUser(newUser);
+              setRole(defaultRole);
             
-            // Set cookie for middleware
-            setCookie('persona-ai-user', JSON.stringify(user));
-          } else {
-            // User document doesn't exist, create it with default role
-            const defaultRole: UserRole = 'candidate';
-            const newUser: User = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email!,
-              displayName: firebaseUser.displayName || '',
-              role: defaultRole,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              profileComplete: false
-            };
-            
-            await setDoc(doc(db, 'users', firebaseUser.uid), {
-              ...newUser,
-              createdAt: new Date(),
-              updatedAt: new Date()
-            });
-            
-            setUser(newUser);
-            setRole(defaultRole);
-            
-            // Set cookie for middleware
-            setCookie('persona-ai-user', JSON.stringify(newUser));
+              // Set cookie for middleware
+              setCookie('persona-ai-user', JSON.stringify(newUser));
+            }
           }
         } catch (error: any) {
           console.error('Error fetching user profile:', error);
