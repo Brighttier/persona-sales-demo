@@ -1,4 +1,3 @@
-import { db } from '@/lib/firebase';
 import { collection, doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 
 export interface InterviewWebhookData {
@@ -20,6 +19,7 @@ export interface InterviewWebhookData {
  */
 export async function storeInterviewWebhookData(data: InterviewWebhookData) {
   try {
+    const { db } = await import('@/lib/firebase');
     const interviewRef = doc(db, 'interview-sessions', data.conversationId);
     
     // Store the webhook data
@@ -63,6 +63,7 @@ async function updateCandidateInterviewHistory(
   data: InterviewWebhookData
 ) {
   try {
+    const { db } = await import('@/lib/firebase');
     const candidateRef = doc(db, 'users', userId, 'candidates', candidateId);
     const candidateDoc = await getDoc(candidateRef);
     
@@ -100,6 +101,7 @@ async function updateCandidateInterviewHistory(
  */
 export async function getInterviewData(conversationId: string) {
   try {
+    const { db } = await import('@/lib/firebase');
     const interviewRef = doc(db, 'interview-sessions', conversationId);
     const interviewDoc = await getDoc(interviewRef);
     
