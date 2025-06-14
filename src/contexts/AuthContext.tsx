@@ -93,16 +93,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('Auth state change:', firebaseUser?.uid || 'null');
       setIsLoading(true);
       
       if (firebaseUser) {
         setFirebaseUser(firebaseUser);
         
         try {
+          console.log('Fetching user document for:', firebaseUser.uid);
           // Get user profile from Firestore with retry logic
           const userDoc = await getDocWithRetry(doc(db, 'users', firebaseUser.uid));
           
           if (userDoc.exists()) {
+            console.log('User document found:', userDoc.data());
             const userData = userDoc.data();
             const user: User = {
               uid: firebaseUser.uid,
@@ -146,6 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error: any) {
           console.error('Error fetching user profile:', error);
+          console.error('Firebase config:', {
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+          });
           
           // Provide better error messaging for offline scenarios
           if (!isOnline) {
